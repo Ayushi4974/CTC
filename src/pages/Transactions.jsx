@@ -1,0 +1,228 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Search, ArrowUpRight, ArrowDownRight, Package, Users, Gift, 
+  CheckCircle2, Clock, XCircle, Copy, Check, Filter
+} from 'lucide-react';
+
+const mockTransactions = [
+  { id: 'TXN-98234', type: 'Deposit', desc: 'Account Funding', amount: '+CTC 5,000.00', isPositive: true, date: '2026-05-12 14:30', status: 'Completed', hash: '0x3f8a...9a2c' },
+  { id: 'TXN-98233', type: 'Investment', desc: 'Purchased Package 3', amount: '-CTC 10,000.00', isPositive: false, date: '2026-05-11 09:15', status: 'Completed', hash: '0x7c2b...1e4d' },
+  { id: 'TXN-98232', type: 'Withdrawal', desc: 'Bank Transfer', amount: '-CTC 250.00', isPositive: false, date: '2026-05-10 18:45', status: 'Pending', hash: '0x1a9f...8b3e' },
+  { id: 'TXN-98231', type: 'Referral', desc: 'Level 1 Commission', amount: '+CTC 1,250.00', isPositive: true, date: '2026-05-09 11:20', status: 'Completed', hash: 'System' },
+  { id: 'TXN-98230', type: 'Bonus', desc: 'Fastrack Reward', amount: '+CTC 500.00', isPositive: true, date: '2026-05-08 16:00', status: 'Completed', hash: 'System' },
+  { id: 'TXN-98229', type: 'Withdrawal', desc: 'USDT (BEP-20)', amount: '-CTC 1,000.00', isPositive: false, date: '2026-05-05 10:10', status: 'Failed', hash: '0x9d4e...2c1f' },
+];
+
+const filters = ['All', 'Deposit', 'Withdrawal', 'Investment', 'Referral', 'Bonus'];
+
+const Transactions = () => {
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [copiedHash, setCopiedHash] = useState(null);
+
+  const handleCopy = (hash) => {
+    if (hash === 'System') return;
+    navigator.clipboard.writeText(hash);
+    setCopiedHash(hash);
+    setTimeout(() => setCopiedHash(null), 2000);
+  };
+
+  const filteredTransactions = mockTransactions.filter(txn => {
+    const matchesFilter = activeFilter === 'All' || txn.type === activeFilter;
+    const matchesSearch = 
+      txn.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      txn.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      txn.hash.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesFilter && matchesSearch;
+  });
+
+  const getTypeIcon = (type) => {
+    switch(type) {
+      case 'Deposit': return <ArrowDownRight size={16} className="text-[#00FF99]" />;
+      case 'Withdrawal': return <ArrowUpRight size={16} className="text-[#FF00FF]" />;
+      case 'Investment': return <Package size={16} className="text-[#00C6FF]" />;
+      case 'Referral': return <Users size={16} className="text-[#A020F0]" />;
+      case 'Bonus': return <Gift size={16} className="text-yellow-500" />;
+      default: return <ArrowUpRight size={16} />;
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch(status) {
+      case 'Completed':
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#00FF99]/10 text-[#00FF99] border border-[#00FF99]/20 shadow-[0_0_10px_rgba(0,255,153,0.1)]"><CheckCircle2 size={12} /> Completed</span>;
+      case 'Pending':
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.1)] animate-pulse"><Clock size={12} /> Pending</span>;
+      case 'Failed':
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]"><XCircle size={12} /> Failed</span>;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto pb-12 pt-4 px-4 sm:px-6 lg:px-8">
+      
+      {/* Header */}
+      <div className="mb-8">
+        <motion.h1 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-3xl font-extrabold text-white mb-2"
+        >
+          Transaction History
+        </motion.h1>
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="text-gray-400"
+        >
+          View and track all your financial activities, deposits, and withdrawals.
+        </motion.p>
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-gray-800/60 rounded-3xl p-6 shadow-lg flex flex-col gap-6"
+      >
+        {/* Filter & Search Bar */}
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-[#161B2A]/50 p-2 rounded-2xl border border-gray-800/50">
+          
+          {/* Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+            {filters.map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${
+                  activeFilter === filter 
+                    ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_15px_rgba(160,32,240,0.4)]' 
+                    : 'bg-[#0B0F1A] text-gray-400 border border-gray-800 hover:border-gray-600 hover:text-white'
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative w-full xl:w-[350px]">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+              <Search size={16} />
+            </span>
+            <input 
+              type="text" 
+              placeholder="Search transactions..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#0B0F1A] border border-gray-800 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#A020F0] focus:ring-1 focus:ring-[#A020F0] transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Transactions Table */}
+        <div className="overflow-x-auto">
+          <div className="min-w-[900px]">
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-800/60 text-[11px] font-bold text-gray-500 uppercase tracking-widest bg-[#161B2A]/30 rounded-t-2xl">
+              <div className="col-span-2">Type</div>
+              <div className="col-span-3">Description</div>
+              <div className="col-span-2 text-right">Amount</div>
+              <div className="col-span-2 text-center">Date</div>
+              <div className="col-span-1 text-center">Status</div>
+              <div className="col-span-2 text-right">Hash / ID</div>
+            </div>
+
+            {/* Table Body */}
+            <div className="flex flex-col">
+              <AnimatePresence>
+                {filteredTransactions.length > 0 ? (
+                  filteredTransactions.map((txn, idx) => (
+                    <motion.div 
+                      key={txn.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-800/30 items-center hover:bg-[#161B2A]/40 transition-colors group"
+                    >
+                      {/* Type */}
+                      <div className="col-span-2 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#161B2A] border border-gray-800 flex items-center justify-center group-hover:border-[#A020F0]/50 transition-colors">
+                          {getTypeIcon(txn.type)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white">{txn.type}</p>
+                          <p className="text-[10px] text-gray-500">{txn.id}</p>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div className="col-span-3">
+                        <p className="text-sm font-medium text-gray-300">{txn.desc}</p>
+                      </div>
+
+                      {/* Amount */}
+                      <div className="col-span-2 text-right">
+                        <p className={`text-sm font-bold tracking-wide ${txn.isPositive ? 'text-[#00FF99] drop-shadow-[0_0_5px_rgba(0,255,153,0.3)]' : 'text-white'}`}>
+                          {txn.amount}
+                        </p>
+                      </div>
+
+                      {/* Date */}
+                      <div className="col-span-2 text-center">
+                        <p className="text-xs text-gray-400 font-medium">{txn.date}</p>
+                      </div>
+
+                      {/* Status */}
+                      <div className="col-span-1 flex justify-center">
+                        {getStatusBadge(txn.status)}
+                      </div>
+
+                      {/* Hash / ID */}
+                      <div className="col-span-2 flex justify-end items-center gap-2">
+                        <span className="text-[11px] font-mono text-gray-400 bg-[#161B2A] px-2 py-1 rounded border border-gray-800">
+                          {txn.hash}
+                        </span>
+                        {txn.hash !== 'System' && (
+                          <button 
+                            onClick={() => handleCopy(txn.hash)}
+                            className="text-gray-500 hover:text-[#00C6FF] transition-colors p-1"
+                            title="Copy Hash"
+                          >
+                            {copiedHash === txn.hash ? <Check size={14} className="text-[#00FF99]" /> : <Copy size={14} />}
+                          </button>
+                        )}
+                      </div>
+
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="py-20 flex flex-col items-center justify-center text-center"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-[#161B2A] border border-gray-800 flex items-center justify-center mb-4">
+                      <Filter size={24} className="text-gray-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white mb-1">No transactions found</h3>
+                    <p className="text-sm text-gray-500">We couldn't find any activities matching your criteria.</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+    </div>
+  );
+};
+
+export default Transactions;
