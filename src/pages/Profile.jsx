@@ -4,39 +4,32 @@ import {
   User, Mail, Phone, MapPin, Calendar, Link as LinkIcon, 
   Copy, Check, Shield, KeyRound, Wallet, Edit3, ShieldCheck, QrCode
 } from 'lucide-react';
-
-const profileData = {
-  initial: 'E',
-  name: 'Ethan',
-  email: 'ethan@gmail.com',
-  mobile: '1234567890',
-  address: 'Not set',
-  memberSince: '02/05/2026',
-  referralLink: 'https://ctc-platform.vercel.app/register?ref=CTC91105'
-};
-
-const InputField = ({ label, value, icon: Icon, fullWidth = false, colorClass = "text-[#A020F0]" }) => (
-  <div className={`group relative bg-[#161B2A]/40 backdrop-blur-[12px] rounded-xl p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(160,32,240,0.1)] overflow-hidden ${fullWidth ? 'col-span-1 md:col-span-2' : 'col-span-1'}`}>
-    {/* 1px Gradient Border via Pseudo-element */}
-    <div className="absolute inset-0 rounded-xl border border-transparent bg-gradient-to-br from-[#A020F0]/30 via-transparent to-transparent pointer-events-none" style={{ WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude', padding: '1px' }}></div>
-    
-    <div className="flex justify-between items-start relative z-10">
-      <div>
-        <label className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
-          <Icon size={12} className={`${colorClass} drop-shadow-[0_0_5px_currentColor]`} /> {label}
-        </label>
-        <div className="text-base font-bold text-white tracking-wide">{value}</div>
-      </div>
-      <button className="opacity-0 group-hover:opacity-100 transition-opacity bg-[#161B2A] border border-gray-700 p-1.5 rounded-lg text-gray-400 hover:text-[#00C6FF] hover:border-[#00C6FF]/50 shadow-md">
-        <Edit3 size={14} />
-      </button>
-    </div>
-  </div>
-);
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProfile } from '../redux/slices/authSlice';
+import { useEffect } from 'react';
 
 const Profile = () => {
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const dispatch = useDispatch();
+  const { profile, user } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    dispatch(fetchProfile());
+  }, [dispatch]);
+
+  const currentUser = profile || user;
+
+  const profileData = {
+    initial: currentUser?.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'U',
+    name: currentUser?.fullName || 'User',
+    email: currentUser?.email || 'N/A',
+    mobile: currentUser?.mobile || 'Not set',
+    address: currentUser?.address || 'Not set',
+    memberSince: currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'N/A',
+    referralLink: currentUser?.userId ? `${window.location.origin}/register?ref=${currentUser.userId}` : 'N/A',
+    isKYCVerified: currentUser?.isKYCVerified || false
+  };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(profileData.referralLink);
@@ -89,40 +82,61 @@ const Profile = () => {
             <div>
               <h2 className="text-2xl font-black text-white mb-2 flex items-center gap-2 tracking-tight">
                 {profileData.name}
-                <div className="bg-[#00FF99]/10 border border-[#00FF99]/30 rounded-full p-1" title="Verified KYC">
-                  <ShieldCheck size={14} className="text-[#00FF99] drop-shadow-[0_0_5px_rgba(0,255,153,0.5)]" />
-                </div>
+                {profileData.isKYCVerified && (
+                  <div className="bg-[#00FF99]/10 border border-[#00FF99]/30 rounded-full p-1" title="Verified KYC">
+                    <ShieldCheck size={14} className="text-[#00FF99] drop-shadow-[0_0_5px_rgba(0,255,153,0.5)]" />
+                  </div>
+                )}
               </h2>
               
               {/* Wallet Connected Status */}
-              <div className="inline-flex items-center gap-2 bg-[#161B2A] border border-[#00FF99]/30 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-[0_0_10px_rgba(0,255,153,0.1)]">
-                <div className="w-2 h-2 rounded-full bg-[#00FF99] animate-pulse shadow-[0_0_5px_rgba(0,255,153,0.8)]"></div>
-                <span className="text-[#00FF99]">Connected:</span>
-                <span className="text-gray-300 font-mono">0x3f8a...9a2c</span>
+              <div className="inline-flex items-center gap-2 bg-[#161B2A] border border-[#A020F0]/30 px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-[0_0_10px_rgba(160,32,240,0.1)]">
+                <span className="text-[#A020F0]">User ID:</span>
+                <span className="text-gray-300 font-mono">{currentUser?.userId || 'N/A'}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Section Divider */}
-        <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-gray-700 to-transparent my-8"></div>
+        {/* Re-add InputField definition since it was removed */}
+        {(() => {
+          const InputField = ({ label, value, icon: Icon, fullWidth = false, colorClass = "text-[#A020F0]" }) => (
+            <div className={`group relative bg-[#161B2A]/40 backdrop-blur-[12px] rounded-xl p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(160,32,240,0.1)] overflow-hidden ${fullWidth ? 'col-span-1 md:col-span-2' : 'col-span-1'}`}>
+              <div className="absolute inset-0 rounded-xl border border-transparent bg-gradient-to-br from-[#A020F0]/30 via-transparent to-transparent pointer-events-none" style={{ WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude', padding: '1px' }}></div>
+              <div className="flex justify-between items-start relative z-10">
+                <div>
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+                    <Icon size={12} className={`${colorClass} drop-shadow-[0_0_5px_currentColor]`} /> {label}
+                  </label>
+                  <div className="text-base font-bold text-white tracking-wide">{value}</div>
+                </div>
+              </div>
+            </div>
+          );
+          return (
+            <>
+              {/* Section Divider */}
+              <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-gray-700 to-transparent my-8"></div>
 
-        {/* Personal Information */}
-        <div className="mb-10 relative">
-          {/* Subtle background aura */}
-          <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-[#00C6FF]/5 rounded-full blur-3xl -translate-y-1/2 pointer-events-none"></div>
+              {/* Personal Information */}
+              <div className="mb-10 relative">
+                {/* Subtle background aura */}
+                <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-[#00C6FF]/5 rounded-full blur-3xl -translate-y-1/2 pointer-events-none"></div>
 
-          <h3 className="text-[#00C6FF] font-bold text-sm mb-6 drop-shadow-[0_0_5px_rgba(0,198,255,0.4)] flex items-center gap-2 relative z-10 uppercase tracking-widest">
-            <User size={16} /> Personal Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
-            <InputField label="Full Name" value={profileData.name} icon={User} colorClass="text-[#00C6FF]" />
-            <InputField label="Email" value={profileData.email} icon={Mail} colorClass="text-[#A020F0]" />
-            <InputField label="Mobile" value={profileData.mobile} icon={Phone} colorClass="text-[#FF00FF]" />
-            <InputField label="Address" value={profileData.address} icon={MapPin} colorClass="text-[#00FF99]" fullWidth />
-            <InputField label="Member Since" value={profileData.memberSince} icon={Calendar} colorClass="text-yellow-500" />
-          </div>
-        </div>
+                <h3 className="text-[#00C6FF] font-bold text-sm mb-6 drop-shadow-[0_0_5px_rgba(0,198,255,0.4)] flex items-center gap-2 relative z-10 uppercase tracking-widest">
+                  <User size={16} /> Personal Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+                  <InputField label="Full Name" value={profileData.name} icon={User} colorClass="text-[#00C6FF]" />
+                  <InputField label="Email" value={profileData.email} icon={Mail} colorClass="text-[#A020F0]" />
+                  <InputField label="Mobile" value={profileData.mobile} icon={Phone} colorClass="text-[#FF00FF]" />
+                  <InputField label="Address" value={profileData.address} icon={MapPin} colorClass="text-[#00FF99]" fullWidth />
+                  <InputField label="Member Since" value={profileData.memberSince} icon={Calendar} colorClass="text-yellow-500" />
+                </div>
+              </div>
+            </>
+          );
+        })()}
 
         {/* Section Divider */}
         <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#A020F0]/30 to-transparent my-8 shadow-[0_0_15px_rgba(160,32,240,0.3)]"></div>

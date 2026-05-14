@@ -13,8 +13,51 @@ import {
   UserCheck
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProfile } from '../redux/slices/authSlice';
+import { useEffect } from 'react';
+import { toast } from 'react-toastify';
 
 const Dashboard = () => {
+  const dispatch = useDispatch();
+  const { user, profile, walletAddress } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    dispatch(fetchProfile());
+  }, [dispatch]);
+
+  const currentUser = profile || user;
+  const balance = currentUser?.availableBalance || 0;
+  const totalEarning = currentUser?.totalEarning || 0;
+  const levelIncome = currentUser?.levelIncome || 0;
+  const referralIncome = currentUser?.referralIncome || 0;
+  const miningIncome = currentUser?.miningIncome || 0;
+  const directTeam = currentUser?.directTeam || 0;
+  const sponsor = currentUser?.sponsorId || 'None';
+  const isActive = currentUser?.isActive || false;
+  const activePackageName = currentUser?.activePackage?.name || 'None';
+  const promotionalIncome = currentUser?.promotionalIncome || 0;
+  const fastrackQualified = currentUser?.fastrackQualified ? 'Active' : 'Inactive';
+  
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts && accounts.length > 0) {
+          dispatch({ type: 'auth/setWalletAddress', payload: accounts[0] });
+          toast.success("Wallet connected successfully!");
+        } else {
+          toast.error("No active wallet found. Please unlock your wallet.");
+        }
+      } catch (error) {
+        console.error("Wallet connection error:", error);
+        toast.error(error?.message || "Failed to connect wallet. Please check your extension.");
+      }
+    } else {
+      toast.error("Please install MetaMask to use this feature!");
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       
@@ -36,12 +79,12 @@ const Dashboard = () => {
               </div>
               
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Welcome back, <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF00FF] via-[#A020F0] to-[#6A0DAD]">Ethan</span>
+                Welcome back, <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF00FF] via-[#A020F0] to-[#6A0DAD]">{currentUser?.fullName || 'User'}</span>
               </h1>
               
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#00FF99]/10 border border-[#00FF99]/30 rounded-full text-xs font-medium text-[#00FF99] mb-6">
-                <div className="w-2 h-2 rounded-full bg-[#00FF99] shadow-[0_0_8px_rgba(0,255,153,0.8)]"></div>
-                ACTIVE
+              <div className={`inline-flex items-center gap-2 px-3 py-1 border rounded-full text-xs font-medium mb-6 ${isActive ? 'bg-[#00FF99]/10 border-[#00FF99]/30 text-[#00FF99]' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
+                <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-[#00FF99] shadow-[0_0_8px_rgba(0,255,153,0.8)]' : 'bg-red-500 shadow-[0_0_8px_rgba(255,0,0,0.8)]'}`}></div>
+                {isActive ? 'ACTIVE' : 'INACTIVE'}
               </div>
               
               <p className="text-gray-400 text-sm md:text-base max-w-md">
@@ -50,9 +93,19 @@ const Dashboard = () => {
             </div>
             
             <div className="mt-8">
-              <button className="bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white px-8 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all">
-                Connect Wallet
-              </button>
+              {walletAddress ? (
+                <button className="bg-gray-800 text-[#00FF99] border border-[#00FF99]/30 px-8 py-3 rounded-xl font-medium shadow-lg flex items-center gap-2">
+                  <Wallet size={18} />
+                  Connected: {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
+                </button>
+              ) : (
+                <button 
+                  onClick={connectWallet}
+                  className="bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white px-8 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+                >
+                  Connect Wallet
+                </button>
+              )}
             </div>
           </div>
         </motion.div>
@@ -125,12 +178,11 @@ const Dashboard = () => {
           <h2 className="text-xl font-bold text-white">Token Performance</h2>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
           {[
-            { title: 'CTC Token', value: '0.00', sub: 'Asset Balance', icon: Cpu, iconColor: 'text-[#A020F0]', iconBg: 'bg-[#A020F0]/10' },
-            { title: 'Loyalty Token', value: '10', sub: 'Reward Balance', icon: ShieldCheck, iconColor: 'text-[#FF00FF]', iconBg: 'bg-[#FF00FF]/10' },
-            { title: 'Live Rate', value: '₹10', sub: '+2.5% Today', subColor: 'text-[#00FF99]', subBg: 'bg-[#00FF99]/10', icon: TrendingUp, iconColor: 'text-[#A020F0]', iconBg: 'bg-[#A020F0]/10' },
-            { title: 'Current Phase', value: 'Phase 6', sub: 'Ends Dec 31', icon: Clock, iconColor: 'text-[#FF00FF]', iconBg: 'bg-[#FF00FF]/10' },
+            { title: 'Available Balance', value: `$${balance.toFixed(2)}`, sub: 'Ready to Withdraw', icon: Wallet, iconColor: 'text-[#A020F0]', iconBg: 'bg-[#A020F0]/10' },
+            { title: 'Total Earnings', value: `$${totalEarning.toFixed(2)}`, sub: 'Lifetime Income', icon: TrendingUp, iconColor: 'text-[#00FF99]', iconBg: 'bg-[#00FF99]/10' },
+            { title: 'Mining Income', value: `$${miningIncome.toFixed(2)}`, sub: 'Passive ROI', icon: Cpu, iconColor: 'text-[#A020F0]', iconBg: 'bg-[#A020F0]/10' },
           ].map((item, idx) => (
             <motion.div 
               key={idx}
@@ -167,19 +219,20 @@ const Dashboard = () => {
               <h2 className="text-xl font-bold text-white">Income Analysis</h2>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-400">Total: ₹5730.71</span>
+              <span className="text-sm text-gray-400">Total: ${totalEarning.toFixed(2)}</span>
               <button className="text-sm text-[#FF00FF] px-4 py-2 bg-[#FF00FF]/10 rounded-lg border border-[#FF00FF]/20 hover:bg-[#FF00FF]/20 transition-colors flex items-center gap-2">
                 <BarChart2 size={16} /> Earnings Analytics
               </button>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { title: 'Level Income', value: '1570.71 CTC', icon: TrendingUp, iconColor: 'text-[#A020F0]', iconBg: 'bg-[#A020F0]/10' },
-              { title: 'Holding Commission', value: '0.00 CTC', icon: Gift, iconColor: 'text-[#FF00FF]', iconBg: 'bg-[#FF00FF]/10' },
-              { title: 'Referral Income', value: '₹4160.00', icon: Users, iconColor: 'text-[#A020F0]', iconBg: 'bg-[#A020F0]/10' },
-              { title: 'Total Income', value: '₹5730.71', icon: BarChart2, iconColor: 'text-[#FF00FF]', iconBg: 'bg-[#FF00FF]/10' },
+              { title: 'Active Package', value: activePackageName, icon: Briefcase, iconColor: 'text-[#00FF99]', iconBg: 'bg-[#00FF99]/10' },
+              { title: 'ROI Daily Profit', value: `$${miningIncome.toFixed(2)}`, icon: Cpu, iconColor: 'text-[#00C6FF]', iconBg: 'bg-[#00C6FF]/10' },
+              { title: 'Fastrack Bonus', value: fastrackQualified, icon: Zap, iconColor: 'text-amber-500', iconBg: 'bg-amber-500/10' },
+              { title: 'Level Bonus', value: `$${levelIncome.toFixed(2)}`, icon: TrendingUp, iconColor: 'text-[#A020F0]', iconBg: 'bg-[#A020F0]/10' },
+              { title: 'Promotion Bonus', value: `$${promotionalIncome.toFixed(2)}`, icon: Gift, iconColor: 'text-[#FF00FF]', iconBg: 'bg-[#FF00FF]/10' },
             ].map((item, idx) => (
               <motion.div 
                 key={idx}
@@ -216,14 +269,14 @@ const Dashboard = () => {
             <div className="bg-[#15151a] rounded-2xl p-6 border border-gray-800/50 text-center mb-6 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#A020F0]/10 rounded-full blur-2xl"></div>
               <p className="text-xs text-[#FF00FF] uppercase font-bold tracking-widest mb-2 relative z-10">Your Referral ID</p>
-              <h3 className="text-3xl font-bold text-white tracking-wider relative z-10">CTC91105</h3>
+              <h3 className="text-3xl font-bold text-white tracking-wider relative z-10">{currentUser?.userId || 'N/A'}</h3>
             </div>
             
             <div className="space-y-3 mb-6">
               {[
-                { title: 'Direct Team', value: '1', icon: Briefcase, color: 'text-[#A020F0]' },
-                { title: 'Sponsor', value: 'CTC91104', icon: ShieldCheck, color: 'text-[#FF00FF]' },
-                { title: 'Referral Income', value: '₹4160.00', icon: Users, color: 'text-[#A020F0]' },
+                { title: 'Direct Team', value: directTeam.toString(), icon: Briefcase, color: 'text-[#A020F0]' },
+                { title: 'Sponsor', value: sponsor, icon: ShieldCheck, color: 'text-[#FF00FF]' },
+                { title: 'Referral Income', value: `$${referralIncome.toFixed(2)}`, icon: Users, color: 'text-[#A020F0]' },
               ].map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between p-4 rounded-xl bg-[#15151a] border border-gray-800/30">
                   <div className="flex items-center gap-3">

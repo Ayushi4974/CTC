@@ -4,6 +4,8 @@ import {
   Search, ArrowUpRight, ArrowDownRight, Package, Users, Gift, 
   CheckCircle2, Clock, XCircle, Copy, Check, Filter
 } from 'lucide-react';
+import api from '../api';
+import { useEffect } from 'react';
 
 const mockTransactions = [
   { id: 'TXN-98234', type: 'Deposit', desc: 'Account Funding', amount: '+CTC 5,000.00', isPositive: true, date: '2026-05-12 14:30', status: 'Completed', hash: '0x3f8a...9a2c' },
@@ -20,6 +22,22 @@ const Transactions = () => {
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedHash, setCopiedHash] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const res = await api.get('/transaction/history');
+        setTransactions(res.data);
+      } catch (err) {
+        console.error('Error fetching transactions:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTransactions();
+  }, []);
 
   const handleCopy = (hash) => {
     if (hash === 'System') return;
@@ -28,12 +46,12 @@ const Transactions = () => {
     setTimeout(() => setCopiedHash(null), 2000);
   };
 
-  const filteredTransactions = mockTransactions.filter(txn => {
+  const filteredTransactions = transactions.filter(txn => {
     const matchesFilter = activeFilter === 'All' || txn.type === activeFilter;
     const matchesSearch = 
-      txn.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      txn.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      txn.hash.toLowerCase().includes(searchQuery.toLowerCase());
+      (txn._id && txn._id.toLowerCase().includes(searchQuery.toLowerCase())) || 
+      (txn.description && txn.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (txn.txHash && txn.txHash.toLowerCase().includes(searchQuery.toLowerCase()));
     
     return matchesFilter && matchesSearch;
   });
@@ -50,16 +68,15 @@ const Transactions = () => {
   };
 
   const getStatusBadge = (status) => {
-    switch(status) {
-      case 'Completed':
-        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#00FF99]/10 text-[#00FF99] border border-[#00FF99]/20 shadow-[0_0_10px_rgba(0,255,153,0.1)]"><CheckCircle2 size={12} /> Completed</span>;
-      case 'Pending':
-        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.1)] animate-pulse"><Clock size={12} /> Pending</span>;
-      case 'Failed':
-        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]"><XCircle size={12} /> Failed</span>;
-      default:
-        return null;
+    const lowerStatus = status?.toLowerCase() || '';
+    if (lowerStatus === 'completed' || lowerStatus === 'approved' || lowerStatus === 'success') {
+      return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#00FF99]/10 text-[#00FF99] border border-[#00FF99]/20 shadow-[0_0_10px_rgba(0,255,153,0.1)]"><CheckCircle2 size={12} /> Completed</span>;
+    } else if (lowerStatus === 'pending') {
+      return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.1)] animate-pulse"><Clock size={12} /> Pending</span>;
+    } else if (lowerStatus === 'failed' || lowerStatus === 'rejected') {
+      return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]"><XCircle size={12} /> Failed</span>;
     }
+    return null;
   };
 
   return (
@@ -141,10 +158,12 @@ const Transactions = () => {
             {/* Table Body */}
             <div className="flex flex-col">
               <AnimatePresence>
-                {filteredTransactions.length > 0 ? (
+                {isLoading ? (
+                  <div className="py-20 text-center text-gray-500">Loading transactions...</div>
+                ) : filteredTransactions.length > 0 ? (
                   filteredTransactions.map((txn, idx) => (
                     <motion.div 
-                      key={txn.id}
+                      key={txn._id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
@@ -156,27 +175,27 @@ const Transactions = () => {
                         <div className="w-8 h-8 rounded-full bg-[#161B2A] border border-gray-800 flex items-center justify-center group-hover:border-[#A020F0]/50 transition-colors">
                           {getTypeIcon(txn.type)}
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-white">{txn.type}</p>
-                          <p className="text-[10px] text-gray-500">{txn.id}</p>
+                        <div className="truncate pr-2">
+                          <p className="text-sm font-bold text-white capitalize">{txn.type}</p>
+                          <p className="text-[10px] text-gray-500 truncate" title={txn._id}>{txn._id}</p>
                         </div>
                       </div>
 
                       {/* Description */}
                       <div className="col-span-3">
-                        <p className="text-sm font-medium text-gray-300">{txn.desc}</p>
+                        <p className="text-sm font-medium text-gray-300">{txn.description}</p>
                       </div>
 
                       {/* Amount */}
                       <div className="col-span-2 text-right">
-                        <p className={`text-sm font-bold tracking-wide ${txn.isPositive ? 'text-[#00FF99] drop-shadow-[0_0_5px_rgba(0,255,153,0.3)]' : 'text-white'}`}>
-                          {txn.amount}
+                        <p className={`text-sm font-bold tracking-wide ${txn.type.toLowerCase() !== 'withdrawal' && txn.type.toLowerCase() !== 'investment' ? 'text-[#00FF99] drop-shadow-[0_0_5px_rgba(0,255,153,0.3)]' : 'text-white'}`}>
+                          {txn.type.toLowerCase() !== 'withdrawal' && txn.type.toLowerCase() !== 'investment' ? '+' : '-'} ${txn.amount}
                         </p>
                       </div>
 
                       {/* Date */}
                       <div className="col-span-2 text-center">
-                        <p className="text-xs text-gray-400 font-medium">{txn.date}</p>
+                        <p className="text-xs text-gray-400 font-medium">{new Date(txn.createdAt).toLocaleDateString()}</p>
                       </div>
 
                       {/* Status */}
@@ -186,16 +205,16 @@ const Transactions = () => {
 
                       {/* Hash / ID */}
                       <div className="col-span-2 flex justify-end items-center gap-2">
-                        <span className="text-[11px] font-mono text-gray-400 bg-[#161B2A] px-2 py-1 rounded border border-gray-800">
-                          {txn.hash}
+                        <span className="text-[11px] font-mono text-gray-400 bg-[#161B2A] px-2 py-1 rounded border border-gray-800 truncate max-w-[120px]" title={txn.txHash || 'System'}>
+                          {txn.txHash || 'System'}
                         </span>
-                        {txn.hash !== 'System' && (
+                        {txn.txHash && txn.txHash !== 'System' && (
                           <button 
-                            onClick={() => handleCopy(txn.hash)}
+                            onClick={() => handleCopy(txn.txHash)}
                             className="text-gray-500 hover:text-[#00C6FF] transition-colors p-1"
                             title="Copy Hash"
                           >
-                            {copiedHash === txn.hash ? <Check size={14} className="text-[#00FF99]" /> : <Copy size={14} />}
+                            {copiedHash === txn.txHash ? <Check size={14} className="text-[#00FF99]" /> : <Copy size={14} />}
                           </button>
                         )}
                       </div>

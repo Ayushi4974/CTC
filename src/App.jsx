@@ -11,12 +11,56 @@ import Transactions from './pages/Transactions';
 import Profile from './pages/Profile';
 import LevelIncome from './pages/LevelIncome';
 import MiningHistory from './pages/MiningHistory';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import PackageHistory from './pages/PackageHistory';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setWalletAddress } from './redux/slices/authSlice';
+
+const ProtectedRoute = ({ children }) => {
+  const { user } = useSelector((state) => state.auth);
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', (accounts) => {
+        if (accounts.length > 0) {
+          dispatch(setWalletAddress(accounts[0]));
+        } else {
+          dispatch(setWalletAddress(null));
+        }
+      });
+      
+      // Check initial connection
+      window.ethereum.request({ method: 'eth_accounts' }).then((accounts) => {
+        if (accounts && accounts.length > 0) {
+          dispatch(setWalletAddress(accounts[0]));
+        } else {
+          dispatch(setWalletAddress(null));
+        }
+      }).catch((err) => {
+        console.error(err);
+        dispatch(setWalletAddress(null));
+      });
+    } else {
+      dispatch(setWalletAddress(null));
+    }
+  }, [dispatch]);
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Layout />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="products" element={<Products />} />
@@ -28,6 +72,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="level-income" element={<LevelIncome />} />
           <Route path="mining" element={<MiningHistory />} />
+          <Route path="/package-history" element={<PackageHistory />} />
           {/* Add placeholders for other routes */}
           <Route path="*" element={<div className="p-8 text-text-secondary text-center">Coming Soon</div>} />
         </Route>

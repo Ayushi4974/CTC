@@ -5,39 +5,9 @@ import {
   ChevronDown, ChevronRight, Award, Activity, Copy, Check, Car, Home, Info, Timer,
   ShieldCheck, Globe
 } from 'lucide-react';
-
-const profileData = {
-  id: 'D76CD9F3',
-  name: 'Ethan',
-  email: 'ethan@gmail.com',
-  totalNetwork: 3,
-  overallBusiness: 0,
-};
-
-const levelsData = [
-  { level: 1, members: 1, maxMembers: 10, volume: 0, commPercent: 5, commEarned: 685.714, performance: 85, isActive: true },
-  { level: 2, members: 2, maxMembers: 20, volume: 0, commPercent: 2, commEarned: 945.000, performance: 20, isActive: true },
-  { level: 3, members: 0, maxMembers: 40, volume: 0, commPercent: 1.5, commEarned: 0, performance: 0, isActive: false },
-  { level: 4, members: 0, maxMembers: 80, volume: 0, commPercent: 1, commEarned: 0, performance: 0, isActive: false },
-  { level: 5, members: 0, maxMembers: 160, volume: 0, commPercent: 1, commEarned: 0, performance: 0, isActive: false },
-  { level: 6, members: 0, maxMembers: 320, volume: 0, commPercent: 1, commEarned: 0, performance: 0, isActive: false },
-  { level: 7, reward: 'BMW Tier', icon: Car, members: 0, maxMembers: 640, volume: 0, commPercent: 0.75, commEarned: 0, performance: 0, isActive: false },
-  { level: 8, members: 0, maxMembers: 1280, volume: 0, commPercent: 0.5, commEarned: 0, performance: 0, isActive: false },
-  { level: 9, reward: 'Luxury Villa', icon: Home, members: 0, maxMembers: 2560, volume: 0, commPercent: 0.25, commEarned: 0, performance: 0, isActive: false },
-  { level: 10, members: 0, maxMembers: 5120, volume: 0, commPercent: 0.25, commEarned: 0, performance: 0, isActive: false },
-  { level: 11, members: 0, maxMembers: 10240, volume: 0, commPercent: 0.25, commEarned: 0, performance: 0, isActive: false },
-  { level: 12, members: 0, maxMembers: 20480, volume: 0, commPercent: 0.25, commEarned: 0, performance: 0, isActive: false },
-];
-
-const mockPartners = [
-  { name: 'Sarah J.', id: 'CTC881', vol: '1,500' },
-  { name: 'Michael T.', id: 'CTC992', vol: '2,100' }
-];
-
-const totalMembers = levelsData.reduce((acc, curr) => acc + curr.members, 0);
-const totalBusiness = levelsData.reduce((acc, curr) => acc + curr.volume, 0);
-const totalCommission = levelsData.reduce((acc, curr) => acc + curr.commEarned, 0);
-const activeLevelsCount = levelsData.filter(l => l.isActive).length;
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchProfile } from '../redux/slices/authSlice';
+import api from '../api';
 
 const CircularProgress = ({ progress, label, total }) => {
   const radius = 24;
@@ -62,9 +32,58 @@ const CircularProgress = ({ progress, label, total }) => {
 };
 
 const Downline = () => {
+  const dispatch = useDispatch();
+  const { user, profile } = useSelector((state) => state.auth);
+  const currentUser = profile || user;
+  
+  const [directTeam, setDirectTeam] = useState([]);
+  const [allLevels, setAllLevels] = useState([]);
   const [copied, setCopied] = useState(false);
   const [expandedRow, setExpandedRow] = useState(null);
   const [timeLeft, setTimeLeft] = useState(10 * 24 * 3600 - 45000); // ~9 days remaining
+
+  useEffect(() => {
+    dispatch(fetchProfile());
+    const fetchTeam = async () => {
+      try {
+        const { data } = await api.get('/user/team');
+        setDirectTeam(data.directTeam || []);
+        setAllLevels(data.allLevels || []);
+      } catch (err) {
+        console.error('Failed to fetch team', err);
+      }
+    };
+    fetchTeam();
+  }, [dispatch]);
+
+  const profileData = {
+    id: currentUser?.userId || 'N/A',
+    name: currentUser?.fullName || 'N/A',
+    email: currentUser?.email || 'N/A',
+    totalNetwork: currentUser?.totalTeam || 0,
+    overallBusiness: currentUser?.totalInvestment || 0,
+  };
+
+  const dynamicLevelsData = allLevels.map((lvl) => ({
+    level: lvl.level,
+    members: lvl.members.length,
+    maxMembers: 10 * lvl.level, // Example logical scaling
+    volume: lvl.members.reduce((acc, curr) => acc + (curr.totalInvestment || 0), 0),
+    commPercent: lvl.level === 1 ? 15 : lvl.level === 2 ? 10 : 5, // Example tier structure
+    commEarned: lvl.level === 1 ? (currentUser?.referralIncome || 0) : 0, 
+    performance: Math.min((lvl.members.length / (10 * lvl.level)) * 100, 100),
+    isActive: true,
+    partners: lvl.members.map(member => ({
+      name: member.fullName,
+      id: member.userId,
+      vol: member.totalInvestment || 0
+    }))
+  }));
+
+  const totalMembers = dynamicLevelsData.reduce((acc, curr) => acc + curr.members, 0);
+  const totalBusiness = dynamicLevelsData.reduce((acc, curr) => acc + curr.volume, 0);
+  const totalCommission = dynamicLevelsData.reduce((acc, curr) => acc + curr.commEarned, 0);
+  const activeLevelsCount = dynamicLevelsData.filter(l => l.isActive).length;
 
   useEffect(() => {
     const timer = setInterval(() => setTimeLeft(prev => prev > 0 ? prev - 1 : 0), 1000);
@@ -266,7 +285,7 @@ const Downline = () => {
 
         {/* Table Rows */}
         <div className="flex flex-col">
-          {levelsData.map((row) => (
+          {dynamicLevelsData.map((row) => (
             <React.Fragment key={row.level}>
               <div 
                 onClick={() => row.isActive && toggleRow(row.level)}
@@ -359,7 +378,7 @@ const Downline = () => {
                     <div className="p-4 md:px-20">
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Direct Partners in Level {row.level}</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {mockPartners.map((partner, i) => (
+                        {row.partners.map((partner, i) => (
                           <div key={i} className="bg-[#161B2A] border border-gray-800 rounded-xl p-3 flex justify-between items-center hover:border-[#A020F0]/50 transition-colors">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">

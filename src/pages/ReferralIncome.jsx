@@ -5,12 +5,15 @@ import {
   DollarSign, ArrowUpRight, TrendingUp, Gift, Calendar, ExternalLink, Activity, Car,
   CheckCircle2, Clock
 } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProfile } from '../redux/slices/authSlice';
+import api from '../api';
 
-const profileData = {
-  id: 'D76CD9F3',
-  name: 'Ethan',
-  email: 'ethan@gmail.com',
-  totalNetwork: 3,
+const defaultProfileData = {
+  id: 'N/A',
+  name: 'User',
+  email: '',
+  totalNetwork: 0,
 };
 
 const referralStats = [
@@ -56,6 +59,38 @@ const Counter = ({ value, prefix, suffix }) => {
 
 const ReferralIncome = () => {
   const [copied, setCopied] = useState(false);
+  const [directTeam, setDirectTeam] = useState([]);
+  
+  const dispatch = useDispatch();
+  const { profile, user } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    dispatch(fetchProfile());
+    const fetchTeam = async () => {
+      try {
+        const res = await api.get('/user/team');
+        setDirectTeam(res.data.directTeam);
+      } catch (err) {
+        console.error('Error fetching team:', err);
+      }
+    };
+    fetchTeam();
+  }, [dispatch]);
+
+  const currentUser = profile || user;
+
+  const profileData = {
+    id: currentUser?.userId || defaultProfileData.id,
+    name: currentUser?.fullName || defaultProfileData.name,
+    email: currentUser?.email || defaultProfileData.email,
+    totalNetwork: currentUser?.directTeam || 0,
+  };
+
+  const dynamicReferralStats = [
+    { title: 'Total Direct Referrals', value: profileData.totalNetwork, prefix: '', suffix: '', icon: Users, color: 'text-[#00C6FF]', aura: 'bg-[#00C6FF]/20', border: 'border-[#00C6FF]/30' },
+    { title: 'Total Referral Income', value: currentUser?.referralIncome || 0, prefix: '$', suffix: '', icon: DollarSign, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/20', border: 'border-[#A020F0]/30' },
+    { title: 'Total Investment', value: currentUser?.totalInvestment || 0, prefix: '$', suffix: '', icon: Gift, color: 'text-amber-500', aura: 'bg-amber-500/20', border: 'border-amber-500/30' },
+  ];
 
   const handleCopy = () => {
     navigator.clipboard.writeText(profileData.id);
@@ -127,7 +162,7 @@ const ReferralIncome = () => {
               </div>
             </div>
             
-            <p className="text-xs text-center text-gray-400 font-medium">Earned: <span className="text-white">CTC 4,250</span> / 8,500</p>
+            <p className="text-xs text-center text-gray-400 font-medium">Earned: <span className="text-white">${currentUser?.totalEarning || 0}</span> / ${(currentUser?.totalInvestment || 0) * 4 || 1000}</p>
           </motion.div>
 
           {/* Profile Information */}
@@ -196,7 +231,7 @@ const ReferralIncome = () => {
 
         {/* Summary Stats with Unique Auras & Odometers */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          {referralStats.map((stat, idx) => {
+          {dynamicReferralStats.map((stat, idx) => {
             const Icon = stat.icon;
             return (
               <motion.div 
@@ -247,7 +282,7 @@ const ReferralIncome = () => {
 
           {/* Table Rows */}
           <div className="flex flex-col relative z-10">
-            {referralHistory.map((row, idx) => (
+            {directTeam.length > 0 ? directTeam.map((row, idx) => (
               <div 
                 key={idx} 
                 className="group grid grid-cols-1 md:grid-cols-8 gap-4 px-6 py-5 border-b border-gray-800/30 items-center hover:bg-[#161B2A]/80 transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"
@@ -256,59 +291,51 @@ const ReferralIncome = () => {
                 <div className="col-span-2 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[#050505] border border-gray-700 flex items-center justify-center group-hover:border-[#A020F0] transition-colors shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#A020F0]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <span className="text-sm font-black text-white relative z-10">{row.initial}</span>
+                    <span className="text-sm font-black text-white relative z-10">{row.fullName?.charAt(0).toUpperCase()}</span>
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white group-hover:text-[#00C6FF] transition-colors">{row.name}</p>
-                    <p className="text-[10px] text-gray-500">{row.id}</p>
+                    <p className="text-sm font-bold text-white group-hover:text-[#00C6FF] transition-colors">{row.fullName}</p>
+                    <p className="text-[10px] text-gray-500">{row.userId}</p>
                   </div>
                 </div>
 
                 {/* Investment */}
                 <div className="col-span-2">
-                  <p className="text-sm font-bold text-white mb-1">CTC {row.amount}</p>
-                  <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold border ${row.pkgColor}`}>
-                    {row.package}
+                  <p className="text-sm font-bold text-white mb-1">${row.totalInvestment || 0}</p>
+                  <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold border text-[#00C6FF] bg-[#00C6FF]/10 border-[#00C6FF]/30`}>
+                    Active
                   </span>
                 </div>
 
                 {/* Comm % */}
                 <div className="col-span-1 md:text-center">
-                  <span className="text-sm font-bold text-white">{row.commPercent}</span>
+                  <span className="text-sm font-bold text-white">5%</span>
                 </div>
 
                 {/* Earned */}
                 <div className="col-span-1 md:text-right">
                   <p className="text-sm font-bold text-[#00FF99] drop-shadow-[0_0_5px_rgba(0,255,153,0.3)]">
-                    +CTC {row.earned}
+                    +${((row.totalInvestment || 0) * 0.05).toFixed(2)}
                   </p>
                 </div>
 
                 {/* Date */}
                 <div className="col-span-1 md:text-center flex items-center md:justify-center gap-1.5">
                   <Calendar size={12} className="text-gray-500 hidden md:block" />
-                  <span className="text-xs text-gray-400 font-medium">{row.date}</span>
+                  <span className="text-xs text-gray-400 font-medium">{new Date(row.createdAt).toLocaleDateString()}</span>
                 </div>
 
                 {/* Status */}
                 <div className="col-span-1 md:text-center flex justify-end md:justify-center items-center gap-2 relative">
-                  {row.status === 'Credited' ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-[#A020F0]/10 text-[#FF00FF] border border-[#A020F0]/30 drop-shadow-[0_0_8px_rgba(160,32,240,0.4)]">
-                      <CheckCircle2 size={12} /> Credited
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 drop-shadow-[0_0_8px_rgba(234,179,8,0.3)]">
-                      <Clock size={12} className="animate-pulse" /> Pending
-                    </span>
-                  )}
-                  {/* Hover Actions */}
-                  <div className="absolute right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-[#161B2A] p-1.5 rounded-lg border border-[#00C6FF]/50 text-[#00C6FF] shadow-lg shadow-[#00C6FF]/20 -mr-2 z-20" title="View Transaction">
-                    <ExternalLink size={14} />
-                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-[#A020F0]/10 text-[#FF00FF] border border-[#A020F0]/30 drop-shadow-[0_0_8px_rgba(160,32,240,0.4)]">
+                    <CheckCircle2 size={12} /> Active
+                  </span>
                 </div>
 
               </div>
-            ))}
+            )) : (
+              <div className="p-10 text-center text-gray-500">No direct referrals yet. Share your link to start earning!</div>
+            )}
           </div>
         </motion.div>
 

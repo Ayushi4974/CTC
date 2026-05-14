@@ -4,6 +4,7 @@ import {
   BarChart2, Users, Layers, ChevronDown, ChevronRight, User, TrendingUp,
   Lock, Info, AlertTriangle, ShieldCheck
 } from 'lucide-react';
+import api from '../api';
 
 const stats = [
   { title: 'Total Level Income', value: 1630.714, prefix: 'CTC ', suffix: '', icon: TrendingUp, color: 'text-[#00FF99]', aura: 'bg-[#00FF99]/30' },
@@ -11,36 +12,7 @@ const stats = [
   { title: 'Active Levels', value: 2, prefix: '', suffix: '', icon: Layers, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/20', isProgress: true },
 ];
 
-const levelData = [
-  { 
-    level: 1, 
-    members: 5, 
-    income: '685.714',
-    bonusPercent: 15,
-    isLocked: false,
-    users: [
-      { name: 'Sarah Jenkins', id: 'CTC881', vol: '1,500', earned: '137.14' },
-      { name: 'Emma R.', id: 'CTC115', vol: '1,000', earned: '137.14' },
-      { name: 'David W.', id: 'CTC104', vol: '2,500', earned: '137.14' },
-      { name: 'James L.', id: 'CTC126', vol: '1,200', earned: '137.14' },
-      { name: 'Olivia P.', id: 'CTC142', vol: '1,300', earned: '137.14' },
-    ]
-  },
-  { 
-    level: 2, 
-    members: 2, 
-    income: '945.000',
-    bonusPercent: 8,
-    isLocked: false,
-    users: [
-      { name: 'Michael T.', id: 'CTC992', vol: '5,000', earned: '472.50' },
-      { name: 'Robert K.', id: 'CTC883', vol: '5,000', earned: '472.50' },
-    ]
-  },
-  { level: 3, members: 0, income: '0.000', bonusPercent: 5, isLocked: true, reqDirects: 5, reqVol: '1,500' },
-  { level: 4, members: 0, income: '0.000', bonusPercent: 3, isLocked: true, reqDirects: 10, reqVol: '5,000' },
-  { level: 6, members: 0, income: '0.000', bonusPercent: 2, isLocked: true, reqDirects: 15, reqVol: '10,000' } // L6 for gold example
-];
+
 
 const Counter = ({ value, prefix, suffix }) => {
   const [count, setCount] = useState(0);
@@ -103,10 +75,63 @@ const getLevelBadgeClass = (level) => {
 
 const LevelIncome = () => {
   const [expandedLevel, setExpandedLevel] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [directTeam, setDirectTeam] = useState([]);
+  const [levelIncomeData, setLevelIncomeData] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [profileRes, teamRes, incomeRes] = await Promise.all([
+          api.get('/user/profile'),
+          api.get('/user/team'),
+          api.get('/user/level-income')
+        ]);
+        setCurrentUser(profileRes.data);
+        setDirectTeam(teamRes.data.directTeam);
+        setLevelIncomeData(incomeRes.data);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+      }
+    };
+    fetchData();
+  }, []);
 
   const toggleLevel = (level) => {
     setExpandedLevel(expandedLevel === level ? null : level);
   };
+
+  const currentLevelIncome = currentUser?.levelIncome || 0;
+  const currentNetworkMembers = currentUser?.directTeam || 0;
+
+  const dynamicStats = [
+    { title: 'Total Level Income', value: currentLevelIncome, prefix: '$', suffix: '', icon: TrendingUp, color: 'text-[#00FF99]', aura: 'bg-[#00FF99]/30' },
+    { title: 'Total Network Members', value: currentNetworkMembers, prefix: '', suffix: '', icon: Users, color: 'text-[#00C6FF]', aura: 'bg-[#00C6FF]/20' },
+    { title: 'Active Levels', value: 1, prefix: '', suffix: '', icon: Layers, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/20', isProgress: true },
+  ];
+
+  const dynamicLevelData = [
+    { 
+      level: 1, 
+      members: directTeam.length, 
+      income: currentUser?.referralIncome || 0,
+      bonusPercent: 15,
+      isLocked: false,
+      users: directTeam.map(member => {
+        // Calculate the total earned from this specific member by filtering the incomeRes data
+        const earnedFromMember = levelIncomeData
+          .filter(income => income.fromUser && income.fromUser._id === member._id)
+          .reduce((sum, item) => sum + item.amount, 0);
+
+        return {
+          name: member.fullName,
+          id: member.userId,
+          vol: member.totalInvestment || 0,
+          earned: earnedFromMember > 0 ? earnedFromMember.toFixed(3) : '0.000'
+        };
+      })
+    }
+  ];
 
   return (
     <div className="max-w-7xl mx-auto pb-12 pt-4 px-4 sm:px-6 lg:px-8 min-h-screen">
@@ -161,7 +186,7 @@ const LevelIncome = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        {stats.map((stat, idx) => {
+        {dynamicStats.map((stat, idx) => {
           const Icon = stat.icon;
           return (
             <motion.div 
@@ -217,7 +242,7 @@ const LevelIncome = () => {
         </h3>
 
         <div className="flex flex-col gap-4">
-          {levelData.map((data) => (
+          {dynamicLevelData.map((data) => (
             <div 
               key={data.level}
               className={`backdrop-blur-[12px] border rounded-2xl overflow-hidden transition-all duration-300 ${
@@ -261,7 +286,7 @@ const LevelIncome = () => {
                         <span className="text-sm font-black text-[#00C6FF]">{data.bonusPercent}%</span>
                       </div>
                       <span className="text-lg font-black text-[#00FF99] drop-shadow-[0_0_8px_rgba(0,255,153,0.4)]">
-                        CTC {data.income}
+                        ${data.income}
                       </span>
                     </div>
                   )}
@@ -307,10 +332,10 @@ const LevelIncome = () => {
                               </div>
                             </div>
                             <div className="col-span-1 text-right text-xs font-bold text-gray-400 group-hover:text-white transition-colors">
-                              CTC {user.vol}
+                              ${user.vol}
                             </div>
                             <div className="col-span-1 text-right text-sm font-bold text-[#00FF99]">
-                              +CTC {user.earned}
+                              +${user.earned}
                             </div>
                           </div>
                         ))}

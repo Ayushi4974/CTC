@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, CreditCard, FileText, Building, UploadCloud, ChevronRight, ChevronLeft, CheckCircle2, ShieldCheck, Lock, X } from 'lucide-react';
+import { User, CreditCard, FileText, Building, UploadCloud, ChevronRight, ChevronLeft, CheckCircle2, ShieldCheck, Lock, X, Clock } from 'lucide-react';
+import api from '../api';
+import { toast } from 'react-toastify';
 
 const steps = [
   { id: 1, name: 'Profile', icon: User },
@@ -11,33 +13,108 @@ const steps = [
 
 const Kyc = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [kycStatus, setKycStatus] = useState(null); // 'none', 'pending', 'approved', 'rejected'
+  const [loading, setLoading] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState({});
+  const [actualFiles, setActualFiles] = useState({});
   const [isUploading, setIsUploading] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    accountName: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    branchName: '',
+    aadharNumber: '',
+    panNumber: ''
+  });
 
+  useEffect(() => {
+    const fetchKycStatus = async () => {
+      try {
+        const res = await api.get('/kyc/status');
+        if (res.data) {
+          setKycStatus(res.data.status);
+          if (res.data.status === 'approved') setCurrentStep(6);
+          else if (res.data.status === 'pending') setCurrentStep(5);
+        } else {
+          setKycStatus('none');
+        }
+      } catch (err) {
+        console.error('Error fetching KYC status:', err);
+        setKycStatus('none');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchKycStatus();
+  }, []);
   const nextStep = () => {
     if (currentStep < 4) setCurrentStep(currentStep + 1);
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      
+      const payload = new FormData();
+      // Append text data
+      Object.keys(formData).forEach(key => {
+        payload.append(key, formData[key]);
+      });
+      
+      // Append files
+      Object.keys(actualFiles).forEach(key => {
+        payload.append(key, actualFiles[key]);
+      });
+
+      const response = await api.post('/kyc/upload', payload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      toast.success(response.data.message || 'KYC submitted successfully!');
+      setCurrentStep(5); // Show success state or redirect
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Submission failed');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const prevStep = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
-  const handleMockUpload = (key) => {
-    // Set loading state
-    setIsUploading(prev => ({ ...prev, [key]: true }));
-    
-    // Mock network delay of 1.5 seconds before showing the image
-    setTimeout(() => {
-      setUploadedFiles(prev => ({
-        ...prev,
-        [key]: 'https://images.unsplash.com/photo-1618042164219-62c820f10723?auto=format&fit=crop&w=400&q=80'
-      }));
-      setIsUploading(prev => ({ ...prev, [key]: false }));
-    }, 1500);
+  const handleFileUpload = (e, key) => {
+    const file = e.target.files[0];
+    if (file) {
+      setActualFiles(prev => ({ ...prev, [key]: file }));
+      setIsUploading(prev => ({ ...prev, [key]: true }));
+      
+      // Generate a local preview URL from the real selected file
+      const previewUrl = URL.createObjectURL(file);
+      
+      setTimeout(() => {
+        setUploadedFiles(prev => ({
+          ...prev,
+          [key]: previewUrl
+        }));
+        setIsUploading(prev => ({ ...prev, [key]: false }));
+      }, 600);
+    }
   };
 
   const handleRemoveFile = (key) => {
     setUploadedFiles(prev => {
+      const newFiles = { ...prev };
+      delete newFiles[key];
+      return newFiles;
+    });
+    setActualFiles(prev => {
       const newFiles = { ...prev };
       delete newFiles[key];
       return newFiles;
@@ -76,20 +153,35 @@ const Kyc = () => {
             </button>
           </div>
         ) : (
-          <div 
-            onClick={() => handleMockUpload(id)}
-            className="relative border border-dashed border-gray-600 hover:border-[#A020F0] bg-[#161B2A]/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-300 group hover:shadow-[inset_0_0_20px_rgba(160,32,240,0.15)] h-40"
+          <label 
+            htmlFor={`file-upload-${id}`}
+            className="relative border border-dashed border-gray-600 hover:border-[#A020F0] bg-[#161B2A]/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-300 group hover:shadow-[inset_0_0_20px_rgba(160,32,240,0.15)] h-40 w-full"
           >
+            <input 
+              id={`file-upload-${id}`}
+              type="file" 
+              accept="image/*"
+              className="hidden" 
+              onChange={(e) => handleFileUpload(e, id)} 
+            />
             <UploadCloud className="text-gray-500 group-hover:text-[#A020F0] transition-colors" size={32} />
             <div className="text-center">
               <p className="text-sm font-semibold text-[#A020F0]">Click to upload</p>
               <p className="text-[10px] text-gray-500 mt-1">SVG, PNG, JPG (MAX. 5MB)</p>
             </div>
-          </div>
+          </label>
         )}
       </div>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-40">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#A020F0]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto pb-12 pt-4">
@@ -119,7 +211,7 @@ const Kyc = () => {
            <div className="w-[calc(100%-3.5rem)] h-[2px] bg-gray-800 relative">
              <div 
                className="h-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] transition-all duration-700 ease-in-out"
-               style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
+               style={{ width: `${Math.min(((currentStep - 1) / 3) * 100, 100)}%` }}
              />
            </div>
         </div>
@@ -213,10 +305,17 @@ const Kyc = () => {
                     </div>
                   </div>
                 ) : (
-                  <div 
-                    onClick={() => handleMockUpload('profile')}
+                  <label 
+                    htmlFor="profile-upload"
                     className="relative group cursor-pointer"
                   >
+                    <input 
+                      id="profile-upload"
+                      type="file" 
+                      accept="image/*"
+                      className="hidden" 
+                      onChange={(e) => handleFileUpload(e, 'profile')} 
+                    />
                     <div className="absolute inset-0 bg-[#A020F0] rounded-full blur-[40px] opacity-20 group-hover:opacity-40 animate-pulse transition-opacity"></div>
                     <div className="relative w-56 h-56 rounded-full border-2 border-dashed border-[#A020F0] bg-[#161B2A]/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 group-hover:border-[#FF00FF] shadow-[inset_0_0_30px_rgba(160,32,240,0.15)] group-hover:shadow-[inset_0_0_50px_rgba(255,0,255,0.2)] transition-all duration-300">
                       <UploadCloud className="text-gray-400 group-hover:text-[#FF00FF] transition-colors" size={40} />
@@ -225,7 +324,7 @@ const Kyc = () => {
                         <span className="block text-[10px] text-gray-500 mt-1">Click to browse</span>
                       </div>
                     </div>
-                  </div>
+                  </label>
                 )}
               </div>
 
@@ -245,6 +344,9 @@ const Kyc = () => {
                 <label className="block text-sm font-medium text-gray-400 mb-2">Aadhar Number</label>
                 <input 
                   type="text" 
+                  name="aadharNumber"
+                  value={formData.aadharNumber}
+                  onChange={handleInputChange}
                   placeholder="1234 5678 9012"
                   className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all"
                 />
@@ -270,6 +372,9 @@ const Kyc = () => {
                 <label className="block text-sm font-medium text-gray-400 mb-2">PAN Number</label>
                 <input 
                   type="text" 
+                  name="panNumber"
+                  value={formData.panNumber}
+                  onChange={handleInputChange}
                   placeholder="ABCDE1234F"
                   className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all uppercase"
                 />
@@ -296,6 +401,9 @@ const Kyc = () => {
                   <label className="block text-sm font-medium text-gray-400 mb-2">Account Holder Name</label>
                   <input 
                     type="text" 
+                    name="accountName"
+                    value={formData.accountName}
+                    onChange={handleInputChange}
                     placeholder="Name as per Bank"
                     className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all"
                   />
@@ -304,6 +412,9 @@ const Kyc = () => {
                   <label className="block text-sm font-medium text-gray-400 mb-2">Bank Name</label>
                   <input 
                     type="text" 
+                    name="bankName"
+                    value={formData.bankName}
+                    onChange={handleInputChange}
                     placeholder="e.g. State Bank of India"
                     className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all"
                   />
@@ -312,6 +423,9 @@ const Kyc = () => {
                   <label className="block text-sm font-medium text-gray-400 mb-2">Account Number</label>
                   <input 
                     type="text" 
+                    name="accountNumber"
+                    value={formData.accountNumber}
+                    onChange={handleInputChange}
                     placeholder="Enter Account Number"
                     className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all"
                   />
@@ -320,6 +434,9 @@ const Kyc = () => {
                   <label className="block text-sm font-medium text-gray-400 mb-2">IFSC Code</label>
                   <input 
                     type="text" 
+                    name="ifscCode"
+                    value={formData.ifscCode}
+                    onChange={handleInputChange}
                     placeholder="SBIN0001234"
                     className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all uppercase"
                   />
@@ -330,6 +447,9 @@ const Kyc = () => {
                 <label className="block text-sm font-medium text-gray-400 mb-2">Branch Name</label>
                 <input 
                   type="text" 
+                  name="branchName"
+                  value={formData.branchName}
+                  onChange={handleInputChange}
                   placeholder="Enter Branch Name"
                   className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all"
                 />
@@ -352,18 +472,80 @@ const Kyc = () => {
           </div>
           
           <button 
-            onClick={nextStep}
+            onClick={currentStep === 4 ? handleSubmit : nextStep}
+            disabled={isSubmitting}
             className={`flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white transition-all duration-300 ${
               currentStep === 4 
                 ? 'bg-gradient-to-r from-[#00FF99] to-[#00C6FF] shadow-[0_0_20px_rgba(0,255,153,0.4)] hover:scale-[1.02]' 
                 : 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] shadow-[0_0_20px_rgba(160,32,240,0.4)] hover:shadow-[0_0_30px_rgba(255,0,255,0.6)] hover:scale-[1.02]'
             }`}
           >
-            {currentStep === 4 ? 'Submit Verification' : 'Next Step'} 
+            {isSubmitting ? 'Submitting...' : currentStep === 4 ? 'Submit Verification' : 'Next Step'} 
             {currentStep < 4 && <ChevronRight size={18} />}
-            {currentStep === 4 && <CheckCircle2 size={18} />}
+            {currentStep === 4 && !isSubmitting && <CheckCircle2 size={18} />}
           </button>
         </div>
+
+        {/* Step 5: Pending State */}
+        {currentStep === 5 && (
+          <div className="absolute inset-0 bg-[#0B0F1A] flex flex-col items-center justify-center p-8 z-50 text-center">
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 200 }}
+              className="w-24 h-24 bg-yellow-500/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(234,179,8,0.2)]"
+            >
+              <Clock size={48} className="text-yellow-500" />
+            </motion.div>
+            <h2 className="text-3xl font-bold text-white mb-4">Verification Pending</h2>
+            <p className="text-gray-400 mb-8 max-w-md">
+              Your KYC details are currently under review by our team. This usually takes 24-48 hours. We will notify you once verified.
+            </p>
+            <button 
+              onClick={() => setKycStatus('none') || setCurrentStep(1)}
+              className="text-gray-500 hover:text-white text-sm underline transition-colors"
+            >
+              Need to update details? Click here to re-upload (will reset status)
+            </button>
+          </div>
+        )}
+
+        {/* Step 6: Verified State */}
+        {currentStep === 6 && (
+          <div className="absolute inset-0 bg-[#0B0F1A] flex flex-col items-center justify-center p-8 z-50 text-center">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px]"></div>
+              <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px]"></div>
+            </div>
+
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 200 }}
+              className="w-24 h-24 bg-gradient-to-tr from-[#00FF99] to-[#00C6FF] rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(0,255,153,0.4)] relative z-10"
+            >
+              <ShieldCheck size={48} className="text-white" />
+            </motion.div>
+            
+            <h2 className="text-3xl font-bold text-white mb-2 relative z-10">Account Verified</h2>
+            <p className="text-[#00FF99] font-bold mb-6 relative z-10 tracking-widest uppercase text-xs">Level 1 Verified</p>
+            
+            <p className="text-gray-400 mb-10 max-w-md relative z-10 leading-relaxed">
+              Congratulations! Your identity has been successfully verified. You now have full access to all platform features, including withdrawals.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 w-full max-w-sm relative z-10">
+              <div className="bg-[#161B2A] border border-gray-800 p-4 rounded-2xl">
+                <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Status</p>
+                <p className="text-emerald-400 font-bold text-sm">Active</p>
+              </div>
+              <div className="bg-[#161B2A] border border-gray-800 p-4 rounded-2xl">
+                <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Withdraw Limit</p>
+                <p className="text-white font-bold text-sm">Unlimited</p>
+              </div>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

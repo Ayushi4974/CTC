@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TrendingUp, Users, AlertTriangle, CheckCircle2, 
   DollarSign, Lock, Coins, ArrowRight,
   Info, ShieldCheck, Database, XCircle, Clock
 } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProfile } from '../redux/slices/authSlice';
+import api from '../api';
+import { toast } from 'react-toastify';
 
 const statCards = [
   { title: 'Mining Commission', subtitle: 'Return on Investment', value: '1,245.50', hidden: true, icon: TrendingUp, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/10', progressColor: 'from-[#A020F0] to-[#FF00FF]', progress: 30 },
@@ -28,12 +32,52 @@ const mockHistory = [
 ];
 
 const Withdrawal = () => {
-  const [selectedSource, setSelectedSource] = useState(withdrawalSources[0]);
+  const dispatch = useDispatch();
+  const { profile, user } = useSelector(state => state.auth);
+  const currentUser = profile || user;
+
+  const dynamicSources = [
+    { id: 'balance', name: 'Available Balance', balance: currentUser?.availableBalance || 0, icon: TrendingUp, color: '#00C6FF' },
+  ];
+
+  const [selectedSource, setSelectedSource] = useState(dynamicSources[0]);
   const [amount, setAmount] = useState('');
-  const [showHistory, setShowHistory] = useState(true); // Toggle to show mock history for styling demonstration
+  const [walletAddress, setWalletAddress] = useState('');
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(true);
+
+  useEffect(() => {
+    dispatch(fetchProfile());
+    fetchHistory();
+  }, [dispatch]);
+
+  const fetchHistory = async () => {
+    try {
+      const res = await api.get('/withdrawal/history');
+      setHistory(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleUseMax = () => {
-    setAmount(selectedSource.balance);
+    setAmount(currentUser?.availableBalance || 0);
+  };
+
+  const handleWithdraw = async () => {
+    if (!amount || amount < 10) return toast.error('Minimum withdrawal is 10');
+    if (!walletAddress) return toast.error('Please enter your receiving wallet address');
+    
+    try {
+      await api.post('/withdrawal/request', { amount: Number(amount), walletAddress });
+      toast.success('Withdrawal requested successfully!');
+      setAmount('');
+      setWalletAddress('');
+      dispatch(fetchProfile());
+      fetchHistory();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Withdrawal failed');
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -68,7 +112,7 @@ const Withdrawal = () => {
             transition={{ delay: 0.1 }}
             className="text-gray-400"
           >
-            Welcome, <span className="text-[#A020F0] font-bold drop-shadow-[0_0_5px_rgba(160,32,240,0.5)]">Ethan!</span> Manage your earnings and withdraw funds securely via USDT (BEP-20).
+            Welcome, <span className="text-[#A020F0] font-bold drop-shadow-[0_0_5px_rgba(160,32,240,0.5)]">{currentUser?.fullName}!</span> Manage your earnings and withdraw funds securely via USDT (BEP-20).
           </motion.p>
         </div>
         <motion.button 
@@ -79,64 +123,6 @@ const Withdrawal = () => {
           <div className="w-2 h-2 rounded-full bg-[#00C6FF] animate-pulse"></div>
           Available Balance
         </motion.button>
-      </div>
-
-      {/* Top Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-        {statCards.map((stat, idx) => {
-          const Icon = stat.icon;
-          return (
-            <motion.div 
-              key={idx}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              className="relative bg-[#0B0F1A]/80 backdrop-blur-xl border border-gray-800/60 rounded-2xl p-4 overflow-hidden group"
-            >
-              {/* Dynamic Aura Glow Background */}
-              <div className={`absolute -inset-10 ${stat.aura} blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700`}></div>
-              
-              <div className="relative z-10 flex flex-col h-full justify-between">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="text-white font-bold text-sm line-clamp-1">{stat.title}</h3>
-                  </div>
-                  <div className={`shrink-0 w-7 h-7 rounded-lg bg-[#161B2A] flex items-center justify-center ${stat.color} shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]`}>
-                    <Icon size={14} />
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  {stat.hidden ? (
-                    <div className="relative inline-block group/blur cursor-pointer">
-                      <h2 className="text-xl font-bold text-white select-none blur-md group-hover/blur:blur-none transition-all duration-300">
-                        CTC {stat.value}
-                      </h2>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover/blur:opacity-0 transition-opacity">
-                        <span className="text-xl font-bold text-gray-400 tracking-widest">***</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <h2 className="text-xl font-bold text-white">CTC {stat.value}</h2>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                    <span>4x Earning Limit</span>
-                    <span>{stat.progress}%</span>
-                  </div>
-                  <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full bg-gradient-to-r ${stat.progressColor}`} 
-                      style={{ width: `${stat.progress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
       </div>
 
       {/* Main Content Grid */}
@@ -158,8 +144,8 @@ const Withdrawal = () => {
             {/* Source Selection */}
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-300 mb-3">Select Source</label>
-              <div className="grid grid-cols-3 gap-3">
-                {withdrawalSources.map((source) => {
+              <div className="grid grid-cols-1 gap-3">
+                {dynamicSources.map((source) => {
                   const isSelected = selectedSource.id === source.id;
                   const Icon = source.icon;
                   return (
@@ -172,17 +158,13 @@ const Withdrawal = () => {
                           : 'bg-[#161B2A]/50 border border-gray-800 hover:border-gray-600'
                       }`}
                     >
-                      {/* Active Border Gradient */}
                       {isSelected && <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-br from-[#A020F0] to-[#FF00FF] -z-10"></div>}
-                      
-                      {/* Glow inside button */}
                       {isSelected && <div className="absolute inset-0 bg-[#A020F0]/10 blur-md z-0"></div>}
-
                       <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center mb-2 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] ${isSelected ? 'bg-[#A020F0]/20 text-[#FF00FF]' : 'bg-gray-800 text-gray-400'}`}>
                         <Icon size={14} />
                       </div>
-                      <span className={`relative z-10 text-[10px] font-bold text-center ${isSelected ? 'text-white' : 'text-gray-400'}`}>{source.name}</span>
-                      <span className={`relative z-10 text-[10px] mt-0.5 ${isSelected ? 'text-[#00C6FF]' : 'text-gray-500'}`}>CTC {source.balance}</span>
+                      <span className={`relative z-10 text-xs font-bold text-center ${isSelected ? 'text-white' : 'text-gray-400'}`}>{source.name}</span>
+                      <span className={`relative z-10 text-sm mt-0.5 ${isSelected ? 'text-[#00C6FF]' : 'text-gray-500'}`}>${source.balance}</span>
                     </button>
                   );
                 })}
@@ -195,28 +177,39 @@ const Withdrawal = () => {
             {/* Amount Input */}
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-semibold text-gray-300">Withdrawal Amount (CTC)</label>
+                <label className="text-sm font-semibold text-gray-300">Withdrawal Amount (USD)</label>
                 <button 
                   onClick={handleUseMax}
                   className="text-[11px] px-2 py-1 bg-[#A020F0]/10 hover:bg-[#A020F0]/20 text-[#FF00FF] rounded font-bold border border-[#A020F0]/30 transition-colors shadow-[0_0_10px_rgba(160,32,240,0.2)]"
                 >
-                  Use Max: {selectedSource.balance}
+                  Use Max: ${selectedSource.balance}
                 </button>
               </div>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">CTC</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">$</span>
                 <input 
                   type="number" 
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full bg-[#050505]/50 border border-gray-700/80 rounded-xl pl-12 pr-4 py-3.5 text-white font-semibold placeholder-gray-600 focus:outline-none focus:border-[#FF00FF] focus:ring-1 focus:ring-[#FF00FF] focus:shadow-[0_0_20px_rgba(255,0,255,0.2)] transition-all"
+                  className="w-full bg-[#050505]/50 border border-gray-700/80 rounded-xl pl-8 pr-4 py-3.5 text-white font-semibold placeholder-gray-600 focus:outline-none focus:border-[#FF00FF] focus:ring-1 focus:ring-[#FF00FF] focus:shadow-[0_0_20px_rgba(255,0,255,0.2)] transition-all"
                 />
               </div>
               <div className="flex justify-between text-[11px] text-gray-500 mt-2 font-medium">
-                <span>Minimum: CTC 10</span>
-                <span className="text-[#00C6FF]">Available: {selectedSource.balance}</span>
+                <span>Minimum: $10</span>
+                <span className="text-[#00C6FF]">Available: ${selectedSource.balance}</span>
               </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Receiving Wallet Address (USDT BEP-20)</label>
+              <input 
+                type="text" 
+                placeholder="0x..."
+                value={walletAddress}
+                onChange={(e) => setWalletAddress(e.target.value)}
+                className="w-full bg-[#050505]/50 border border-gray-700/80 rounded-xl px-4 py-3.5 text-white font-semibold placeholder-gray-600 focus:outline-none focus:border-[#FF00FF] focus:ring-1 focus:ring-[#FF00FF] focus:shadow-[0_0_20px_rgba(255,0,255,0.2)] transition-all"
+              />
             </div>
 
             {/* Withdrawal Method */}
@@ -249,11 +242,10 @@ const Withdrawal = () => {
             </div>
 
             {/* Submit Button with Shimmer */}
-            <button className="relative overflow-hidden w-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] hover:shadow-[0_0_30px_rgba(255,0,255,0.6)] text-white rounded-xl py-4 font-bold transition-all hover:-translate-y-0.5 mb-4 group">
+            <button onClick={handleWithdraw} className="relative overflow-hidden w-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] hover:shadow-[0_0_30px_rgba(255,0,255,0.6)] text-white rounded-xl py-4 font-bold transition-all hover:-translate-y-0.5 mb-4 group">
               <span className="relative z-10 flex items-center justify-center gap-2">
                 Submit Withdrawal Request <ArrowRight size={18} />
               </span>
-              {/* Shimmer Effect */}
               <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-[shimmer_1.5s_infinite] skew-x-[-20deg] w-1/2 h-full z-0"></div>
             </button>
             
@@ -303,19 +295,19 @@ const Withdrawal = () => {
 
             {/* Table Content */}
             <div className="flex-1 flex flex-col relative z-10">
-              {showHistory ? (
-                <div className="flex flex-col gap-1 py-2">
-                  {mockHistory.map((row, i) => (
+              {history.length > 0 ? (
+                <div className="flex flex-col gap-1 py-2 overflow-y-auto max-h-[300px]">
+                  {history.map((row, i) => (
                     <div key={i} className="grid grid-cols-6 gap-4 py-4 px-2 hover:bg-[#161B2A]/50 rounded-xl items-center border-b border-gray-800/30 transition-colors">
-                      <div className="col-span-1 text-sm text-gray-300 font-medium">{row.source}</div>
-                      <div className="col-span-1 text-center text-sm font-bold text-white">CTC {row.amount}</div>
-                      <div className="col-span-1 text-center text-sm text-gray-400">{row.date}</div>
-                      <div className="col-span-1 text-center text-[11px] text-[#00C6FF] font-medium bg-[#00C6FF]/10 py-1 rounded-lg border border-[#00C6FF]/20">{row.method}</div>
+                      <div className="col-span-1 text-sm text-gray-300 font-medium">Withdrawal</div>
+                      <div className="col-span-1 text-center text-sm font-bold text-white">${row.amount}</div>
+                      <div className="col-span-1 text-center text-sm text-gray-400">{new Date(row.createdAt).toLocaleDateString()}</div>
+                      <div className="col-span-1 text-center text-[11px] text-[#00C6FF] font-medium bg-[#00C6FF]/10 py-1 rounded-lg border border-[#00C6FF]/20">USDT</div>
                       <div className="col-span-1 text-center flex justify-center">
-                        {getStatusBadge(row.status)}
+                        {getStatusBadge(row.status === 'pending' ? 'Pending' : row.status === 'approved' ? 'Completed' : 'Rejected')}
                       </div>
                       <div className="col-span-1 text-right">
-                        <button className="text-[11px] font-semibold text-[#A020F0] hover:text-[#FF00FF] transition-colors">Details</button>
+                        <span className="text-[11px] font-semibold text-gray-500">Deduct: ${row.deduction}</span>
                       </div>
                     </div>
                   ))}

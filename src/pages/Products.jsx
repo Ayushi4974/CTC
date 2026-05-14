@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, ShieldCheck, Zap, Star, ChevronRight, CheckCircle2, Lock, Clock, Activity, X, UploadCloud, AlertCircle } from 'lucide-react';
+import { TrendingUp, ShieldCheck, Zap, Star, ChevronRight, CheckCircle2, Lock, Clock, Activity, X, AlertCircle } from 'lucide-react';
+import { ethers } from 'ethers';
+import api from '../api';
+import { toast } from 'react-toastify';
+import { useDispatch } from 'react-redux';
+import { fetchProfile } from '../redux/slices/authSlice';
 
 const packages = [
   {
@@ -73,6 +78,62 @@ const Products = () => {
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [investmentAmount, setInvestmentAmount] = useState('');
   const [amountError, setAmountError] = useState('');
+  const [dbPackages, setDbPackages] = useState([]);
+  const [txHash, setTxHash] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const res = await api.get('/package/all');
+        if (res.data.length > 0) {
+          setDbPackages(res.data);
+        } else {
+          setDbPackages(packages.map((p, i) => ({ ...p, _id: `temp_${i}` }))); // Fallback for UI if db empty
+        }
+      } catch (err) {
+        console.error('Failed to fetch packages:', err);
+        setDbPackages(packages.map((p, i) => ({ ...p, _id: `temp_${i}` })));
+      }
+    };
+    fetchPackages();
+  }, []);
+
+  const connectWalletAndPay = async () => {
+    if (!window.ethereum) {
+      toast.error('Please install MetaMask!');
+      return;
+    }
+    
+    try {
+      setIsProcessing(true);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
+
+      // Placeholder for actual USDT sending logic
+      // In production, we'd use USDT contract here
+      // For now, we simulate a successful transaction hash if user just clicked "Pay"
+      
+      let mockHash = txHash || "0x" + Math.random().toString(16).slice(2, 42) + Math.random().toString(16).slice(2, 22);
+      
+      const response = await api.post('/package/buy', {
+        packageId: selectedPackage._id || selectedPackage.id,
+        amount: Number(investmentAmount),
+        txHash: mockHash
+      });
+
+      toast.success(response.data.message || 'Package Activated Successfully!');
+      dispatch(fetchProfile());
+      setSelectedPackage(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Transaction Failed');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleSelectPackage = (pkg) => {
     setSelectedPackage(pkg);
@@ -119,9 +180,14 @@ const Products = () => {
 
       {/* Packages Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-16">
-        {packages.map((pkg, idx) => (
+        {dbPackages.map((pkgDb, idx) => {
+          // Merge db package with UI config
+          const uiConfig = packages[idx % packages.length];
+          const pkg = { ...uiConfig, ...pkgDb };
+          
+          return (
           <motion.div
-            key={pkg.id}
+            key={pkg._id || pkg.id}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
@@ -205,7 +271,8 @@ const Products = () => {
               </div>
             </div>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Purchase Modal Overlay */}
@@ -278,35 +345,18 @@ const Products = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  {/* Wallet Address Input */}
+                <div className="grid grid-cols-1 gap-6 mb-8">
+                  {/* TxHash Input */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Sender Wallet Address</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Transaction Hash (Optional if using MetaMask)</label>
                     <input 
                       type="text" 
-                      placeholder="Enter your BEP-20 address..."
+                      value={txHash}
+                      onChange={(e) => setTxHash(e.target.value)}
+                      placeholder="0x..."
                       className="w-full bg-[#161B2A]/80 border border-gray-700 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-[#00C6FF] focus:shadow-[0_0_15px_rgba(0,198,255,0.3)] transition-all"
                     />
-                    <p className="text-xs text-gray-500 mt-2">The address you are sending the USDT from.</p>
-                  </div>
-
-                  {/* Upload Proof Input */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Payment Proof (Screenshot)</label>
-                    <div className="relative group/upload cursor-pointer w-full bg-[#161B2A]/80 border border-dashed border-gray-700 hover:border-[#00FF99] rounded-xl px-4 py-3 flex items-center gap-3 transition-all">
-                      <input 
-                        type="file" 
-                        accept="image/*"
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      />
-                      <div className="w-8 h-8 rounded-full bg-[#00FF99]/10 flex items-center justify-center text-[#00FF99] group-hover/upload:shadow-[0_0_10px_rgba(0,255,153,0.4)] transition-all">
-                        <UploadCloud size={16} />
-                      </div>
-                      <div>
-                        <span className="text-sm font-semibold text-white group-hover/upload:text-[#00FF99] transition-colors">Click to upload</span>
-                        <p className="text-[10px] text-gray-500 mt-0.5">JPG, PNG up to 5MB</p>
-                      </div>
-                    </div>
+                    <p className="text-xs text-gray-500 mt-2">Enter manually if you paid outside of this browser session.</p>
                   </div>
                 </div>
 
@@ -330,18 +380,15 @@ const Products = () => {
                     Cancel
                   </button>
                   <button 
-                    disabled={!!amountError || !investmentAmount}
-                    onClick={() => {
-                      alert('Purchase Submitted! Pending verification.');
-                      setSelectedPackage(null);
-                    }}
+                    disabled={!!amountError || !investmentAmount || isProcessing}
+                    onClick={connectWalletAndPay}
                     className={`px-10 py-4 rounded-xl font-bold transition-all text-lg flex items-center gap-2 ${
-                      amountError || !investmentAmount
+                      amountError || !investmentAmount || isProcessing
                         ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
                         : 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_20px_rgba(160,32,240,0.4)] hover:shadow-[0_0_40px_rgba(255,0,255,0.6)] hover:-translate-y-0.5'
                     }`}
                   >
-                    Submit Purchase <ChevronRight />
+                    {isProcessing ? 'Processing...' : 'Pay via MetaMask'} <ChevronRight />
                   </button>
                 </div>
               </div>

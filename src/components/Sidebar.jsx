@@ -1,5 +1,7 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../redux/slices/authSlice';
 import { 
   Home, 
   Package, 
@@ -15,6 +17,7 @@ import {
   User
 } from 'lucide-react';
 import clsx from 'clsx';
+import { toast } from 'react-toastify';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: Home },
@@ -25,11 +28,40 @@ const navItems = [
   { name: 'Referral Income', path: '/referral-income', icon: DollarSign },
   { name: 'Level Income', path: '/level-income', icon: BarChart2 },
   { name: 'Mining History', path: '/mining', icon: Cpu },
+  { name: 'Package History', path: '/package-history', icon: Package },
   { name: 'Transactions', path: '/transactions', icon: FileText },
   { name: 'Profile', path: '/profile', icon: User },
 ];
 
 const Sidebar = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { walletAddress } = useSelector((state) => state.auth);
+
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts && accounts.length > 0) {
+          dispatch({ type: 'auth/setWalletAddress', payload: accounts[0] });
+          toast.success("Wallet connected successfully!");
+        } else {
+          toast.error("No active wallet found. Please unlock your wallet.");
+        }
+      } catch (error) {
+        console.error("Wallet connection error:", error);
+        toast.error(error?.message || "Failed to connect wallet. Please check your extension.");
+      }
+    } else {
+      toast.error("Please install MetaMask to use this feature!");
+    }
+  };
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/login');
+  };
+
   return (
     <aside className="w-64 h-screen bg-[#050505] border-r border-[#1a1a2e] flex flex-col fixed left-0 top-0 overflow-y-auto hide-scrollbar z-50">
       {/* Logo */}
@@ -112,21 +144,28 @@ const Sidebar = () => {
           <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">Wallet Status</p>
           <div className="flex items-center gap-2 mb-4 text-sm font-medium">
             <div className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-40"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500/80"></span>
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${walletAddress ? 'bg-[#00FF99]' : 'bg-red-500'} opacity-40`}></span>
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${walletAddress ? 'bg-[#00FF99]' : 'bg-red-500/80'}`}></span>
             </div>
-            <span className="text-gray-400">Disconnected</span>
+            <span className={walletAddress ? "text-[#00FF99]" : "text-gray-400"}>
+              {walletAddress ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}` : 'Disconnected'}
+            </span>
           </div>
-          <button className="w-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white rounded-lg py-2.5 text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-            <Wallet size={16} />
-            Connect Wallet
-          </button>
+          {!walletAddress && (
+            <button 
+              onClick={connectWallet}
+              className="w-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white rounded-lg py-2.5 text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            >
+              <Wallet size={16} />
+              Connect Wallet
+            </button>
+          )}
         </div>
       </div>
 
       {/* Logout */}
       <div className="p-4 pb-6">
-        <button className="flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium w-full">
+        <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium w-full">
           <LogOut size={18} />
           Logout
         </button>
