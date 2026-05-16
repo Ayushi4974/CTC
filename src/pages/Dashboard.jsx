@@ -15,7 +15,7 @@ import {
 import { motion } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProfile } from '../redux/slices/authSlice';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 
 const Dashboard = () => {
@@ -39,6 +39,39 @@ const Dashboard = () => {
   const promotionalIncome = currentUser?.promotionalIncome || 0;
   const fastrackQualified = currentUser?.fastrackQualified ? 'Active' : 'Inactive';
   
+  const [miningProgress, setMiningProgress] = useState(0);
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const updateProgress = () => {
+      const now = new Date().getTime();
+      const cycleMs = 12 * 60 * 60 * 1000;
+      const elapsed = now % cycleMs;
+      const progress = (elapsed / cycleMs) * 100;
+      setMiningProgress(progress);
+
+      const remainingMs = cycleMs - elapsed;
+      const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+      const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
+      setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+    };
+    
+    updateProgress();
+    const interval = setInterval(updateProgress, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getPackageProfit = () => {
+    const name = activePackageName.toLowerCase();
+    if (name.includes('package 1')) return '0.5%';
+    if (name.includes('package 2')) return '0.6%';
+    if (name.includes('package 3')) return '0.7%';
+    if (name.includes('package 4')) return '0.8%';
+    if (currentUser?.totalInvestment >= 20) return '0.25%';
+    return '0%';
+  };
+
   const connectWallet = async () => {
     if (typeof window.ethereum !== 'undefined') {
       try {
@@ -117,54 +150,72 @@ const Dashboard = () => {
           transition={{ delay: 0.1 }}
           className="bg-[#0f0f13] border border-gray-800 rounded-3xl p-6 lg:p-8"
         >
-          <div className="flex items-center gap-3 mb-2">
-            <Cpu className="text-emerald-500" size={24} />
-            <h2 className="text-xl font-bold text-white">Mining Operations</h2>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <Cpu className="text-[#A020F0]" size={24} />
+              <h2 className="text-xl font-bold text-white">Mining Operations</h2>
+            </div>
+            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-gray-800/40 px-2 py-1 rounded border border-gray-700">
+              Mon - Fri Cycle
+            </div>
           </div>
-          <p className="text-gray-400 text-sm mb-6">System status and performance</p>
+          <p className="text-gray-400 text-sm mb-6">Real-time trading performance & ROI</p>
           
           <div className="flex flex-wrap items-center gap-4 mb-8">
-            <button className="bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white px-6 py-2.5 rounded-lg font-medium shadow-lg shadow-[#A020F0]/20 flex items-center gap-2">
-              <Cpu size={18} /> Start Mining
-            </button>
-            <div className="px-4 py-2.5 border border-[#00FF99]/30 text-[#00FF99] bg-[#00FF99]/5 rounded-lg text-sm font-semibold tracking-wider">
-              READY
+            <div className="px-4 py-2.5 border border-[#00FF99]/30 text-[#00FF99] bg-[#00FF99]/5 rounded-lg text-sm font-semibold tracking-wider flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#00FF99] animate-pulse"></div>
+              {isActive ? 'TRADING LIVE' : 'AWAITING ACTIVATION'}
             </div>
             <div className="px-4 py-2.5 border border-[#FF00FF]/30 text-[#FF00FF] bg-[#FF00FF]/5 rounded-lg text-sm font-medium flex items-center gap-2">
-              <Briefcase size={16} /> STAKED: 0.00
+              <Briefcase size={16} /> STAKED: ${currentUser?.totalInvestment || '0.00'}
+            </div>
+            <div className="px-4 py-2.5 border border-gray-700 text-gray-300 bg-gray-800/40 rounded-lg text-[10px] font-bold uppercase tracking-tighter">
+              Profit: {getPackageProfit()} / 12h
             </div>
           </div>
 
           <div className="mb-6">
             <div className="flex justify-between text-xs font-semibold text-gray-500 tracking-wider mb-2 uppercase">
-              <span>Mining Cycle Progress</span>
-              <span className="text-[#FF00FF]">Cycle 0/24</span>
+              <span>Next Profit Sync</span>
+              <span className="text-[#FF00FF] font-mono">{timeLeft}</span>
             </div>
-            <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
-              <div className="h-full w-0 bg-gradient-to-r from-[#A020F0] to-[#FF00FF] rounded-full"></div>
+            <div className="h-2.5 w-full bg-gray-800 rounded-full overflow-hidden p-0.5 border border-gray-700">
+              <div 
+                className="h-full bg-gradient-to-r from-[#A020F0] via-[#FF00FF] to-[#A020F0] rounded-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(160,32,240,0.5)]"
+                style={{ width: `${miningProgress}%` }}
+              ></div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-[#15151a] rounded-2xl p-4 border border-gray-800/50">
+            <div className="bg-[#15151a] rounded-2xl p-4 border border-gray-800/50 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#A020F0]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1">Mined (This Month)</p>
-              <h3 className="text-2xl font-bold text-white mb-2">0 Sessions</h3>
-              <p className="text-xs text-[#FF00FF] font-medium">Total Power: 0 TH/s</p>
+              <h3 className="text-2xl font-bold text-white mb-2">{isActive ? '12 Sessions' : '0 Sessions'}</h3>
+              <p className="text-xs text-[#FF00FF] font-medium flex items-center gap-1">
+                <Zap size={12} /> {isActive ? '45.8' : '0'} TH/s Power
+              </p>
             </div>
-            <div className="bg-[#15151a] rounded-2xl p-4 border border-gray-800/50">
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1">Total Mining Bonus</p>
-              <h3 className="text-2xl font-bold text-purple-400 mb-2">****</h3>
-              <p className="text-xs text-gray-500">Connect wallet to view</p>
+            <div className="bg-[#15151a] rounded-2xl p-4 border border-gray-800/50 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#00C6FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1">Total Trading ROI</p>
+              <h3 className="text-2xl font-bold text-[#00C6FF] mb-2">${miningIncome.toFixed(2)}</h3>
+              <p className="text-xs text-gray-500">Live Cycle Returns</p>
             </div>
           </div>
 
-          <div className="bg-[#15151a] rounded-xl p-4 border border-gray-800/50 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-gray-800/80 flex items-center justify-center text-gray-400">
-              <Clock size={20} />
+          <div className="bg-[#15151a] rounded-xl p-4 border border-gray-800/50 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-gray-800/80 flex items-center justify-center text-gray-400">
+                <Clock size={20} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Current Session Status</p>
+                <p className="text-sm font-medium text-white">{isActive ? 'Trading Operational' : 'Inactive'}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Last Sync Time</p>
-              <p className="text-sm font-medium text-white">Never Mined</p>
+            <div className="text-[10px] font-bold text-[#00FF99] bg-[#00FF99]/10 px-2 py-1 rounded border border-[#00FF99]/30">
+              SYNCED
             </div>
           </div>
 
