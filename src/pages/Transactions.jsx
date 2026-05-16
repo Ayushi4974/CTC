@@ -8,12 +8,12 @@ import api from '../api';
 import { useEffect } from 'react';
 
 const mockTransactions = [
-  { id: 'TXN-98234', type: 'Deposit', desc: 'Account Funding', amount: '+CTC 5,000.00', isPositive: true, date: '2026-05-12 14:30', status: 'Completed', hash: '0x3f8a...9a2c' },
-  { id: 'TXN-98233', type: 'Investment', desc: 'Purchased Package 3', amount: '-CTC 10,000.00', isPositive: false, date: '2026-05-11 09:15', status: 'Completed', hash: '0x7c2b...1e4d' },
-  { id: 'TXN-98232', type: 'Withdrawal', desc: 'Bank Transfer', amount: '-CTC 250.00', isPositive: false, date: '2026-05-10 18:45', status: 'Pending', hash: '0x1a9f...8b3e' },
-  { id: 'TXN-98231', type: 'Referral', desc: 'Level 1 Commission', amount: '+CTC 1,250.00', isPositive: true, date: '2026-05-09 11:20', status: 'Completed', hash: 'System' },
-  { id: 'TXN-98230', type: 'Bonus', desc: 'Fastrack Reward', amount: '+CTC 500.00', isPositive: true, date: '2026-05-08 16:00', status: 'Completed', hash: 'System' },
-  { id: 'TXN-98229', type: 'Withdrawal', desc: 'USDT (BEP-20)', amount: '-CTC 1,000.00', isPositive: false, date: '2026-05-05 10:10', status: 'Failed', hash: '0x9d4e...2c1f' },
+  { id: 'TXN-98234', type: 'Deposit', desc: 'Account Funding', amount: '+$ 5,000.00', isPositive: true, date: '2026-05-12 14:30', status: 'Completed', hash: '0x3f8a...9a2c' },
+  { id: 'TXN-98233', type: 'Investment', desc: 'Purchased Package 3', amount: '-$ 10,000.00', isPositive: false, date: '2026-05-11 09:15', status: 'Completed', hash: '0x7c2b...1e4d' },
+  { id: 'TXN-98232', type: 'Withdrawal', desc: 'Bank Transfer', amount: '-$ 250.00', isPositive: false, date: '2026-05-10 18:45', status: 'Pending', hash: '0x1a9f...8b3e' },
+  { id: 'TXN-98231', type: 'Referral', desc: 'Level 1 Commission', amount: '+$ 1,250.00', isPositive: true, date: '2026-05-09 11:20', status: 'Completed', hash: 'System' },
+  { id: 'TXN-98230', type: 'Bonus', desc: 'Fastrack Reward', amount: '+$ 500.00', isPositive: true, date: '2026-05-08 16:00', status: 'Completed', hash: 'System' },
+  { id: 'TXN-98229', type: 'Withdrawal', desc: 'USDT (BEP-20)', amount: '-$ 1,000.00', isPositive: false, date: '2026-05-05 10:10', status: 'Failed', hash: '0x9d4e...2c1f' },
 ];
 
 const filters = ['All', 'Deposit', 'Withdrawal', 'Investment', 'Referral', 'Bonus'];

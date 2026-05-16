@@ -102,7 +102,7 @@ const Sidebar = () => {
             {/* Text Side */}
             <div className="flex flex-col justify-center ml-1">
               <span className="text-[40px] font-black leading-[0.85] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] via-[#A020F0] to-[#FF00FF] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                CTC
+                $
               </span>
               <div className="flex flex-col mt-1 ml-0.5">
                 <span className="text-[10px] font-bold tracking-[0.15em] text-white leading-none">COPY TRADE</span>

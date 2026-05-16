@@ -226,7 +226,7 @@ const Downline = () => {
               <span className="text-xs font-bold text-[#A020F0] uppercase tracking-widest">Overall Business</span>
             </div>
             <span className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 tracking-tight">
-              CTC {profileData.overallBusiness}
+              $ {profileData.overallBusiness}
             </span>
           </div>
         </motion.div>
@@ -330,7 +330,7 @@ const Downline = () => {
 
                 {/* Business Volume */}
                 <div className="col-span-1">
-                  <p className="text-sm font-bold text-white mb-0.5">CTC {row.volume}</p>
+                  <p className="text-sm font-bold text-white mb-0.5">$ {row.volume}</p>
                   {row.isActive ? (
                     <p className="text-[10px] text-[#00FF99] flex items-center gap-1 drop-shadow-[0_0_5px_rgba(0,255,153,0.5)]"><TrendingUp size={10} /> Active level</p>
                   ) : (
@@ -346,7 +346,7 @@ const Downline = () => {
                 {/* Your Commission */}
                 <div className="col-span-1">
                   <p className={`text-sm font-bold mb-0.5 ${row.commEarned > 0 ? 'text-[#00FF99] drop-shadow-[0_0_5px_rgba(0,255,153,0.5)]' : 'text-gray-400'}`}>
-                    CTC {row.commEarned}
+                    $ {row.commEarned}
                   </p>
                   <p className="text-[10px] text-gray-500 hidden md:block">Level {row.level} earnings</p>
                 </div>
@@ -391,7 +391,7 @@ const Downline = () => {
                             </div>
                             <div className="text-right">
                               <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Volume</p>
-                              <p className="text-xs font-bold text-[#00C6FF]">CTC {partner.vol}</p>
+                              <p className="text-xs font-bold text-[#00C6FF]">$ {partner.vol}</p>
                             </div>
                           </div>
                         ))}
@@ -425,7 +425,7 @@ const Downline = () => {
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#A020F0]/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
           <span className="text-[10px] font-bold text-[#A020F0] uppercase tracking-widest mb-1 relative z-10 flex items-center gap-1.5"><TrendingUp size={12}/> Total Business Volume</span>
-          <span className="text-3xl font-extrabold text-white relative z-10">CTC {totalBusiness}</span>
+          <span className="text-3xl font-extrabold text-white relative z-10">$ {totalBusiness}</span>
         </motion.div>
 
         <motion.div 
@@ -437,7 +437,7 @@ const Downline = () => {
           <div className="absolute right-0 top-0 w-48 h-48 bg-[#00C6FF]/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
           <span className="text-[10px] font-bold text-[#00C6FF] uppercase tracking-widest mb-1 relative z-10">Total Commission Earned</span>
           <span className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-[#00FF99] to-[#00C6FF] drop-shadow-[0_0_10px_rgba(0,255,153,0.4)] relative z-10 tracking-tight">
-            CTC {totalCommission}
+            $ {totalCommission}
           </span>
         </motion.div>
       </div>

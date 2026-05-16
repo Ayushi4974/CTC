@@ -7,7 +7,7 @@ import {
 import api from '../api';
 
 const stats = [
-  { title: 'Total Level Income', value: 1630.714, prefix: 'CTC ', suffix: '', icon: TrendingUp, color: 'text-[#00FF99]', aura: 'bg-[#00FF99]/30' },
+  { title: 'Total Level Income', value: 1630.714, prefix: '$ ', suffix: '', icon: TrendingUp, color: 'text-[#00FF99]', aura: 'bg-[#00FF99]/30' },
   { title: 'Total Network Members', value: 7, prefix: '', suffix: '', icon: Users, color: 'text-[#00C6FF]', aura: 'bg-[#00C6FF]/20' },
   { title: 'Active Levels', value: 2, prefix: '', suffix: '', icon: Layers, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/20', isProgress: true },
 ];
@@ -274,7 +274,7 @@ const LevelIncome = () => {
                   {data.isLocked ? (
                     <div className="relative group/tooltip flex items-center gap-2 text-[10px] text-gray-500 uppercase tracking-widest font-bold cursor-help">
                       <Lock size={12} className="text-gray-500" />
-                      <span>Unlock Requires {data.reqDirects} Directs & CTC {data.reqVol} Vol.</span>
+                      <span>Unlock Requires {data.reqDirects} Directs & $ {data.reqVol} Vol.</span>
                       <div className="absolute bottom-full right-0 mb-2 w-56 p-3 bg-gray-900 border border-gray-700 text-[10px] text-gray-300 rounded-lg shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-20 text-left normal-case tracking-normal font-medium leading-relaxed">
                         To unlock Level {data.level} bonuses, you must complete {data.reqDirects} active direct referrals and maintain a self-staking/team volume of {data.reqVol} USDT.
                       </div>

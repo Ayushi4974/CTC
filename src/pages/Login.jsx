@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, LogIn, UserPlus } from 'lucide-react';
+import { User, Lock, LogIn, UserPlus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, reset } from '../redux/slices/authSlice';
@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 import { useEffect } from 'react';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ const Login = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    dispatch(login({ email, password }));
+    dispatch(login({ userId, password }));
   };
 
   return (
@@ -48,23 +48,23 @@ const Login = () => {
             <h1 className="text-3xl font-extrabold text-white mb-2">
               Welcome <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] to-[#FF00FF]">Back</span>
             </h1>
-            <p className="text-gray-400 text-sm">Login to access your CTC dashboard</p>
+            <p className="text-gray-400 text-sm">Login to access your $ dashboard</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Email Address</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">User ID / Referral ID</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-500" />
+                  <User className="h-5 w-5 text-gray-500" />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value.toUpperCase())}
                   className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all"
-                  placeholder="Enter your email"
+                  placeholder="Enter your User ID"
                 />
               </div>
             </div>

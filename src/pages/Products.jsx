@@ -105,31 +105,95 @@ const Products = () => {
       toast.error('Please install MetaMask!');
       return;
     }
-    
+
     try {
       setIsProcessing(true);
+
+      // 1. Connect to MetaMask
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
-      const address = await signer.getAddress();
 
-      // Placeholder for actual USDT sending logic
-      // In production, we'd use USDT contract here
-      // For now, we simulate a successful transaction hash if user just clicked "Pay"
-      
-      let mockHash = txHash || "0x" + Math.random().toString(16).slice(2, 42) + Math.random().toString(16).slice(2, 22);
-      
-      const response = await api.post('/package/buy', {
-        packageId: selectedPackage._id || selectedPackage.id,
-        amount: Number(investmentAmount),
-        txHash: mockHash
-      });
+      // 2. Switch to Binance Smart Chain (Mainnet: 56, Testnet: 97)
+      const targetChainId = '0x38'; // 56 in hex
+      const chainId = await provider.send('eth_chainId', []);
 
-      toast.success(response.data.message || 'Package Activated Successfully!');
-      dispatch(fetchProfile());
-      setSelectedPackage(null);
+      if (chainId !== targetChainId) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: targetChainId }],
+          });
+        } catch (switchError) {
+          // This error code indicates that the chain has not been added to MetaMask.
+          if (switchError.code === 4902) {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [
+                {
+                  chainId: targetChainId,
+                  chainName: 'Binance Smart Chain',
+                  nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+                  rpcUrls: ['https://bsc-dataseed.binance.org/'],
+                  blockExplorerUrls: ['https://bscscan.com/'],
+                },
+              ],
+            });
+          } else {
+            throw switchError;
+          }
+        }
+      }
+
+      // 3. Send USDT
+      const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
+      const ADMIN_WALLET = "0x185018c5f26B2cE105e0B80b231178CE5913b621"; 
+
+      const abi = [
+        "function transfer(address to, uint256 amount) public returns (bool)",
+        "function balanceOf(address owner) view returns (uint256)",
+        "function decimals() view returns (uint8)"
+      ];
+      const usdtContract = new ethers.Contract(USDT_CONTRACT, abi, signer);
+
+      // Check balance first
+      const userAddress = await signer.getAddress();
+      const [balance, decimals] = await Promise.all([
+        usdtContract.balanceOf(userAddress),
+        usdtContract.decimals()
+      ]);
+
+      const amount = ethers.parseUnits(investmentAmount.toString(), decimals);
+
+      if (balance < amount) {
+        const readableBalance = ethers.formatUnits(balance, decimals);
+        throw new Error(`Insufficient USDT balance. You have ${readableBalance} USDT, but need ${investmentAmount} USDT.`);
+      }
+
+      toast.info("Please confirm the transaction in MetaMask...");
+      const tx = await usdtContract.transfer(ADMIN_WALLET, amount);
+
+      toast.info("Transaction sent! Waiting for confirmation...");
+      const receipt = await tx.wait();
+
+      if (receipt.status === 1) {
+        // 4. Send TxHash to Backend
+        const response = await api.post('/package/buy', {
+          packageId: selectedPackage._id || selectedPackage.id,
+          amount: Number(investmentAmount),
+          txHash: tx.hash
+        });
+
+        toast.success(response.data.message || 'Package Activated Successfully!');
+        dispatch(fetchProfile());
+        setSelectedPackage(null);
+      } else {
+        throw new Error("Transaction failed on-chain");
+      }
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message || 'Transaction Failed');
+      console.error(error);
+      const errorMsg = error.reason || error.message || "Payment failed. Please try again.";
+      toast.error(errorMsg);
     } finally {
       setIsProcessing(false);
     }
@@ -145,7 +209,7 @@ const Products = () => {
     const val = e.target.value;
     setInvestmentAmount(val);
     const num = Number(val);
-    
+
     if (!val) {
       setAmountError('Investment amount is required');
     } else if (num < selectedPackage.minInvestment) {
@@ -161,14 +225,14 @@ const Products = () => {
     <div className="max-w-7xl mx-auto pb-12 pt-4">
       {/* Header Section */}
       <div className="text-center mb-12">
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-4xl md:text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] to-[#FF00FF]"
         >
           Premium Trading Packages
         </motion.h1>
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
@@ -184,93 +248,93 @@ const Products = () => {
           // Merge db package with UI config
           const uiConfig = packages[idx % packages.length];
           const pkg = { ...uiConfig, ...pkgDb };
-          
+
           return (
-          <motion.div
-            key={pkg._id || pkg.id}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            onClick={() => handleSelectPackage(pkg)}
-            className={`relative rounded-3xl cursor-pointer transition-all duration-300 transform hover:-translate-y-2 group ${pkg.glowClass}`}
-          >
-            {/* Glassmorphism Container */}
-            <div className={`h-full bg-gradient-to-br from-[#161B2A]/80 to-[#050505]/90 backdrop-blur-[15px] border border-gray-800/50 rounded-3xl p-6 md:p-8 flex flex-col justify-between overflow-hidden
+            <motion.div
+              key={pkg._id || pkg.id}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 }}
+              onClick={() => handleSelectPackage(pkg)}
+              className={`relative rounded-3xl cursor-pointer transition-all duration-300 transform hover:-translate-y-2 group ${pkg.glowClass}`}
+            >
+              {/* Glassmorphism Container */}
+              <div className={`h-full bg-gradient-to-br from-[#161B2A]/80 to-[#050505]/90 backdrop-blur-[15px] border border-gray-800/50 rounded-3xl p-6 md:p-8 flex flex-col justify-between overflow-hidden
               ${selectedPackage?.id === pkg.id ? 'ring-2 ring-[#A020F0]' : ''}
             `}>
-              {/* Top-Edge Highlight mimicking light source */}
-              <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
-              
-              <div className="relative z-10">
-                {/* Top Row: Icon & Selection */}
-                <div className="flex justify-between items-start mb-6">
-                  {/* Hex/Circle Icon Badge */}
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center border ${pkg.borderClass} ${pkg.iconBgClass} ${pkg.iconTextClass} shadow-[inset_0_0_15px_rgba(255,255,255,0.05)]`}>
-                    <pkg.icon size={26} />
+                {/* Top-Edge Highlight mimicking light source */}
+                <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
+
+                <div className="relative z-10">
+                  {/* Top Row: Icon & Selection */}
+                  <div className="flex justify-between items-start mb-6">
+                    {/* Hex/Circle Icon Badge */}
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center border ${pkg.borderClass} ${pkg.iconBgClass} ${pkg.iconTextClass} shadow-[inset_0_0_15px_rgba(255,255,255,0.05)]`}>
+                      <pkg.icon size={26} />
+                    </div>
+                    {selectedPackage?.id === pkg.id && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="text-[#00FF99]"
+                      >
+                        <CheckCircle2 size={28} className="drop-shadow-[0_0_8px_rgba(0,255,153,0.8)]" />
+                      </motion.div>
+                    )}
                   </div>
-                  {selectedPackage?.id === pkg.id && (
-                    <motion.div 
-                      initial={{ scale: 0 }} 
-                      animate={{ scale: 1 }}
-                      className="text-[#00FF99]"
-                    >
-                      <CheckCircle2 size={28} className="drop-shadow-[0_0_8px_rgba(0,255,153,0.8)]" />
-                    </motion.div>
-                  )}
-                </div>
 
-                {/* Content */}
-                <h2 className="text-2xl font-bold text-white mb-2 tracking-wide">
-                  {pkg.name}
-                </h2>
-                
-                <div className="mb-6">
-                  <p className="text-xs text-gray-400 font-bold mb-1 uppercase tracking-widest opacity-80">Investment Range</p>
-                  <p className="text-2xl text-white font-semibold">{pkg.investment}</p>
-                </div>
+                  {/* Content */}
+                  <h2 className="text-2xl font-bold text-white mb-2 tracking-wide">
+                    {pkg.name}
+                  </h2>
 
-                {/* Profit Rate Box (Information Hierarchy Focus) */}
-                <div className="bg-[#050505]/50 border border-gray-700 hover:border-[#FF00FF]/50 rounded-2xl p-5 mb-6 relative overflow-hidden group-hover:shadow-[inset_0_0_20px_rgba(255,0,255,0.05)] transition-all">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#A020F0] to-[#FF00FF]"></div>
-                  <p className="text-xs text-gray-400 font-bold mb-1 uppercase tracking-widest">Profit Rate</p>
-                  <p className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] via-[#D800FF] to-[#FF00FF]">
-                    {pkg.profit} <span className="text-sm font-semibold text-gray-300 ml-1">{pkg.duration}</span>
+                  <div className="mb-6">
+                    <p className="text-xs text-gray-400 font-bold mb-1 uppercase tracking-widest opacity-80">Investment Range</p>
+                    <p className="text-2xl text-white font-semibold">{pkg.investment}</p>
+                  </div>
+
+                  {/* Profit Rate Box (Information Hierarchy Focus) */}
+                  <div className="bg-[#050505]/50 border border-gray-700 hover:border-[#FF00FF]/50 rounded-2xl p-5 mb-6 relative overflow-hidden group-hover:shadow-[inset_0_0_20px_rgba(255,0,255,0.05)] transition-all">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#A020F0] to-[#FF00FF]"></div>
+                    <p className="text-xs text-gray-400 font-bold mb-1 uppercase tracking-widest">Profit Rate</p>
+                    <p className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] via-[#D800FF] to-[#FF00FF]">
+                      {pkg.profit} <span className="text-sm font-semibold text-gray-300 ml-1">{pkg.duration}</span>
+                    </p>
+                  </div>
+
+                  <p className="text-gray-400 text-sm mb-8 leading-relaxed">
+                    {pkg.description}
                   </p>
                 </div>
-                
-                <p className="text-gray-400 text-sm mb-8 leading-relaxed">
-                  {pkg.description}
-                </p>
-              </div>
 
-              {/* Bottom Actions & Trust Indicators */}
-              <div className="relative z-10 mt-auto">
-                <button 
-                  className={`w-full py-4 rounded-xl font-bold text-white transition-all duration-300 flex items-center justify-center gap-2 mb-5
+                {/* Bottom Actions & Trust Indicators */}
+                <div className="relative z-10 mt-auto">
+                  <button
+                    className={`w-full py-4 rounded-xl font-bold text-white transition-all duration-300 flex items-center justify-center gap-2 mb-5
                     ${pkg.isPremium || selectedPackage?.id === pkg.id
-                      ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] shadow-[0_0_20px_rgba(160,32,240,0.5)] hover:shadow-[0_0_30px_rgba(255,0,255,0.7)] border-none'
-                      : 'bg-transparent border border-gray-600 hover:border-[#A020F0] hover:bg-[#A020F0]/10 hover:shadow-[inset_0_0_15px_rgba(160,32,240,0.3)]'
-                    }
+                        ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] shadow-[0_0_20px_rgba(160,32,240,0.5)] hover:shadow-[0_0_30px_rgba(255,0,255,0.7)] border-none'
+                        : 'bg-transparent border border-gray-600 hover:border-[#A020F0] hover:bg-[#A020F0]/10 hover:shadow-[inset_0_0_15px_rgba(160,32,240,0.3)]'
+                      }
                   `}
-                >
-                  {selectedPackage?.id === pkg.id ? 'Selected' : 'Buy Now'}
-                  {selectedPackage?.id !== pkg.id && <ChevronRight size={18} />}
-                </button>
+                  >
+                    {selectedPackage?.id === pkg.id ? 'Selected' : 'Buy Now'}
+                    {selectedPackage?.id !== pkg.id && <ChevronRight size={18} />}
+                  </button>
 
-                {/* Trust & Transparency Indicators */}
-                <div className="flex items-center justify-between border-t border-gray-800/60 pt-4">
-                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-medium">
-                    <Activity size={12} className="text-emerald-400" />
-                    <span>Real-time Secure</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-medium cursor-help" title="Withdraw your funds anytime">
-                    <Clock size={12} className="text-[#00C6FF]" />
-                    <span>Withdraw anytime</span>
+                  {/* Trust & Transparency Indicators */}
+                  <div className="flex items-center justify-between border-t border-gray-800/60 pt-4">
+                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-medium">
+                      <Activity size={12} className="text-emerald-400" />
+                      <span>Real-time Secure</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-medium cursor-help" title="Withdraw your funds anytime">
+                      <Clock size={12} className="text-[#00C6FF]" />
+                      <span>Withdraw anytime</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
           );
         })}
       </div>
@@ -280,7 +344,7 @@ const Products = () => {
         {selectedPackage && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
             {/* Dark Backdrop */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -300,7 +364,7 @@ const Products = () => {
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#A020F0]/15 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"></div>
 
               {/* Close Button */}
-              <button 
+              <button
                 onClick={() => setSelectedPackage(null)}
                 className="absolute top-6 right-6 text-gray-400 hover:text-white bg-[#161B2A] hover:bg-gray-800 p-2 rounded-full transition-colors z-20 border border-gray-800"
               >
@@ -311,7 +375,7 @@ const Products = () => {
                 <h3 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
                   <Zap className="text-[#FF00FF]" /> Complete Purchase: {selectedPackage.name}
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   {/* Selected Package Display */}
                   <div>
@@ -320,21 +384,20 @@ const Products = () => {
                       {selectedPackage.name} ({selectedPackage.profit} {selectedPackage.duration})
                     </div>
                   </div>
-                  
+
                   {/* Investment Amount Input */}
                   <div>
                     <label className="block text-sm font-medium text-gray-400 mb-2">Investment Amount (USD)</label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         value={investmentAmount}
                         onChange={handleAmountChange}
-                        className={`w-full bg-[#161B2A]/80 border rounded-xl pl-8 pr-4 py-3 text-white font-semibold focus:outline-none transition-all ${
-                          amountError 
-                            ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
-                            : 'border-gray-700 focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.3)]'
-                        }`}
+                        className={`w-full bg-[#161B2A]/80 border rounded-xl pl-8 pr-4 py-3 text-white font-semibold focus:outline-none transition-all ${amountError
+                          ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_15px_rgba(239,68,68,0.3)]'
+                          : 'border-gray-700 focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.3)]'
+                          }`}
                       />
                     </div>
                     {amountError ? (
@@ -349,8 +412,8 @@ const Products = () => {
                   {/* TxHash Input */}
                   <div>
                     <label className="block text-sm font-medium text-gray-400 mb-2">Transaction Hash (Optional if using MetaMask)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={txHash}
                       onChange={(e) => setTxHash(e.target.value)}
                       placeholder="0x..."
@@ -373,20 +436,19 @@ const Products = () => {
                 </div>
 
                 <div className="flex justify-end gap-4">
-                  <button 
+                  <button
                     onClick={() => setSelectedPackage(null)}
                     className="px-6 py-4 rounded-xl font-bold text-gray-400 hover:text-white transition-colors"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     disabled={!!amountError || !investmentAmount || isProcessing}
                     onClick={connectWalletAndPay}
-                    className={`px-10 py-4 rounded-xl font-bold transition-all text-lg flex items-center gap-2 ${
-                      amountError || !investmentAmount || isProcessing
-                        ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
-                        : 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_20px_rgba(160,32,240,0.4)] hover:shadow-[0_0_40px_rgba(255,0,255,0.6)] hover:-translate-y-0.5'
-                    }`}
+                    className={`px-10 py-4 rounded-xl font-bold transition-all text-lg flex items-center gap-2 ${amountError || !investmentAmount || isProcessing
+                      ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
+                      : 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_20px_rgba(160,32,240,0.4)] hover:shadow-[0_0_40px_rgba(255,0,255,0.6)] hover:-translate-y-0.5'
+                      }`}
                   >
                     {isProcessing ? 'Processing...' : 'Pay via MetaMask'} <ChevronRight />
                   </button>

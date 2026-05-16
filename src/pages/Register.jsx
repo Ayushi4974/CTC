@@ -67,7 +67,7 @@ const Register = () => {
             <h1 className="text-3xl font-extrabold text-white mb-2">
               Create <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] to-[#FF00FF]">Account</span>
             </h1>
-            <p className="text-gray-400 text-sm">Join CTC and start your journey</p>
+            <p className="text-gray-400 text-sm">Join $ and start your journey</p>
           </div>
 
           <form onSubmit={handleRegister} className="space-y-5">
@@ -119,7 +119,7 @@ const Register = () => {
                   value={formData.sponsorId}
                   onChange={handleChange}
                   className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all"
-                  placeholder="CTC123456"
+                  placeholder="$123456"
                 />
               </div>
             </div>

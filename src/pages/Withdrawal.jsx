@@ -354,7 +354,7 @@ const Withdrawal = () => {
                 <h3 className="text-white font-bold text-sm">Total Withdrawn</h3>
                 <p className="text-xs text-gray-500 mt-1">All Time</p>
               </div>
-              <span className="text-2xl font-extrabold text-[#00C6FF]">CTC 0.00</span>
+              <span className="text-2xl font-extrabold text-[#00C6FF]">$ 0.00</span>
             </motion.div>
             
             <motion.div 
@@ -367,7 +367,7 @@ const Withdrawal = () => {
                 <h3 className="text-white font-bold text-sm">Pending</h3>
                 <p className="text-xs text-gray-500 mt-1">Awaiting Processing</p>
               </div>
-              <span className="text-2xl font-extrabold text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.4)]">CTC 0.00</span>
+              <span className="text-2xl font-extrabold text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.4)]">$ 0.00</span>
             </motion.div>
 
             <motion.div 

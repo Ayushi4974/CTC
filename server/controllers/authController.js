@@ -56,12 +56,12 @@ const registerUser = async (req, res, next) => {
       if (sponsor) {
         // Update direct sponsor
         await User.findByIdAndUpdate(sponsor, { $inc: { directTeam: 1, totalTeam: 1 } });
-        
+
         // Traverse up the tree to update totalTeam for all ancestors
         let currentSponsorObj = await User.findById(sponsor);
         let currentSponsorId = currentSponsorObj ? currentSponsorObj.sponsor : null;
         let levelsChecked = 1;
-        
+
         while (currentSponsorId && levelsChecked < 30) {
           const ancestor = await User.findByIdAndUpdate(currentSponsorId, { $inc: { totalTeam: 1 } });
           currentSponsorId = ancestor ? ancestor.sponsor : null;
@@ -89,10 +89,13 @@ const registerUser = async (req, res, next) => {
 // @access  Public
 const loginUser = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { userId, password } = req.body;
+    console.log('Login Attempt:', { userId, password });
 
-    // Check for user email
-    const user = await User.findOne({ email });
+    const searchId = userId.trim().toUpperCase();
+    // Check for user ID (case-insensitive match)
+    const user = await User.findOne({ userId: searchId });
+    console.log('User found in DB:', user ? user.userId : 'No user found');
 
     if (user && (await bcrypt.compare(password, user.password))) {
       res.json({

@@ -18,16 +18,16 @@ const defaultProfileData = {
 
 const referralStats = [
   { title: 'Total Direct Referrals', value: 12, prefix: '', suffix: '', icon: Users, color: 'text-[#00C6FF]', aura: 'bg-[#00C6FF]/20', border: 'border-[#00C6FF]/30' },
-  { title: 'Total Referral Income', value: 4250, prefix: 'CTC ', suffix: '.00', icon: DollarSign, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/20', border: 'border-[#A020F0]/30' },
-  { title: 'Pending Bonus', value: 150, prefix: 'CTC ', suffix: '.00', icon: Gift, color: 'text-amber-500', aura: 'bg-amber-500/20', border: 'border-amber-500/30' },
+  { title: 'Total Referral Income', value: 4250, prefix: '$ ', suffix: '.00', icon: DollarSign, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/20', border: 'border-[#A020F0]/30' },
+  { title: 'Pending Bonus', value: 150, prefix: '$ ', suffix: '.00', icon: Gift, color: 'text-amber-500', aura: 'bg-amber-500/20', border: 'border-amber-500/30' },
 ];
 
 const referralHistory = [
-  { id: 'CTC881', name: 'Sarah Jenkins', initial: 'S', package: 'Package 3', pkgColor: 'text-[#A020F0] bg-[#A020F0]/10 border-[#A020F0]/30', amount: '25,000', commPercent: '5%', earned: '1,250.00', date: '2026-05-10', status: 'Credited' },
-  { id: 'CTC992', name: 'Michael T.', initial: 'M', package: 'Package 2', pkgColor: 'text-[#00C6FF] bg-[#00C6FF]/10 border-[#00C6FF]/30', amount: '5,000', commPercent: '5%', earned: '250.00', date: '2026-05-08', status: 'Credited' },
-  { id: 'CTC104', name: 'David W.', initial: 'D', package: 'Package 4', pkgColor: 'text-[#FF00FF] bg-[#FF00FF]/10 border-[#FF00FF]/30', amount: '50,000', commPercent: '5%', earned: '2,500.00', date: '2026-05-05', status: 'Credited' },
-  { id: 'CTC115', name: 'Emma R.', initial: 'E', package: 'Package 1', pkgColor: 'text-[#00FF99] bg-[#00FF99]/10 border-[#00FF99]/30', amount: '1,000', commPercent: '5%', earned: '50.00', date: '2026-05-01', status: 'Credited' },
-  { id: 'CTC126', name: 'James L.', initial: 'J', package: 'Package 2', pkgColor: 'text-[#00C6FF] bg-[#00C6FF]/10 border-[#00C6FF]/30', amount: '3,000', commPercent: '5%', earned: '150.00', date: '2026-05-12', status: 'Pending' },
+  { id: '$[0-9]81', name: 'Sarah Jenkins', initial: 'S', package: 'Package 3', pkgColor: 'text-[#A020F0] bg-[#A020F0]/10 border-[#A020F0]/30', amount: '25,000', commPercent: '5%', earned: '1,250.00', date: '2026-05-10', status: 'Credited' },
+  { id: '$[0-9]92', name: 'Michael T.', initial: 'M', package: 'Package 2', pkgColor: 'text-[#00C6FF] bg-[#00C6FF]/10 border-[#00C6FF]/30', amount: '5,000', commPercent: '5%', earned: '250.00', date: '2026-05-08', status: 'Credited' },
+  { id: '$[0-9]04', name: 'David W.', initial: 'D', package: 'Package 4', pkgColor: 'text-[#FF00FF] bg-[#FF00FF]/10 border-[#FF00FF]/30', amount: '50,000', commPercent: '5%', earned: '2,500.00', date: '2026-05-05', status: 'Credited' },
+  { id: '$[0-9]15', name: 'Emma R.', initial: 'E', package: 'Package 1', pkgColor: 'text-[#00FF99] bg-[#00FF99]/10 border-[#00FF99]/30', amount: '1,000', commPercent: '5%', earned: '50.00', date: '2026-05-01', status: 'Credited' },
+  { id: '$[0-9]26', name: 'James L.', initial: 'J', package: 'Package 2', pkgColor: 'text-[#00C6FF] bg-[#00C6FF]/10 border-[#00C6FF]/30', amount: '3,000', commPercent: '5%', earned: '150.00', date: '2026-05-12', status: 'Pending' },
 ];
 
 const Counter = ({ value, prefix, suffix }) => {
