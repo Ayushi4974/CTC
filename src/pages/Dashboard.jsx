@@ -17,6 +17,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchProfile } from '../redux/slices/authSlice';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import api from '../api';
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -41,8 +42,19 @@ const Dashboard = () => {
   
   const [miningProgress, setMiningProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState('');
+  const [activePackages, setActivePackages] = useState([]);
 
   useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const res = await api.get('/package/my-packages');
+        setActivePackages(res.data.filter(p => p.status === 'active'));
+      } catch (err) {
+        console.error('Error fetching packages:', err);
+      }
+    };
+    fetchPackages();
+
     const updateProgress = () => {
       const now = new Date().getTime();
       const cycleMs = 12 * 60 * 60 * 1000;
@@ -63,13 +75,14 @@ const Dashboard = () => {
   }, []);
 
   const getPackageProfit = () => {
-    const name = activePackageName.toLowerCase();
-    if (name.includes('package 1')) return '0.5%';
-    if (name.includes('package 2')) return '0.6%';
-    if (name.includes('package 3')) return '0.7%';
-    if (name.includes('package 4')) return '0.8%';
-    if (currentUser?.totalInvestment >= 20) return '0.25%';
-    return '0%';
+    if (activePackages.length === 0) {
+      if (currentUser?.totalInvestment >= 20) return '0.25%';
+      return '0%';
+    }
+    
+    // Get unique profit percentages
+    const profits = [...new Set(activePackages.map(p => `${p.dailyProfitPercent}%`))];
+    return profits.join(' & ');
   };
 
   const connectWallet = async () => {
@@ -170,9 +183,23 @@ const Dashboard = () => {
               <Briefcase size={16} /> STAKED: ${currentUser?.totalInvestment || '0.00'}
             </div>
             <div className="px-4 py-2.5 border border-gray-700 text-gray-300 bg-gray-800/40 rounded-lg text-[10px] font-bold uppercase tracking-tighter">
-              Profit: {getPackageProfit()} / 12h
+              ROI: {getPackageProfit()} / 12h
             </div>
           </div>
+
+          {/* Active Packages List */}
+          {activePackages.length > 0 && (
+            <div className="mb-6 flex flex-wrap gap-2">
+              {activePackages.map((p, idx) => (
+                <div key={idx} className="bg-[#161B2A] border border-[#A020F0]/20 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                  <ShieldCheck size={12} className="text-[#A020F0]" />
+                  <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wide">
+                    {p.packageId?.name || 'Package'} (${p.amount})
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="mb-6">
             <div className="flex justify-between text-xs font-semibold text-gray-500 tracking-wider mb-2 uppercase">
