@@ -2,6 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { generateUniqueUserId } = require('../utils/generateId');
+const { sendWelcomeEmail } = require('../services/emailService');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -49,6 +50,9 @@ const registerUser = async (req, res, next) => {
     });
 
     if (user) {
+      // Send Welcome Email
+      await sendWelcomeEmail(user.email, user.fullName, user.userId, password);
+
       if (sponsor) {
         // Update direct sponsor
         await User.findByIdAndUpdate(sponsor, { $inc: { directTeam: 1, totalTeam: 1 } });
