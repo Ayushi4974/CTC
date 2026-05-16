@@ -230,7 +230,7 @@ const ReferralIncome = () => {
         </div>
 
         {/* Summary Stats with Unique Auras & Odometers */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-10">
           {dynamicReferralStats.map((stat, idx) => {
             const Icon = stat.icon;
             return (
@@ -239,13 +239,13 @@ const ReferralIncome = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + (idx * 0.1) }}
-                className={`bg-[#0B0F1A]/80 backdrop-blur-xl border border-gray-800/60 rounded-3xl p-6 relative overflow-hidden group hover:${stat.border} transition-colors duration-500`}
+                className={`bg-[#0B0F1A]/80 backdrop-blur-xl border border-gray-800/60 rounded-3xl p-4 md:p-6 relative overflow-hidden group hover:${stat.border} transition-colors duration-500`}
               >
                 <div className={`absolute -inset-10 ${stat.aura} blur-3xl rounded-full opacity-30 group-hover:opacity-70 transition-opacity duration-700`}></div>
                 <div className="relative z-10 flex justify-between items-center">
                   <div>
                     <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">{stat.title}</p>
-                    <p className={`text-3xl font-extrabold text-white tracking-tight drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]`}>
+                    <p className={`text-xl md:text-3xl font-extrabold text-white tracking-tight drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]`}>
                       <Counter value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
                     </p>
                   </div>

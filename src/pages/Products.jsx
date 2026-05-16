@@ -243,7 +243,7 @@ const Products = () => {
       </div>
 
       {/* Packages Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-16 px-4 md:px-0">
         {dbPackages.map((pkgDb, idx) => {
           // Merge db package with UI config
           const uiConfig = packages[idx % packages.length];
@@ -357,7 +357,7 @@ const Products = () => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-3xl bg-[#0B0F1A] border border-[#A020F0]/50 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(160,32,240,0.2)] relative overflow-hidden z-10"
+              className="w-full max-w-3xl bg-[#0B0F1A] border border-[#A020F0]/50 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(160,32,240,0.2)] relative overflow-y-auto max-h-[90vh] z-10"
             >
               {/* Decorative Blur Orbs */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF00FF]/15 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>

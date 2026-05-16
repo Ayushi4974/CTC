@@ -33,7 +33,7 @@ const navItems = [
   { name: 'Profile', path: '/profile', icon: User },
 ];
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, setIsOpen }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { walletAddress } = useSelector((state) => state.auth);
@@ -59,14 +59,18 @@ const Sidebar = () => {
 
   const handleLogout = () => {
     dispatch(logout());
+    if (setIsOpen) setIsOpen(false);
     navigate('/login');
   };
 
   return (
-    <aside className="w-64 h-screen bg-[#050505] border-r border-[#1a1a2e] flex flex-col fixed left-0 top-0 overflow-y-auto hide-scrollbar z-50">
+    <aside className={clsx(
+      "w-64 h-screen bg-[#050505] border-r border-gray-800 flex flex-col fixed left-0 top-0 overflow-y-auto hide-scrollbar z-50 transition-transform duration-300 lg:translate-x-0",
+      isOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
       {/* Logo */}
       <div className="p-6 pb-2 pt-8 flex items-center justify-center">
-        <Link to="/" className="flex items-center justify-center mx-auto hover:opacity-90 transition-opacity">
+        <Link to="/" onClick={() => setIsOpen && setIsOpen(false)} className="flex items-center justify-center mx-auto hover:opacity-90 transition-opacity">
           
           <div className="flex items-center">
             {/* SVG Graphic (Candlesticks & Scale) */}
@@ -122,6 +126,7 @@ const Sidebar = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={() => setIsOpen && setIsOpen(false)}
               className={({ isActive }) =>
                 clsx(
                   'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-sm font-medium',

@@ -185,7 +185,7 @@ const LevelIncome = () => {
       </motion.div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-12">
         {dynamicStats.map((stat, idx) => {
           const Icon = stat.icon;
           return (
@@ -194,7 +194,7 @@ const LevelIncome = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + (idx * 0.1) }}
-              className={`bg-[#0B0F1A]/60 backdrop-blur-[16px] border border-white/[0.15] rounded-3xl p-6 relative overflow-hidden group transition-all duration-500 hover:-translate-y-1 shadow-[0_10px_30px_rgba(0,0,0,0.5)]`}
+              className={`bg-[#0B0F1A]/60 backdrop-blur-[16px] border border-white/[0.15] rounded-3xl p-4 md:p-6 relative overflow-hidden group transition-all duration-500 hover:-translate-y-1 shadow-[0_10px_30px_rgba(0,0,0,0.5)]`}
             >
               <div className={`absolute -inset-10 ${stat.aura} blur-3xl rounded-full opacity-0 group-hover:opacity-60 transition-opacity duration-700`}></div>
               
@@ -206,7 +206,7 @@ const LevelIncome = () => {
                     </div>
                     <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{stat.title}</p>
                   </div>
-                  <p className={`text-3xl font-black ${stat.color} drop-shadow-[0_0_10px_currentColor] tracking-tight`}>
+                  <p className={`text-xl md:text-3xl font-black ${stat.color} drop-shadow-[0_0_10px_currentColor] tracking-tight`}>
                     {stat.isProgress ? (
                       stat.value
                     ) : (
@@ -285,7 +285,7 @@ const LevelIncome = () => {
                         <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Bonus Target</span>
                         <span className="text-sm font-black text-[#00C6FF]">{data.bonusPercent}%</span>
                       </div>
-                      <span className="text-lg font-black text-[#00FF99] drop-shadow-[0_0_8px_rgba(0,255,153,0.4)]">
+                      <span className="text-sm md:text-lg font-black text-[#00FF99] drop-shadow-[0_0_8px_rgba(0,255,153,0.4)]">
                         ${data.income}
                       </span>
                     </div>

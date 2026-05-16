@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+  import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TrendingUp, Users, AlertTriangle, CheckCircle2, 
@@ -283,52 +283,57 @@ const Withdrawal = () => {
               </button>
             </div>
             
-            {/* Table Header */}
-            <div className="grid grid-cols-6 gap-4 border-b border-gray-800/50 pb-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider px-2 relative z-10">
-              <div className="col-span-1">Source</div>
-              <div className="col-span-1 text-center">Amount</div>
-              <div className="col-span-1 text-center">Date</div>
-              <div className="col-span-1 text-center">Method</div>
-              <div className="col-span-1 text-center">Status</div>
-              <div className="col-span-1 text-right">Action</div>
-            </div>
+            {/* Scrollable Table Container */}
+            <div className="overflow-x-auto">
+              <div className="min-w-[800px]">
+                {/* Table Header */}
+                <div className="grid grid-cols-6 gap-4 border-b border-gray-800/50 pb-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider px-2 relative z-10">
+                  <div className="col-span-1">Source</div>
+                  <div className="col-span-1 text-center">Amount</div>
+                  <div className="col-span-1 text-center">Date</div>
+                  <div className="col-span-1 text-center">Method</div>
+                  <div className="col-span-1 text-center">Status</div>
+                  <div className="col-span-1 text-right">Action</div>
+                </div>
 
-            {/* Table Content */}
-            <div className="flex-1 flex flex-col relative z-10">
-              {history.length > 0 ? (
-                <div className="flex flex-col gap-1 py-2 overflow-y-auto max-h-[300px]">
-                  {history.map((row, i) => (
-                    <div key={i} className="grid grid-cols-6 gap-4 py-4 px-2 hover:bg-[#161B2A]/50 rounded-xl items-center border-b border-gray-800/30 transition-colors">
-                      <div className="col-span-1 text-sm text-gray-300 font-medium">Withdrawal</div>
-                      <div className="col-span-1 text-center text-sm font-bold text-white">${row.amount}</div>
-                      <div className="col-span-1 text-center text-sm text-gray-400">{new Date(row.createdAt).toLocaleDateString()}</div>
-                      <div className="col-span-1 text-center text-[11px] text-[#00C6FF] font-medium bg-[#00C6FF]/10 py-1 rounded-lg border border-[#00C6FF]/20">USDT</div>
-                      <div className="col-span-1 text-center flex justify-center">
-                        {getStatusBadge(row.status === 'pending' ? 'Pending' : row.status === 'approved' ? 'Completed' : 'Rejected')}
-                      </div>
-                      <div className="col-span-1 text-right">
-                        <span className="text-[11px] font-semibold text-gray-500">Deduct: ${row.deduction}</span>
-                      </div>
+                {/* Table Content */}
+                <div className="flex-1 flex flex-col relative z-10">
+                  {history.length > 0 ? (
+                    <div className="flex flex-col gap-1 py-2 overflow-y-auto max-h-[300px]">
+                      {history.map((row, i) => (
+                        <div key={i} className="grid grid-cols-6 gap-4 py-4 px-2 hover:bg-[#161B2A]/50 rounded-xl items-center border-b border-gray-800/30 transition-colors">
+                          <div className="col-span-1 text-sm text-gray-300 font-medium">Withdrawal</div>
+                          <div className="col-span-1 text-center text-sm font-bold text-white">${row.amount}</div>
+                          <div className="col-span-1 text-center text-sm text-gray-400">{new Date(row.createdAt).toLocaleDateString()}</div>
+                          <div className="col-span-1 text-center text-[11px] text-[#00C6FF] font-medium bg-[#00C6FF]/10 py-1 rounded-lg border border-[#00C6FF]/20">USDT</div>
+                          <div className="col-span-1 text-center flex justify-center">
+                            {getStatusBadge(row.status === 'pending' ? 'Pending' : row.status === 'approved' ? 'Completed' : 'Rejected')}
+                          </div>
+                          <div className="col-span-1 text-right">
+                            <span className="text-[11px] font-semibold text-gray-500">Deduct: ${row.deduction}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center py-16 opacity-80">
-                  <div className="relative mb-6 group">
-                    <div className="absolute inset-0 bg-[#A020F0] blur-[30px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#161B2A] to-[#050505] border border-gray-700 flex items-center justify-center relative z-10 shadow-[inset_0_0_20px_rgba(160,32,240,0.1)]">
-                      <Database size={40} className="text-[#A020F0]" />
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center py-16 opacity-80">
+                      <div className="relative mb-6 group">
+                        <div className="absolute inset-0 bg-[#A020F0] blur-[30px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#161B2A] to-[#050505] border border-gray-700 flex items-center justify-center relative z-10 shadow-[inset_0_0_20px_rgba(160,32,240,0.1)]">
+                          <Database size={40} className="text-[#A020F0]" />
+                        </div>
+                      </div>
+                      <h3 className="text-lg font-bold text-white mb-2">No Transactions Yet</h3>
+                      <p className="text-sm text-gray-400 mb-6 text-center max-w-sm">
+                        You haven't made any withdrawal requests. Your transaction history will securely populate here.
+                      </p>
+                      <button className="bg-[#161B2A] border border-[#A020F0]/50 text-[#FF00FF] px-6 py-2 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(160,32,240,0.2)] hover:bg-[#A020F0]/10 transition-colors">
+                        Start your first withdrawal
+                      </button>
                     </div>
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-2">No Transactions Yet</h3>
-                  <p className="text-sm text-gray-400 mb-6 text-center max-w-sm">
-                    You haven't made any withdrawal requests. Your transaction history will securely populate here.
-                  </p>
-                  <button className="bg-[#161B2A] border border-[#A020F0]/50 text-[#FF00FF] px-6 py-2 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(160,32,240,0.2)] hover:bg-[#A020F0]/10 transition-colors">
-                    Start your first withdrawal
-                  </button>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Pagination / Footer */}
@@ -343,38 +348,38 @@ const Withdrawal = () => {
           </motion.div>
 
           {/* Bottom Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-gray-800/60 rounded-2xl p-5 flex justify-between items-center hover:border-[#00C6FF]/50 transition-colors shadow-lg"
+              className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-gray-800/60 rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:border-[#00C6FF]/50 transition-colors shadow-lg"
             >
               <div>
                 <h3 className="text-white font-bold text-sm">Total Withdrawn</h3>
                 <p className="text-xs text-gray-500 mt-1">All Time</p>
               </div>
-              <span className="text-2xl font-extrabold text-[#00C6FF]">$ 0.00</span>
+              <span className="text-lg md:text-2xl font-extrabold text-[#00C6FF]">$ 0.00</span>
             </motion.div>
             
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-gray-800/60 rounded-2xl p-5 flex justify-between items-center hover:border-yellow-500/50 transition-colors shadow-lg"
+              className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-gray-800/60 rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:border-yellow-500/50 transition-colors shadow-lg"
             >
               <div>
                 <h3 className="text-white font-bold text-sm">Pending</h3>
                 <p className="text-xs text-gray-500 mt-1">Awaiting Processing</p>
               </div>
-              <span className="text-2xl font-extrabold text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.4)]">$ 0.00</span>
+              <span className="text-lg md:text-2xl font-extrabold text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.4)]">$ 0.00</span>
             </motion.div>
 
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
-              className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-[#A020F0]/30 rounded-2xl p-5 flex justify-between items-center relative overflow-hidden group shadow-[0_0_20px_rgba(160,32,240,0.1)]"
+              className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-[#A020F0]/30 rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center relative overflow-hidden group shadow-[0_0_20px_rgba(160,32,240,0.1)]"
             >
               <div className="absolute right-0 top-0 w-32 h-32 bg-[#A020F0]/10 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-[#FF00FF]/20 transition-colors"></div>
               <div className="relative z-10 flex flex-col">
@@ -389,7 +394,7 @@ const Withdrawal = () => {
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Standard Charge</p>
               </div>
-              <span className="text-3xl font-extrabold text-[#FF00FF] relative z-10 drop-shadow-[0_0_10px_rgba(255,0,255,0.4)]">5%</span>
+              <span className="text-xl md:text-3xl font-extrabold text-[#FF00FF] relative z-10 drop-shadow-[0_0_10px_rgba(255,0,255,0.4)]">5%</span>
             </motion.div>
           </div>
 
