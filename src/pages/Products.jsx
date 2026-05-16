@@ -423,17 +423,7 @@ const Products = () => {
                   </div>
                 </div>
 
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-8 flex gap-4 backdrop-blur-sm">
-                  <div className="mt-1">
-                    <Star className="text-yellow-500" size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-yellow-500 font-semibold mb-1">Important Reality Check</h4>
-                    <p className="text-gray-300 text-sm leading-relaxed">
-                      These returns are high-risk. Always verify the platform, check withdrawal proofs, and avoid investing large amounts blindly.
-                    </p>
-                  </div>
-                </div>
+
 
                 <div className="flex justify-end gap-4">
                   <button
