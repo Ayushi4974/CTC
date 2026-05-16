@@ -41,7 +41,7 @@ const Profile = () => {
     <div className="max-w-7xl mx-auto pb-12 pt-4 px-4 sm:px-6 lg:px-8">
       
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6 mb-8">
         <motion.h1 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -53,7 +53,7 @@ const Profile = () => {
         <motion.button 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-gradient-to-r from-[#00C6FF] to-[#A020F0] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(0,198,255,0.4)] hover:shadow-[0_0_25px_rgba(160,32,240,0.6)] transition-all flex items-center gap-2 hover:-translate-y-0.5"
+          className="w-full md:w-auto bg-gradient-to-r from-[#00C6FF] to-[#A020F0] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(0,198,255,0.4)] hover:shadow-[0_0_25px_rgba(160,32,240,0.6)] transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5"
         >
           <Edit3 size={16} /> Edit Profile
         </motion.button>
@@ -150,16 +150,16 @@ const Profile = () => {
             <LinkIcon size={16} /> Referral Link
           </h3>
           
-          <div className="bg-[#161B2A]/60 backdrop-blur-[12px] border border-[#A020F0]/40 rounded-xl p-3 pl-5 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-[#A020F0]/80 hover:shadow-[0_0_20px_rgba(160,32,240,0.15)] transition-all relative z-10">
+          <div className="bg-[#161B2A]/60 backdrop-blur-[12px] border border-[#A020F0]/40 rounded-xl p-3 pl-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4 group hover:border-[#A020F0]/80 hover:shadow-[0_0_20px_rgba(160,32,240,0.15)] transition-all relative z-10">
             <div className="flex-1 overflow-hidden">
               <label className="block text-[10px] font-bold text-[#A020F0] uppercase tracking-widest mb-1 mt-1 md:mt-0">Your Unique Link</label>
               <div className="text-sm font-mono text-gray-200 truncate pb-1 md:pb-0 tracking-wide">{profileData.referralLink}</div>
             </div>
             
-            <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
               <button 
                 onClick={() => setShowQr(!showQr)}
-                className="bg-[#050505] text-[#00C6FF] border border-[#00C6FF]/40 px-4 py-3 rounded-lg text-sm font-bold hover:bg-[#00C6FF]/10 hover:shadow-[0_0_10px_rgba(0,198,255,0.2)] transition-all flex items-center justify-center"
+                className="flex-1 sm:flex-none bg-[#050505] text-[#00C6FF] border border-[#00C6FF]/40 px-4 py-3 rounded-lg text-sm font-bold hover:bg-[#00C6FF]/10 hover:shadow-[0_0_10px_rgba(0,198,255,0.2)] transition-all flex items-center justify-center"
                 title="Generate QR Code"
               >
                 <QrCode size={18} />
@@ -167,11 +167,11 @@ const Profile = () => {
               
               <button 
                 onClick={handleCopyLink}
-                className="flex-1 md:flex-none bg-gradient-to-r from-[#00C6FF] to-[#A020F0] text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md hover:shadow-[0_0_20px_rgba(160,32,240,0.5)] transition-all flex items-center justify-center gap-2 relative overflow-hidden"
+                className="flex-[2] sm:flex-none bg-gradient-to-r from-[#00C6FF] to-[#A020F0] text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md hover:shadow-[0_0_20px_rgba(160,32,240,0.5)] transition-all flex items-center justify-center gap-2 relative overflow-hidden"
               >
                 {copied && <div className="absolute inset-0 bg-[#00FF99]/20 animate-pulse"></div>}
                 {copied ? <Check size={16} className="text-[#00FF99] drop-shadow-[0_0_5px_currentColor] relative z-10" /> : <Copy size={16} className="relative z-10" />} 
-                <span className="relative z-10">{copied ? 'Copied to Clipboard!' : 'Copy Link'}</span>
+                <span className="relative z-10">{copied ? 'Copied!' : 'Copy Link'}</span>
               </button>
             </div>
           </div>
@@ -197,18 +197,18 @@ const Profile = () => {
         </div>
 
         {/* Security Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+        <div className="flex flex-col sm:flex-row gap-6 relative z-10">
           
-          <button className="w-full group bg-gradient-to-r from-[#A020F0] to-[#00C6FF] text-white py-4 rounded-xl font-bold shadow-[0_0_15px_rgba(160,32,240,0.3)] hover:shadow-[0_0_30px_rgba(0,198,255,0.5)] hover:-translate-y-1 transition-all flex items-center justify-center gap-3 relative overflow-hidden">
+          <button className="flex-1 group bg-gradient-to-r from-[#A020F0] to-[#00C6FF] text-white py-4 rounded-xl font-bold shadow-[0_0_15px_rgba(160,32,240,0.3)] hover:shadow-[0_0_30px_rgba(0,198,255,0.5)] hover:-translate-y-1 transition-all flex items-center justify-center gap-3 relative overflow-hidden">
             <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <KeyRound size={20} className="relative z-10 drop-shadow-md" /> 
             <span className="relative z-10">Change Password</span>
           </button>
           
-          <button className="w-full group bg-[#161B2A]/80 backdrop-blur-md border border-[#00FF99]/40 py-4 rounded-xl font-bold hover:bg-[#00FF99]/10 hover:border-[#00FF99] transition-all duration-300 flex items-center justify-between px-6 shadow-[inset_0_0_15px_rgba(0,255,153,0.05)] hover:shadow-[0_0_20px_rgba(0,255,153,0.2)] hover:-translate-y-1">
+          <button className="flex-1 group bg-[#161B2A]/80 backdrop-blur-md border border-[#00FF99]/40 py-4 rounded-xl font-bold hover:bg-[#00FF99]/10 hover:border-[#00FF99] transition-all duration-300 flex items-center justify-between px-6 shadow-[inset_0_0_15px_rgba(0,255,153,0.05)] hover:shadow-[0_0_20px_rgba(0,255,153,0.2)] hover:-translate-y-1">
             <div className="flex items-center gap-3 text-[#00FF99]">
               <Shield size={20} className="drop-shadow-[0_0_5px_currentColor]" />
-              <span className="text-white">Two-Factor Authentication</span>
+              <span className="text-white">2FA</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] uppercase tracking-widest text-[#00FF99] font-black drop-shadow-[0_0_5px_rgba(0,255,153,0.5)]">Enabled</span>

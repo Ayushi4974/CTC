@@ -205,10 +205,10 @@ const Kyc = () => {
       </div>
 
       {/* Stepper */}
-      <div className="mb-12 relative px-4 md:px-12">
+      <div className="mb-8 md:mb-12 relative px-2 md:px-12">
         {/* Progress Lines */}
-        <div className="absolute top-7 left-0 right-0 px-4 md:px-12 z-0 flex items-center justify-center">
-           <div className="w-[calc(100%-3.5rem)] h-[2px] bg-gray-800 relative">
+        <div className="absolute top-5 md:top-7 left-0 right-0 px-2 md:px-12 z-0 flex items-center justify-center">
+           <div className="w-[calc(100%-2rem)] md:w-[calc(100%-3.5rem)] h-[2px] bg-gray-800 relative">
              <div 
                className="h-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] transition-all duration-700 ease-in-out"
                style={{ width: `${Math.min(((currentStep - 1) / 3) * 100, 100)}%` }}
@@ -223,9 +223,9 @@ const Kyc = () => {
             const Icon = step.icon;
 
             return (
-              <div key={step.id} className="flex flex-col items-center gap-3">
+              <div key={step.id} className="flex flex-col items-center gap-2 md:gap-3">
                 <div 
-                  className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 relative ${
+                  className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-300 relative ${
                     isActive 
                       ? 'bg-[#161B2A] border-2 border-[#A020F0] text-[#FF00FF] shadow-[0_0_20px_rgba(160,32,240,0.4)] scale-110' 
                       : isCompleted
@@ -233,9 +233,9 @@ const Kyc = () => {
                         : 'bg-[#161B2A] border border-gray-700 text-gray-500'
                   }`}
                 >
-                  {isCompleted ? <CheckCircle2 size={24} /> : <Icon size={isActive ? 28 : 24} />}
+                  {isCompleted ? <CheckCircle2 size={18} className="md:size-24" /> : <Icon size={isActive ? 22 : 18} className="md:size-24" />}
                 </div>
-                <span className={`text-sm font-semibold transition-colors ${isActive ? 'text-white' : isCompleted ? 'text-gray-300' : 'text-gray-600'}`}>
+                <span className={`text-[10px] md:text-sm font-semibold transition-colors ${isActive ? 'text-white' : isCompleted ? 'text-gray-300' : 'text-gray-600'}`}>
                   {step.name}
                 </span>
               </div>

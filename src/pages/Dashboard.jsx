@@ -78,7 +78,7 @@ const Dashboard = () => {
                 Dashboard Overview
               </div>
               
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Welcome back, <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF00FF] via-[#A020F0] to-[#6A0DAD]">{currentUser?.fullName || 'User'}</span>
               </h1>
               
@@ -178,7 +178,7 @@ const Dashboard = () => {
           <h2 className="text-xl font-bold text-white">Token Performance</h2>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
           {[
             { title: 'Available Balance', value: `$${balance.toFixed(2)}`, sub: 'Ready to Withdraw', icon: Wallet, iconColor: 'text-[#A020F0]', iconBg: 'bg-[#A020F0]/10' },
             { title: 'Total Earnings', value: `$${totalEarning.toFixed(2)}`, sub: 'Lifetime Income', icon: TrendingUp, iconColor: 'text-[#00FF99]', iconBg: 'bg-[#00FF99]/10' },
@@ -189,12 +189,12 @@ const Dashboard = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + idx * 0.1 }}
-              className="bg-[#0f0f13] border border-gray-800 rounded-2xl p-4 md:p-6 relative overflow-hidden group hover:border-gray-700 transition-colors"
+              className="bg-[#0f0f13] border border-gray-800 rounded-2xl p-6 relative overflow-hidden group hover:border-gray-700 transition-colors"
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <p className="text-sm text-gray-400 mb-1">{item.title}</p>
-                  <h3 className="text-xl md:text-3xl font-bold text-white">{item.value}</h3>
+                  <h3 className="text-3xl font-bold text-white">{item.value}</h3>
                 </div>
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${item.iconBg} ${item.iconColor}`}>
                   <item.icon size={20} />
@@ -226,7 +226,7 @@ const Dashboard = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               { title: 'Active Package', value: activePackageName, icon: Briefcase, iconColor: 'text-[#00FF99]', iconBg: 'bg-[#00FF99]/10' },
               { title: 'ROI Daily Profit', value: `$${miningIncome.toFixed(2)}`, icon: Cpu, iconColor: 'text-[#00C6FF]', iconBg: 'bg-[#00C6FF]/10' },
@@ -239,11 +239,11 @@ const Dashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 + idx * 0.1 }}
-                className="bg-[#0f0f13] border border-gray-800 rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between group hover:border-gray-700 transition-colors"
+                className="bg-[#0f0f13] border border-gray-800 rounded-2xl p-6 flex items-center justify-between group hover:border-gray-700 transition-colors"
               >
                 <div>
                   <p className="text-sm text-gray-400 mb-2">{item.title}</p>
-                  <h3 className="text-lg md:text-2xl font-bold text-white">{item.value}</h3>
+                  <h3 className="text-2xl font-bold text-white">{item.value}</h3>
                 </div>
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${item.iconBg} ${item.iconColor}`}>
                   <item.icon size={24} />

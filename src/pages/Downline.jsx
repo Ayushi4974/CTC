@@ -165,7 +165,7 @@ const Downline = () => {
           </div>
 
           <h2 className="text-sm font-bold text-white mb-8 tracking-wide relative z-10">YOUR PROFILE INFORMATION</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 relative z-10">
             
             <div className="flex flex-col">
               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
@@ -265,7 +265,7 @@ const Downline = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-gray-800/60 rounded-3xl overflow-x-auto shadow-[0_10px_40px_rgba(0,0,0,0.5)] mb-10"
+        className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-gray-800/60 rounded-3xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] mb-10"
       >
         {/* Table Header */}
         <div className="hidden md:grid grid-cols-7 gap-4 px-6 py-4 border-b border-gray-800/60 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-[#161B2A]/40">

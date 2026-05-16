@@ -14,7 +14,8 @@ import {
   LogOut,
   Wallet,
   FileText,
-  User
+  User,
+  X
 } from 'lucide-react';
 import clsx from 'clsx';
 import { toast } from 'react-toastify';
@@ -33,7 +34,7 @@ const navItems = [
   { name: 'Profile', path: '/profile', icon: User },
 ];
 
-const Sidebar = ({ isOpen, setIsOpen }) => {
+const Sidebar = ({ isOpen, closeSidebar }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { walletAddress } = useSelector((state) => state.auth);
@@ -59,21 +60,28 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
   const handleLogout = () => {
     dispatch(logout());
-    if (setIsOpen) setIsOpen(false);
     navigate('/login');
   };
 
   return (
     <aside className={clsx(
-      "w-64 h-screen bg-[#050505] border-r border-gray-800 flex flex-col fixed left-0 top-0 overflow-y-auto hide-scrollbar z-50 transition-transform duration-300 lg:translate-x-0",
+      "w-64 h-screen bg-[#050505] border-r border-[#1a1a2e] flex flex-col fixed left-0 top-0 overflow-y-auto hide-scrollbar z-50 transition-transform duration-300 ease-in-out lg:translate-x-0",
       isOpen ? "translate-x-0" : "-translate-x-full"
     )}>
+      {/* Mobile Close Button */}
+      <button 
+        onClick={closeSidebar}
+        className="lg:hidden absolute top-4 right-4 p-2 text-gray-400 hover:text-white bg-gray-800/30 rounded-lg"
+      >
+        <X size={20} />
+      </button>
+
       {/* Logo */}
       <div className="p-6 pb-2 pt-8 flex items-center justify-center">
-        <Link to="/" onClick={() => setIsOpen && setIsOpen(false)} className="flex items-center justify-center mx-auto hover:opacity-90 transition-opacity">
+        <Link to="/" className="flex items-center justify-center mx-auto hover:opacity-90 transition-opacity">
           
           <div className="flex items-center">
-            {/* SVG Graphic (Candlesticks & Scale) */}
+            {/* SVG Graphic */}
             <svg width="60" height="60" viewBox="0 0 100 100" className="drop-shadow-[0_0_8px_rgba(160,32,240,0.5)] shrink-0">
               <defs>
                 <linearGradient id="logo-gradient" x1="0%" y1="100%" x2="0%" y2="0%">
@@ -82,28 +90,19 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                   <stop offset="100%" stopColor="#6366f1" />
                 </linearGradient>
               </defs>
-              
-              {/* Candlesticks */}
               <rect x="15" y="45" width="8" height="20" fill="url(#logo-gradient)" />
               <line x1="19" y1="35" x2="19" y2="75" stroke="url(#logo-gradient)" strokeWidth="2.5" />
-              
               <rect x="32" y="30" width="8" height="25" fill="url(#logo-gradient)" />
               <line x1="36" y1="20" x2="36" y2="65" stroke="url(#logo-gradient)" strokeWidth="2.5" />
-              
               <rect x="49" y="15" width="8" height="30" fill="url(#logo-gradient)" />
               <line x1="53" y1="5" x2="53" y2="55" stroke="url(#logo-gradient)" strokeWidth="2.5" />
-              
-              {/* Arching Arrow */}
               <path d="M 5 65 Q 40 40 70 15" fill="none" stroke="url(#logo-gradient)" strokeWidth="3.5" strokeLinecap="round" />
               <polygon points="73,12 60,16 70,26" fill="url(#logo-gradient)" />
-              
-              {/* Scale Hanging from Arch */}
               <line x1="58" y1="28" x2="58" y2="45" stroke="url(#logo-gradient)" strokeWidth="2.5" />
               <polygon points="58,28 45,55 71,55" fill="none" stroke="url(#logo-gradient)" strokeWidth="2.5" strokeLinejoin="round" />
               <path d="M 45 55 C 45 64 71 64 71 55 Z" fill="url(#logo-gradient)" />
             </svg>
             
-            {/* Text Side */}
             <div className="flex flex-col justify-center ml-1">
               <span className="text-[40px] font-black leading-[0.85] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] via-[#A020F0] to-[#FF00FF] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                 $
@@ -114,7 +113,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               </div>
             </div>
           </div>
-
         </Link>
       </div>
 
@@ -126,7 +124,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             <NavLink
               key={item.path}
               to={item.path}
-              onClick={() => setIsOpen && setIsOpen(false)}
+              onClick={() => {
+                if (window.innerWidth < 1024) closeSidebar();
+              }}
               className={({ isActive }) =>
                 clsx(
                   'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-sm font-medium',
@@ -170,7 +170,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
       {/* Logout */}
       <div className="p-4 pb-6">
-        <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium w-full">
+        <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium w-full text-left">
           <LogOut size={18} />
           Logout
         </button>
