@@ -394,7 +394,7 @@ const Downline = () => {
                 <div className="col-span-1">
                   <div className="flex justify-between items-center mb-1.5">
                     <span className="text-[10px] text-gray-400">Activity</span>
-                    <span className={`text-xs font-bold ${row.performance > 50 ? 'text-[#00C6FF]' : 'text-white'}`}>{row.performance}%</span>
+                    <span className={`text-xs font-bold ${row.performance > 50 ? 'text-[#00C6FF]' : 'text-white'}`}>{Number(row.performance).toFixed(2)}%</span>
                   </div>
                   <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
                     <div 
