@@ -9,6 +9,22 @@ import { fetchProfile } from '../redux/slices/authSlice';
 
 const packages = [
   {
+    id: 0,
+    name: 'Testing Package',
+    investment: '$0',
+    minInvestment: 0,
+    maxInvestment: 1000,
+    profit: '0.1%',
+    duration: 'every 12 hours',
+    description: 'Special tier for testing MetaMask transactions and backend activation logic.',
+    icon: Activity,
+    glowClass: 'shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]',
+    borderClass: 'border-gray-700',
+    iconBgClass: 'bg-gray-800/50',
+    iconTextClass: 'text-gray-400',
+    isPremium: false,
+  },
+  {
     id: 1,
     name: 'Package 1',
     investment: '$100 – $1,000',

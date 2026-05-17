@@ -80,9 +80,9 @@ const Dashboard = () => {
       return '0%';
     }
     
-    // Get unique profit percentages
-    const profits = [...new Set(activePackages.map(p => `${p.dailyProfitPercent}%`))];
-    return profits.join(' & ');
+    // Sum the profit percentages
+    const totalProfit = activePackages.reduce((sum, p) => sum + (p.dailyProfitPercent || 0), 0);
+    return `${totalProfit.toFixed(1)}%`;
   };
 
   const connectWallet = async () => {

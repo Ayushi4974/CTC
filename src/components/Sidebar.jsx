@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { toast } from 'react-toastify';
+import logo from '../assets/logo.png';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: Home },
@@ -79,40 +80,7 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       {/* Logo */}
       <div className="p-6 pb-2 pt-8 flex items-center justify-center">
         <Link to="/" className="flex items-center justify-center mx-auto hover:opacity-90 transition-opacity">
-          
-          <div className="flex items-center">
-            {/* SVG Graphic */}
-            <svg width="60" height="60" viewBox="0 0 100 100" className="drop-shadow-[0_0_8px_rgba(160,32,240,0.5)] shrink-0">
-              <defs>
-                <linearGradient id="logo-gradient" x1="0%" y1="100%" x2="0%" y2="0%">
-                  <stop offset="0%" stopColor="#FF00FF" />
-                  <stop offset="50%" stopColor="#A020F0" />
-                  <stop offset="100%" stopColor="#6366f1" />
-                </linearGradient>
-              </defs>
-              <rect x="15" y="45" width="8" height="20" fill="url(#logo-gradient)" />
-              <line x1="19" y1="35" x2="19" y2="75" stroke="url(#logo-gradient)" strokeWidth="2.5" />
-              <rect x="32" y="30" width="8" height="25" fill="url(#logo-gradient)" />
-              <line x1="36" y1="20" x2="36" y2="65" stroke="url(#logo-gradient)" strokeWidth="2.5" />
-              <rect x="49" y="15" width="8" height="30" fill="url(#logo-gradient)" />
-              <line x1="53" y1="5" x2="53" y2="55" stroke="url(#logo-gradient)" strokeWidth="2.5" />
-              <path d="M 5 65 Q 40 40 70 15" fill="none" stroke="url(#logo-gradient)" strokeWidth="3.5" strokeLinecap="round" />
-              <polygon points="73,12 60,16 70,26" fill="url(#logo-gradient)" />
-              <line x1="58" y1="28" x2="58" y2="45" stroke="url(#logo-gradient)" strokeWidth="2.5" />
-              <polygon points="58,28 45,55 71,55" fill="none" stroke="url(#logo-gradient)" strokeWidth="2.5" strokeLinejoin="round" />
-              <path d="M 45 55 C 45 64 71 64 71 55 Z" fill="url(#logo-gradient)" />
-            </svg>
-            
-            <div className="flex flex-col justify-center ml-1">
-              <span className="text-[40px] font-black leading-[0.85] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] via-[#A020F0] to-[#FF00FF] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                $
-              </span>
-              <div className="flex flex-col mt-1 ml-0.5">
-                <span className="text-[10px] font-bold tracking-[0.15em] text-white leading-none">COPY TRADE</span>
-                <span className="text-[10px] font-bold tracking-[0.15em] text-[#FF00FF] leading-none mt-[3px]">COMPARE</span>
-              </div>
-            </div>
-          </div>
+          <img src={logo} alt="CTC Logo" className="h-16 w-auto object-contain drop-shadow-[0_0_12px_rgba(160,32,240,0.4)]" />
         </Link>
       </div>
 
