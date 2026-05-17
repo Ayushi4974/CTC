@@ -9,11 +9,19 @@ const marginBonusMap = {
   'L7': 4.00, 'L8': 4.50, 'L9': 5.00, 'L10': 5.50, 'L11': 6.00, 'L12': 6.50
 };
 
-// Run every 12 hours
-cron.schedule("0 */12 * * *", async () => {
+// Run every 12 hours (Monday to Friday)
+cron.schedule("0 */12 * * 1-5", async () => {
 //TESTING 
 // cron.schedule("* * * * *", async () => {
   console.log('Running daily mining cron...');
+  
+  const today = new Date();
+  const day = today.getDay(); // 0 = Sunday, 6 = Saturday
+  if (day === 0 || day === 6) {
+    console.log('Skipping mining cron distribution on weekend (Saturday/Sunday)');
+    return;
+  }
+
   try {
     const activePackages = await UserPackage.find({
       status: 'active',

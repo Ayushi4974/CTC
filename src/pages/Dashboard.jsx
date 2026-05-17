@@ -56,7 +56,15 @@ const Dashboard = () => {
     fetchPackages();
 
     const updateProgress = () => {
-      const now = new Date().getTime();
+      const today = new Date();
+      const day = today.getDay(); // 0 = Sunday, 6 = Saturday
+      if (day === 0 || day === 6) {
+        setMiningProgress(0);
+        setTimeLeft('Resumes Monday');
+        return;
+      }
+
+      const now = today.getTime();
       const cycleMs = 12 * 60 * 60 * 1000;
       const elapsed = now % cycleMs;
       const progress = (elapsed / cycleMs) * 100;
