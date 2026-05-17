@@ -51,7 +51,7 @@ const Login = () => {
             <h1 className="text-3xl font-extrabold text-white mb-2">
               Welcome <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] to-[#FF00FF]">Back</span>
             </h1>
-            <p className="text-gray-400 text-sm">Login to access your $ dashboard</p>
+            <p className="text-gray-400 text-sm">Login to access your CTC dashboard</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">

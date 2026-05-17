@@ -73,7 +73,7 @@ const Register = () => {
             <h1 className="text-3xl font-extrabold text-white mb-2">
               Create <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] to-[#FF00FF]">Account</span>
             </h1>
-            <p className="text-gray-400 text-sm">Join $ and start your journey</p>
+            <p className="text-gray-400 text-sm">Join CTC and start your journey</p>
           </div>
 
           <form onSubmit={handleRegister} className="space-y-5">
