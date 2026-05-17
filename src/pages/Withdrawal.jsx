@@ -394,7 +394,7 @@ const Withdrawal = () => {
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Standard Charge</p>
               </div>
-              <span className="text-3xl font-extrabold text-[#FF00FF] relative z-10 drop-shadow-[0_0_10px_rgba(255,0,255,0.4)]">5%</span>
+              <span className="text-3xl font-extrabold text-[#FF00FF] relative z-10 drop-shadow-[0_0_10px_rgba(255,0,255,0.4)]">10%</span>
             </motion.div>
           </div>
 

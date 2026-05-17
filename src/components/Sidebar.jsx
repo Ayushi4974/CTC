@@ -80,7 +80,10 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       {/* Logo */}
       <div className="p-6 pb-2 pt-8 flex items-center justify-center">
         <Link to="/" className="flex items-center justify-center mx-auto hover:opacity-90 transition-opacity">
-          <img src={logo} alt="CTC Logo" className="h-16 w-auto object-contain drop-shadow-[0_0_12px_rgba(160,32,240,0.4)]" />
+          <span className="lg:hidden text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] to-[#FF00FF] drop-shadow-[0_0_12px_rgba(160,32,240,0.4)]">
+            $
+          </span>
+          <img src={logo} alt="CTC Logo" className="hidden lg:block h-16 w-auto object-contain drop-shadow-[0_0_12px_rgba(160,32,240,0.4)]" />
         </Link>
       </div>
 
