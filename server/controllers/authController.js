@@ -12,8 +12,8 @@ const registerUser = async (req, res, next) => {
     const { fullName, email, password, sponsorId } = req.body;
 
     // Validation
-    if (!fullName || !email || !password) {
-      return res.status(400).json({ message: 'Please add all required fields' });
+    if (!fullName || !email || !password || !sponsorId) {
+      return res.status(400).json({ message: 'Please add all required fields, including Sponsor ID' });
     }
 
     // Check if user exists
@@ -23,14 +23,13 @@ const registerUser = async (req, res, next) => {
     }
 
     let sponsor = null;
-    // Validate Sponsor
-    if (sponsorId) {
-      const sponsorUser = await User.findOne({ userId: sponsorId });
-      if (!sponsorUser) {
-        return res.status(400).json({ message: 'Invalid Sponsor ID' });
-      }
-      sponsor = sponsorUser._id;
+    // Validate Sponsor (Required)
+    const searchSponsorId = sponsorId.trim().toUpperCase();
+    const sponsorUser = await User.findOne({ userId: searchSponsorId });
+    if (!sponsorUser) {
+      return res.status(400).json({ message: 'Invalid Sponsor ID. A valid Sponsor ID is required to register.' });
     }
+    sponsor = sponsorUser._id;
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
@@ -45,7 +44,7 @@ const registerUser = async (req, res, next) => {
       fullName,
       email,
       password: hashedPassword,
-      sponsorId: sponsorId || null,
+      sponsorId: searchSponsorId,
       sponsor: sponsor,
     });
 

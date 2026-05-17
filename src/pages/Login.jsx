@@ -7,6 +7,8 @@ import { login, reset } from '../redux/slices/authSlice';
 import { toast } from 'react-toastify';
 import { useEffect } from 'react';
 
+import logo from '../assets/logo.png';
+
 const Login = () => {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
@@ -44,7 +46,8 @@ const Login = () => {
         className="w-full max-w-md relative z-10"
       >
         <div className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-[#A020F0]/30 rounded-3xl p-8 shadow-[0_8px_32px_rgba(160,32,240,0.15)]">
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 flex flex-col items-center">
+            <img src={logo} alt="CTC Logo" className="h-16 w-auto object-contain mb-4 drop-shadow-[0_0_12px_rgba(160,32,240,0.4)]" />
             <h1 className="text-3xl font-extrabold text-white mb-2">
               Welcome <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] to-[#FF00FF]">Back</span>
             </h1>

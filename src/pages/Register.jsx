@@ -5,7 +5,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { register, reset } from '../redux/slices/authSlice';
 import { toast } from 'react-toastify';
-import { useEffect } from 'react';
+import logo from '../assets/logo.png';
+
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -19,7 +20,11 @@ const Register = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    let value = e.target.value;
+    if (e.target.name === 'sponsorId') {
+      value = value.toUpperCase();
+    }
+    setFormData({ ...formData, [e.target.name]: value });
   };
   const { user, isLoading, isError, isSuccess, message } = useSelector(
     (state) => state.auth
@@ -63,7 +68,8 @@ const Register = () => {
         className="w-full max-w-lg relative z-10 my-8"
       >
         <div className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-[#A020F0]/30 rounded-3xl p-8 shadow-[0_8px_32px_rgba(160,32,240,0.15)]">
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 flex flex-col items-center">
+            <img src={logo} alt="CTC Logo" className="h-16 w-auto object-contain mb-4 drop-shadow-[0_0_12px_rgba(160,32,240,0.4)]" />
             <h1 className="text-3xl font-extrabold text-white mb-2">
               Create <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] to-[#FF00FF]">Account</span>
             </h1>
@@ -108,7 +114,7 @@ const Register = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Sponsor ID (Optional)</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Sponsor ID / Referral ID (Required)</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Shield className="h-5 w-5 text-gray-500" />
@@ -116,10 +122,11 @@ const Register = () => {
                 <input
                   type="text"
                   name="sponsorId"
+                  required
                   value={formData.sponsorId}
                   onChange={handleChange}
                   className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all"
-                  placeholder="$123456"
+                  placeholder="Enter Sponsor ID"
                 />
               </div>
             </div>
