@@ -6,6 +6,21 @@ import {
 } from 'lucide-react';
 import api from '../api';
 
+const LEVEL_PERCENTAGES = [
+  15, 8, 7, 4, 4, 3, 3, 3, 3, 4, 
+  5, 7, 8, 8, 12, 15, 8, 7, 4, 4, 
+  3, 3, 3, 3, 4, 5, 7, 8, 8, 12
+];
+
+const LEVEL_REQUIREMENTS = [
+  { staking: 20, directs: 2 }, { staking: 40, directs: 3 }, { staking: 60, directs: 4 }, { staking: 80, directs: 5 }, { staking: 120, directs: 6 },
+  { staking: 200, directs: 7 }, { staking: 300, directs: 8 }, { staking: 400, directs: 9 }, { staking: 400, directs: 10 }, { staking: 500, directs: 11 },
+  { staking: 600, directs: 12 }, { staking: 700, directs: 13 }, { staking: 900, directs: 14 }, { staking: 900, directs: 15 }, { staking: 1000, directs: 16 },
+  { staking: 1100, directs: 17 }, { staking: 1200, directs: 18 }, { staking: 1300, directs: 19 }, { staking: 1400, directs: 20 }, { staking: 1500, directs: 21 },
+  { staking: 1600, directs: 22 }, { staking: 1700, directs: 23 }, { staking: 1800, directs: 24 }, { staking: 1900, directs: 25 }, { staking: 2000, directs: 26 },
+  { staking: 2200, directs: 27 }, { staking: 2400, directs: 28 }, { staking: 2700, directs: 29 }, { staking: 3000, directs: 30 }, { staking: 3000, directs: 30 }
+];
+
 const stats = [
   { title: 'Total Level Income', value: 1630.714, prefix: '$ ', suffix: '', icon: TrendingUp, color: 'text-[#00FF99]', aura: 'bg-[#00FF99]/30' },
   { title: 'Total Network Members', value: 7, prefix: '', suffix: '', icon: Users, color: 'text-[#00C6FF]', aura: 'bg-[#00C6FF]/20' },
@@ -77,6 +92,7 @@ const LevelIncome = () => {
   const [expandedLevel, setExpandedLevel] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [directTeam, setDirectTeam] = useState([]);
+  const [allLevels, setAllLevels] = useState([]);
   const [levelIncomeData, setLevelIncomeData] = useState([]);
 
   useEffect(() => {
@@ -88,8 +104,9 @@ const LevelIncome = () => {
           api.get('/user/level-income')
         ]);
         setCurrentUser(profileRes.data);
-        setDirectTeam(teamRes.data.directTeam);
-        setLevelIncomeData(incomeRes.data);
+        setDirectTeam(teamRes.data.directTeam || []);
+        setAllLevels(teamRes.data.allLevels || []);
+        setLevelIncomeData(incomeRes.data || []);
       } catch (err) {
         console.error('Error fetching data:', err);
       }
@@ -102,23 +119,40 @@ const LevelIncome = () => {
   };
 
   const currentLevelIncome = currentUser?.levelIncome || 0;
+  const activeDirectsCount = directTeam.filter(d => d.isActive).length;
   const currentNetworkMembers = currentUser?.directTeam || 0;
+
+  // Global level income qualification requires personal staking of $1500+ and 5+ active directs
+  const hasGlobalEligibility = (currentUser?.totalInvestment || 0) >= 1500 && activeDirectsCount >= 5;
 
   const dynamicStats = [
     { title: 'Total Level Income', value: currentLevelIncome, prefix: '$', suffix: '', icon: TrendingUp, color: 'text-[#00FF99]', aura: 'bg-[#00FF99]/30' },
     { title: 'Total Network Members', value: currentNetworkMembers, prefix: '', suffix: '', icon: Users, color: 'text-[#00C6FF]', aura: 'bg-[#00C6FF]/20' },
-    { title: 'Active Levels', value: 1, prefix: '', suffix: '', icon: Layers, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/20', isProgress: true },
+    { title: 'Active Levels', value: allLevels.filter(lvl => {
+        const reqs = LEVEL_REQUIREMENTS[lvl.level - 1] || { staking: 0, directs: 0 };
+        return (currentUser?.totalInvestment || 0) >= reqs.staking && activeDirectsCount >= reqs.directs && hasGlobalEligibility;
+      }).length, prefix: '', suffix: '', icon: Layers, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/20', isProgress: true },
   ];
 
-  const dynamicLevelData = [
-    { 
-      level: 1, 
-      members: directTeam.length, 
-      income: currentUser?.referralIncome || 0,
-      bonusPercent: 15,
-      isLocked: false,
-      users: directTeam.map(member => {
-        // Calculate the total earned from this specific member by filtering the incomeRes data
+  const dynamicLevelData = allLevels.map((lvl) => {
+    const reqs = LEVEL_REQUIREMENTS[lvl.level - 1] || { staking: 0, directs: 0 };
+    const isUnlocked = (currentUser?.totalInvestment || 0) >= reqs.staking && 
+                       activeDirectsCount >= reqs.directs && 
+                       hasGlobalEligibility;
+
+    const commEarned = levelIncomeData
+      .filter(inc => inc.level === lvl.level)
+      .reduce((sum, item) => sum + item.amount, 0);
+
+    return {
+      level: lvl.level,
+      members: lvl.members.length,
+      income: parseFloat(commEarned.toFixed(3)),
+      bonusPercent: LEVEL_PERCENTAGES[lvl.level - 1] || 0,
+      isLocked: !isUnlocked,
+      reqDirects: reqs.directs,
+      reqVol: reqs.staking,
+      users: lvl.members.map(member => {
         const earnedFromMember = levelIncomeData
           .filter(income => income.fromUser && income.fromUser._id === member._id)
           .reduce((sum, item) => sum + item.amount, 0);
@@ -130,8 +164,8 @@ const LevelIncome = () => {
           earned: earnedFromMember > 0 ? earnedFromMember.toFixed(3) : '0.000'
         };
       })
-    }
-  ];
+    };
+  });
 
   return (
     <div className="max-w-7xl mx-auto pb-12 pt-4 px-4 sm:px-6 lg:px-8 min-h-screen">

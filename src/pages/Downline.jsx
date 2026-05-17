@@ -31,6 +31,21 @@ const CircularProgress = ({ progress, label, total }) => {
   );
 };
 
+const LEVEL_PERCENTAGES = [
+  15, 8, 7, 4, 4, 3, 3, 3, 3, 4, 
+  5, 7, 8, 8, 12, 15, 8, 7, 4, 4, 
+  3, 3, 3, 3, 4, 5, 7, 8, 8, 12
+];
+
+const LEVEL_REQUIREMENTS = [
+  { staking: 20, directs: 2 }, { staking: 40, directs: 3 }, { staking: 60, directs: 4 }, { staking: 80, directs: 5 }, { staking: 120, directs: 6 },
+  { staking: 200, directs: 7 }, { staking: 300, directs: 8 }, { staking: 400, directs: 9 }, { staking: 400, directs: 10 }, { staking: 500, directs: 11 },
+  { staking: 600, directs: 12 }, { staking: 700, directs: 13 }, { staking: 900, directs: 14 }, { staking: 900, directs: 15 }, { staking: 1000, directs: 16 },
+  { staking: 1100, directs: 17 }, { staking: 1200, directs: 18 }, { staking: 1300, directs: 19 }, { staking: 1400, directs: 20 }, { staking: 1500, directs: 21 },
+  { staking: 1600, directs: 22 }, { staking: 1700, directs: 23 }, { staking: 1800, directs: 24 }, { staking: 1900, directs: 25 }, { staking: 2000, directs: 26 },
+  { staking: 2200, directs: 27 }, { staking: 2400, directs: 28 }, { staking: 2700, directs: 29 }, { staking: 3000, directs: 30 }, { staking: 3000, directs: 30 }
+];
+
 const Downline = () => {
   const dispatch = useDispatch();
   const { user, profile } = useSelector((state) => state.auth);
@@ -38,22 +53,27 @@ const Downline = () => {
   
   const [directTeam, setDirectTeam] = useState([]);
   const [allLevels, setAllLevels] = useState([]);
+  const [levelIncomeData, setLevelIncomeData] = useState([]);
   const [copied, setCopied] = useState(false);
   const [expandedRow, setExpandedRow] = useState(null);
   const [timeLeft, setTimeLeft] = useState(10 * 24 * 3600 - 45000); // ~9 days remaining
 
   useEffect(() => {
     dispatch(fetchProfile());
-    const fetchTeam = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await api.get('/user/team');
-        setDirectTeam(data.directTeam || []);
-        setAllLevels(data.allLevels || []);
+        const [teamRes, incomeRes] = await Promise.all([
+          api.get('/user/team'),
+          api.get('/user/level-income')
+        ]);
+        setDirectTeam(teamRes.data.directTeam || []);
+        setAllLevels(teamRes.data.allLevels || []);
+        setLevelIncomeData(incomeRes.data || []);
       } catch (err) {
-        console.error('Failed to fetch team', err);
+        console.error('Failed to fetch team data', err);
       }
     };
-    fetchTeam();
+    fetchData();
   }, [dispatch]);
 
   const profileData = {
@@ -64,21 +84,38 @@ const Downline = () => {
     overallBusiness: currentUser?.totalInvestment || 0,
   };
 
-  const dynamicLevelsData = allLevels.map((lvl) => ({
-    level: lvl.level,
-    members: lvl.members.length,
-    maxMembers: 10 * lvl.level, // Example logical scaling
-    volume: lvl.members.reduce((acc, curr) => acc + (curr.totalInvestment || 0), 0),
-    commPercent: lvl.level === 1 ? 15 : lvl.level === 2 ? 10 : 5, // Example tier structure
-    commEarned: lvl.level === 1 ? (currentUser?.referralIncome || 0) : 0, 
-    performance: Math.min((lvl.members.length / (10 * lvl.level)) * 100, 100),
-    isActive: true,
-    partners: lvl.members.map(member => ({
-      name: member.fullName,
-      id: member.userId,
-      vol: member.totalInvestment || 0
-    }))
-  }));
+  const activeDirectsCount = directTeam.filter(d => d.isActive).length;
+  // Global level income qualification requires personal staking of $1500+ and 5+ active directs
+  const hasGlobalEligibility = (currentUser?.totalInvestment || 0) >= 1500 && activeDirectsCount >= 5;
+
+  const dynamicLevelsData = allLevels.map((lvl) => {
+    const reqs = LEVEL_REQUIREMENTS[lvl.level - 1] || { staking: 0, directs: 0 };
+    const isUnlocked = (currentUser?.totalInvestment || 0) >= reqs.staking && 
+                       activeDirectsCount >= reqs.directs && 
+                       hasGlobalEligibility;
+
+    const commEarned = levelIncomeData
+      .filter(inc => inc.level === lvl.level)
+      .reduce((sum, item) => sum + item.amount, 0);
+
+    return {
+      level: lvl.level,
+      members: lvl.members.length,
+      maxMembers: 10 * lvl.level, // Example logical scaling
+      volume: lvl.members.reduce((acc, curr) => acc + (curr.totalInvestment || 0), 0),
+      commPercent: LEVEL_PERCENTAGES[lvl.level - 1] || 0,
+      commEarned: parseFloat(commEarned.toFixed(3)), 
+      performance: Math.min((lvl.members.length / (10 * lvl.level)) * 100, 100),
+      isActive: isUnlocked,
+      reqDirects: reqs.directs,
+      reqVol: reqs.staking,
+      partners: lvl.members.map(member => ({
+        name: member.fullName,
+        id: member.userId,
+        vol: member.totalInvestment || 0
+      }))
+    };
+  });
 
   const totalMembers = dynamicLevelsData.reduce((acc, curr) => acc + curr.members, 0);
   const totalBusiness = dynamicLevelsData.reduce((acc, curr) => acc + curr.volume, 0);
@@ -334,7 +371,9 @@ const Downline = () => {
                   {row.isActive ? (
                     <p className="text-[10px] text-[#00FF99] flex items-center gap-1 drop-shadow-[0_0_5px_rgba(0,255,153,0.5)]"><TrendingUp size={10} /> Active level</p>
                   ) : (
-                    <p className="text-[10px] text-gray-600">Inactive</p>
+                    <p className="text-[10px] text-red-500/80 flex items-center gap-1" title={`Requires $${row.reqVol} Personal Staking & ${row.reqDirects} Direct Referrals, plus Global Eligibility`}>
+                      <Lock size={10} /> Locked (Need {row.reqDirects} Dir & ${row.reqVol})
+                    </p>
                   )}
                 </div>
 

@@ -23,13 +23,13 @@ import logo from '../assets/logo.png';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: Home },
-  { name: 'Products', path: '/products', icon: Package },
+  { name: 'Packages', path: '/products', icon: Package },
   { name: 'KYC Verification', path: '/kyc', icon: ShieldCheck },
   { name: 'Withdrawal', path: '/withdrawal', icon: ArrowDownCircle },
   { name: 'Downline', path: '/downline', icon: Users },
   { name: 'Referral Income', path: '/referral-income', icon: DollarSign },
   { name: 'Level Income', path: '/level-income', icon: BarChart2 },
-  { name: 'Mining History', path: '/mining', icon: Cpu },
+  { name: 'Copy Trade History', path: '/mining', icon: Cpu },
   { name: 'Package History', path: '/package-history', icon: Package },
   { name: 'Transactions', path: '/transactions', icon: FileText },
   { name: 'Profile', path: '/profile', icon: User },

@@ -40,7 +40,7 @@ const MiningHistory = () => {
             animate={{ opacity: 1, x: 0 }}
             className="text-3xl font-extrabold text-white tracking-tight"
           >
-            Mining History
+            Copy Trade History
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
@@ -48,7 +48,7 @@ const MiningHistory = () => {
             transition={{ delay: 0.1 }}
             className="text-gray-400"
           >
-            Detailed logs of all your mining sessions
+            Detailed logs of all your copy trading sessions
           </motion.p>
         </div>
       </div>
@@ -86,16 +86,16 @@ const MiningHistory = () => {
         </motion.div>
 
         <h3 className="text-xl font-bold text-white mb-2 relative z-10 tracking-wide">
-          No mining history found.
+          No copy trade history found.
         </h3>
         <p className="text-gray-500 mb-8 max-w-sm relative z-10">
-          You haven't initiated any mining sessions yet. Start your first session today to begin earning rewards!
+          You haven't initiated any copy trade sessions yet. Start your first session today to begin earning rewards!
         </p>
 
         <button className="relative z-10 group/btn bg-gradient-to-r from-[#00C6FF] to-[#A020F0] text-white px-8 py-3.5 rounded-xl font-bold shadow-[0_0_20px_rgba(0,198,255,0.3)] hover:shadow-[0_0_30px_rgba(160,32,240,0.5)] transition-all flex items-center gap-3 overflow-hidden">
           <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/btn:opacity-100 transition-opacity"></div>
           <Play size={18} fill="currentColor" className="drop-shadow-md" />
-          <span className="drop-shadow-md tracking-wide">Start Mining Session</span>
+          <span className="drop-shadow-md tracking-wide">Start Copy Trade Session</span>
         </button>
       </motion.div>
     ) : (

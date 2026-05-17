@@ -11,7 +11,7 @@ import api from '../api';
 import { toast } from 'react-toastify';
 
 const statCards = [
-  { title: 'Mining Commission', subtitle: 'Return on Investment', value: '1,245.50', hidden: true, icon: TrendingUp, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/10', progressColor: 'from-[#A020F0] to-[#FF00FF]', progress: 30 },
+  { title: 'Copy Trade Commission', subtitle: 'Return on Investment', value: '1,245.50', hidden: true, icon: TrendingUp, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/10', progressColor: 'from-[#A020F0] to-[#FF00FF]', progress: 30 },
   { title: 'Level Income', subtitle: 'Level Earnings', value: '1,570.71', hidden: false, icon: Users, color: 'text-[#00C6FF]', aura: 'bg-[#00C6FF]/10', progressColor: 'from-[#00C6FF] to-[#00FF99]', progress: 65 },
   { title: 'SOS Withdrawal', subtitle: 'Emergency Fund', value: '0.00', hidden: false, icon: AlertTriangle, color: 'text-red-500', aura: 'bg-red-500/10', progressColor: 'from-red-500 to-orange-500', progress: 10 },
   { title: 'Total Withdrawal', subtitle: 'Lifetime Withdrawn', value: '0.00', hidden: false, icon: CheckCircle2, color: 'text-[#FF00FF]', aura: 'bg-[#FF00FF]/10', progressColor: 'from-[#FF00FF] to-[#A020F0]', progress: 80 },
@@ -21,13 +21,13 @@ const statCards = [
 
 const withdrawalSources = [
   { id: 'level', name: 'Level Income', balance: '65.45', icon: TrendingUp, color: '#00C6FF' },
-  { id: 'mining', name: 'Mining Bonus', balance: '0.00', icon: Coins, color: '#A020F0' },
+  { id: 'mining', name: 'Copy Trade Bonus', balance: '0.00', icon: Coins, color: '#A020F0' },
   { id: 'annual', name: 'Annual Bonus', balance: '0.00', icon: DollarSign, color: '#FF00FF' },
 ];
 
 const mockHistory = [
   { id: 'TX1029', source: 'Level Income', amount: '65.45', date: '2026-05-12', method: 'USDT (BEP-20)', status: 'Pending' },
-  { id: 'TX1028', source: 'Mining Bonus', amount: '120.00', date: '2026-05-10', method: 'USDT (BEP-20)', status: 'Completed' },
+  { id: 'TX1028', source: 'Copy Trade Bonus', amount: '120.00', date: '2026-05-10', method: 'USDT (BEP-20)', status: 'Completed' },
   { id: 'TX1027', source: 'Annual Bonus', amount: '50.00', date: '2026-05-01', method: 'USDT (BEP-20)', status: 'Rejected' },
 ];
 

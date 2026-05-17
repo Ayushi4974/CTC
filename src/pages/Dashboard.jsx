@@ -164,7 +164,7 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Mining Operations Card */}
+        {/* Copy Trading Card */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -174,7 +174,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <Cpu className="text-[#A020F0]" size={24} />
-              <h2 className="text-xl font-bold text-white">Mining Operations</h2>
+              <h2 className="text-xl font-bold text-white">Copy Trading</h2>
             </div>
             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-gray-800/40 px-2 py-1 rounded border border-gray-700">
               Mon - Fri Cycle
@@ -268,7 +268,7 @@ const Dashboard = () => {
           {[
             { title: 'Available Balance', value: `$${balance.toFixed(2)}`, sub: 'Ready to Withdraw', icon: Wallet, iconColor: 'text-[#A020F0]', iconBg: 'bg-[#A020F0]/10' },
             { title: 'Total Earnings', value: `$${totalEarning.toFixed(2)}`, sub: 'Lifetime Income', icon: TrendingUp, iconColor: 'text-[#00FF99]', iconBg: 'bg-[#00FF99]/10' },
-            { title: 'Mining Income', value: `$${miningIncome.toFixed(2)}`, sub: 'Passive ROI', icon: Cpu, iconColor: 'text-[#A020F0]', iconBg: 'bg-[#A020F0]/10' },
+            { title: 'Copy Trade Income', value: `$${miningIncome.toFixed(2)}`, sub: 'Passive ROI', icon: Cpu, iconColor: 'text-[#A020F0]', iconBg: 'bg-[#A020F0]/10' },
           ].map((item, idx) => (
             <motion.div 
               key={idx}

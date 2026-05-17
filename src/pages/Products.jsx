@@ -9,22 +9,6 @@ import { fetchProfile } from '../redux/slices/authSlice';
 
 const packages = [
   {
-    id: 0,
-    name: 'Testing Package',
-    investment: '$0',
-    minInvestment: 0,
-    maxInvestment: 1000,
-    profit: '0.1%',
-    duration: 'every 12 hours',
-    description: 'Special tier for testing MetaMask transactions and backend activation logic.',
-    icon: Activity,
-    glowClass: 'shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]',
-    borderClass: 'border-gray-700',
-    iconBgClass: 'bg-gray-800/50',
-    iconTextClass: 'text-gray-400',
-    isPremium: false,
-  },
-  {
     id: 1,
     name: 'Package 1',
     investment: '$100 – $1,000',
@@ -32,7 +16,7 @@ const packages = [
     maxInvestment: 1000,
     profit: '0.5%',
     duration: 'every 12 hours',
-    description: 'Good for beginners. Reinvest profits automatically (Auto-compounding) to maximize balance.',
+    description: 'You will receive as long as your live account remains active.',
     icon: TrendingUp,
     glowClass: 'shadow-[0_0_20px_rgba(0,198,255,0.2)] hover:shadow-[0_0_30px_rgba(0,198,255,0.4)]',
     borderClass: 'border-[#00C6FF]/30',
@@ -48,7 +32,7 @@ const packages = [
     maxInvestment: 5000,
     profit: '0.6%',
     duration: 'every 12 hours',
-    description: 'Medium investment. Reinvest profits automatically (Auto-compounding) to maximize balance.',
+    description: 'You will receive as long as your live account remains active.',
     icon: ShieldCheck,
     glowClass: 'shadow-[0_0_20px_rgba(127,0,255,0.2)] hover:shadow-[0_0_30px_rgba(127,0,255,0.4)]',
     borderClass: 'border-[#7F00FF]/30',
@@ -64,7 +48,7 @@ const packages = [
     maxInvestment: 25000,
     profit: '0.7%',
     duration: 'every 12 hours',
-    description: 'High investment. Reinvest profits automatically (Auto-compounding) to maximize balance.',
+    description: 'You will receive as long as your live account remains active.',
     icon: Zap,
     glowClass: 'shadow-[0_0_30px_rgba(160,32,240,0.4)] hover:shadow-[0_0_50px_rgba(255,0,255,0.6)] animate-pulse-slow',
     borderClass: 'border-[#FF00FF]/50',
@@ -80,7 +64,7 @@ const packages = [
     maxInvestment: 50000,
     profit: '0.8%',
     duration: 'every 12 hours',
-    description: 'Maximum return tier. Reinvest profits automatically (Auto-compounding) to maximize balance.',
+    description: 'You will receive as long as your live account remains active.',
     icon: Star,
     glowClass: 'shadow-[0_0_30px_rgba(255,0,255,0.5)] hover:shadow-[0_0_60px_rgba(255,0,255,0.8)] animate-pulse',
     borderClass: 'border-[#FF00FF]/60',
@@ -262,8 +246,14 @@ const Products = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-16">
         {dbPackages.map((pkgDb, idx) => {
           // Merge db package with UI config
-          const uiConfig = packages[idx % packages.length];
-          const pkg = { ...uiConfig, ...pkgDb };
+          const uiConfig = packages.find(p => p.name === pkgDb.name) || packages[idx % packages.length];
+          const pkg = { 
+            ...uiConfig, 
+            ...pkgDb,
+            minInvestment: pkgDb.minAmount ?? uiConfig?.minInvestment ?? 0,
+            maxInvestment: pkgDb.maxAmount ?? uiConfig?.maxInvestment ?? 0,
+            profit: pkgDb.dailyProfit ? `${pkgDb.dailyProfit}%` : uiConfig?.profit
+          };
 
           return (
             <motion.div
