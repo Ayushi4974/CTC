@@ -1,12 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, UserPlus, Shield } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { register, reset } from '../redux/slices/authSlice';
 import { toast } from 'react-toastify';
 import logo from '../assets/logo.png';
 
+
+const extractSponsorId = (text) => {
+  if (!text) return '';
+  const cleanText = text.trim();
+  try {
+    if (cleanText.includes('?ref=') || cleanText.includes('&ref=')) {
+      const urlParams = new URLSearchParams(cleanText.split('?')[1]);
+      const ref = urlParams.get('ref');
+      if (ref) return ref.toUpperCase();
+    }
+    if (cleanText.includes('?sponsor=') || cleanText.includes('&sponsor=')) {
+      const urlParams = new URLSearchParams(cleanText.split('?')[1]);
+      const sponsor = urlParams.get('sponsor');
+      if (sponsor) return sponsor.toUpperCase();
+    }
+    if (cleanText.includes('?sponsorId=') || cleanText.includes('&sponsorId=')) {
+      const urlParams = new URLSearchParams(cleanText.split('?')[1]);
+      const sponsorId = urlParams.get('sponsorId');
+      if (sponsorId) return sponsorId.toUpperCase();
+    }
+    if (cleanText.startsWith('http://') || cleanText.startsWith('https://')) {
+      const url = new URL(cleanText);
+      const ref = url.searchParams.get('ref') || url.searchParams.get('sponsor') || url.searchParams.get('sponsorId');
+      if (ref) return ref.toUpperCase();
+    }
+  } catch (error) {
+    console.error('Failed parsing referral link:', error);
+  }
+  return cleanText.toUpperCase();
+};
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -18,14 +48,33 @@ const Register = () => {
   });
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const ref = params.get('ref') || params.get('sponsor') || params.get('sponsorId');
+    if (ref) {
+      setFormData((prev) => ({ ...prev, sponsorId: ref.toUpperCase() }));
+    }
+  }, [location.search]);
 
   const handleChange = (e) => {
     let value = e.target.value;
     if (e.target.name === 'sponsorId') {
-      value = value.toUpperCase();
+      value = extractSponsorId(value);
     }
     setFormData({ ...formData, [e.target.name]: value });
   };
+
+  const handlePaste = (e) => {
+    if (e.target.name === 'sponsorId') {
+      e.preventDefault();
+      const pastedText = e.clipboardData.getData('text');
+      const extractedId = extractSponsorId(pastedText);
+      setFormData((prev) => ({ ...prev, sponsorId: extractedId }));
+    }
+  };
+
   const { user, isLoading, isError, isSuccess, message } = useSelector(
     (state) => state.auth
   );
@@ -125,6 +174,7 @@ const Register = () => {
                   required
                   value={formData.sponsorId}
                   onChange={handleChange}
+                  onPaste={handlePaste}
                   className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all"
                   placeholder="Enter Sponsor ID"
                 />
