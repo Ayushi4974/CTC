@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Menu, X } from 'lucide-react';
+import logo from '../assets/logo.png';
 
 const Layout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -26,9 +27,7 @@ const Layout = () => {
         {/* Top Header - Mobile Only */}
         <header className="lg:hidden flex items-center justify-between p-4 bg-[#0B0F1A] border-b border-gray-800 sticky top-0 z-30">
           <div className="flex items-center gap-2">
-            <span className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] to-[#FF00FF]">
-              $
-            </span>
+            <img src={logo} alt="CTC Logo" className="h-8 w-auto object-contain drop-shadow-[0_0_12px_rgba(160,32,240,0.4)]" />
             <span className="text-xs font-bold text-white tracking-widest uppercase">Dashboard</span>
           </div>
           <button 

@@ -47,10 +47,7 @@ const Login = () => {
       >
         <div className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-[#A020F0]/30 rounded-3xl p-8 shadow-[0_8px_32px_rgba(160,32,240,0.15)]">
           <div className="text-center mb-8 flex flex-col items-center">
-            <span className="md:hidden text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] to-[#FF00FF] mb-4 drop-shadow-[0_0_12px_rgba(160,32,240,0.4)]">
-              $
-            </span>
-            <img src={logo} alt="CTC Logo" className="hidden md:block h-16 w-auto object-contain mb-4 drop-shadow-[0_0_12px_rgba(160,32,240,0.4)]" />
+            <img src={logo} alt="CTC Logo" className="h-16 w-auto object-contain mb-4 drop-shadow-[0_0_12px_rgba(160,32,240,0.4)]" />
             <h1 className="text-3xl font-extrabold text-white mb-2">
               Welcome <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#A020F0] to-[#FF00FF]">Back</span>
             </h1>
