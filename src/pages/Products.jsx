@@ -156,14 +156,20 @@ const Products = () => {
       ];
       const usdtContract = new ethers.Contract(USDT_CONTRACT, abi, signer);
 
-      // Check balance first
+      // Check USDT balance and BNB balance (for gas)
       const userAddress = await signer.getAddress();
-      const [balance, decimals] = await Promise.all([
+      const [balance, decimals, bnbBalance] = await Promise.all([
         usdtContract.balanceOf(userAddress),
-        usdtContract.decimals()
+        usdtContract.decimals(),
+        provider.getBalance(userAddress)
       ]);
 
       const amount = ethers.parseUnits(investmentAmount.toString(), decimals);
+
+      // Require at least a tiny bit of BNB for gas (e.g., 0.0005 BNB is usually enough for a simple transfer, but we'll check if it's strictly > 0)
+      if (bnbBalance === 0n) {
+        throw new Error("Insufficient BNB for gas fees. You must have some BNB in your wallet to cover the Binance Smart Chain transaction fee.");
+      }
 
       if (balance < amount) {
         const readableBalance = ethers.formatUnits(balance, decimals);
@@ -181,7 +187,8 @@ const Products = () => {
         const response = await api.post('/package/buy', {
           packageId: selectedPackage._id || selectedPackage.id,
           amount: Number(investmentAmount),
-          txHash: tx.hash
+          txHash: tx.hash,
+          senderAddress: userAddress // Security requirement: matching sender
         });
 
         toast.success(response.data.message || 'Package Activated Successfully!');

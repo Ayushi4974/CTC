@@ -144,99 +144,109 @@ const Transactions = () => {
 
         {/* Transactions Table */}
         <div className="overflow-x-auto">
-          <div className="min-w-[900px]">
-            {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-800/60 text-[11px] font-bold text-gray-500 uppercase tracking-widest bg-[#161B2A]/30 rounded-t-2xl">
-              <div className="col-span-2">Type</div>
-              <div className="col-span-3">Description</div>
-              <div className="col-span-2 text-right">Amount</div>
-              <div className="col-span-2 text-center">Date</div>
-              <div className="col-span-1 text-center">Status</div>
-              <div className="col-span-2 text-right">Hash / ID</div>
-            </div>
-
-            {/* Table Body */}
-            <div className="flex flex-col">
+          <table className="w-full text-left border-collapse min-w-full">
+            <thead>
+              <tr className="bg-[#161B2A]/80 border-b border-gray-800/60 text-[9px] md:text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                <th className="p-3 md:p-4 rounded-tl-2xl">Type</th>
+                <th className="p-3 md:p-4 hidden md:table-cell">Description</th>
+                <th className="p-3 md:p-4 text-right">Amount</th>
+                <th className="p-3 md:p-4 text-center hidden sm:table-cell">Date</th>
+                <th className="p-3 md:p-4 text-center">Status</th>
+                <th className="p-3 md:p-4 text-right hidden md:table-cell rounded-tr-2xl">Hash / ID</th>
+              </tr>
+            </thead>
+            <tbody>
               <AnimatePresence>
                 {isLoading ? (
-                  <div className="py-20 text-center text-gray-500">Loading transactions...</div>
+                  <tr>
+                    <td colSpan="6" className="py-20 text-center text-gray-500">Loading transactions...</td>
+                  </tr>
                 ) : filteredTransactions.length > 0 ? (
                   filteredTransactions.map((txn, idx) => (
-                    <motion.div 
+                    <motion.tr 
                       key={txn._id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-800/30 items-center hover:bg-[#161B2A]/40 transition-colors group"
+                      className="border-b border-gray-800/30 hover:bg-[#161B2A]/40 transition-colors group"
                     >
                       {/* Type */}
-                      <div className="col-span-2 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#161B2A] border border-gray-800 flex items-center justify-center group-hover:border-[#A020F0]/50 transition-colors">
-                          {getTypeIcon(txn.type)}
+                      <td className="p-3 md:p-4">
+                        <div className="flex items-center gap-2 md:gap-3">
+                          <div className="w-6 h-6 md:w-8 md:h-8 shrink-0 rounded-full bg-[#161B2A] border border-gray-800 flex items-center justify-center group-hover:border-[#A020F0]/50 transition-colors">
+                            {getTypeIcon(txn.type)}
+                          </div>
+                          <div className="truncate pr-1 md:pr-2">
+                            <p className="text-xs md:text-sm font-bold text-white capitalize truncate">{txn.type}</p>
+                            <p className="text-[9px] md:text-[10px] text-gray-500 truncate max-w-[80px] md:max-w-[150px]" title={txn._id}>{txn._id}</p>
+                          </div>
                         </div>
-                        <div className="truncate pr-2">
-                          <p className="text-sm font-bold text-white capitalize">{txn.type}</p>
-                          <p className="text-[10px] text-gray-500 truncate" title={txn._id}>{txn._id}</p>
-                        </div>
-                      </div>
+                      </td>
 
                       {/* Description */}
-                      <div className="col-span-3">
-                        <p className="text-sm font-medium text-gray-300">{txn.description}</p>
-                      </div>
+                      <td className="p-3 md:p-4 hidden md:table-cell">
+                        <p className="text-sm font-medium text-gray-300 truncate max-w-[200px]">{txn.description}</p>
+                      </td>
 
                       {/* Amount */}
-                      <div className="col-span-2 text-right">
-                        <p className={`text-sm font-bold tracking-wide ${txn.type.toLowerCase() !== 'withdrawal' && txn.type.toLowerCase() !== 'investment' ? 'text-[#00FF99] drop-shadow-[0_0_5px_rgba(0,255,153,0.3)]' : 'text-white'}`}>
+                      <td className="p-3 md:p-4 text-right">
+                        <p className={`text-[11px] md:text-sm font-bold tracking-wide whitespace-nowrap ${txn.type.toLowerCase() !== 'withdrawal' && txn.type.toLowerCase() !== 'investment' ? 'text-[#00FF99] drop-shadow-[0_0_5px_rgba(0,255,153,0.3)]' : 'text-white'}`}>
                           {txn.type.toLowerCase() !== 'withdrawal' && txn.type.toLowerCase() !== 'investment' ? '+' : '-'} ${txn.amount}
                         </p>
-                      </div>
+                      </td>
 
                       {/* Date */}
-                      <div className="col-span-2 text-center">
-                        <p className="text-xs text-gray-400 font-medium">{new Date(txn.createdAt).toLocaleDateString()}</p>
-                      </div>
+                      <td className="p-3 md:p-4 text-center hidden sm:table-cell">
+                        <p className="text-[10px] md:text-xs text-gray-400 font-medium whitespace-nowrap">{new Date(txn.createdAt).toLocaleDateString()}</p>
+                      </td>
 
                       {/* Status */}
-                      <div className="col-span-1 flex justify-center">
-                        {getStatusBadge(txn.status)}
-                      </div>
+                      <td className="p-3 md:p-4 text-center">
+                        <div className="flex justify-center">
+                          {getStatusBadge(txn.status)}
+                        </div>
+                      </td>
 
                       {/* Hash / ID */}
-                      <div className="col-span-2 flex justify-end items-center gap-2">
-                        <span className="text-[11px] font-mono text-gray-400 bg-[#161B2A] px-2 py-1 rounded border border-gray-800 truncate max-w-[120px]" title={txn.txHash || 'System'}>
-                          {txn.txHash || 'System'}
-                        </span>
-                        {txn.txHash && txn.txHash !== 'System' && (
-                          <button 
-                            onClick={() => handleCopy(txn.txHash)}
-                            className="text-gray-500 hover:text-[#00C6FF] transition-colors p-1"
-                            title="Copy Hash"
-                          >
-                            {copiedHash === txn.txHash ? <Check size={14} className="text-[#00FF99]" /> : <Copy size={14} />}
-                          </button>
-                        )}
-                      </div>
-
-                    </motion.div>
+                      <td className="p-3 md:p-4 hidden md:table-cell text-right">
+                        <div className="flex justify-end items-center gap-2">
+                          <span className="text-[11px] font-mono text-gray-400 bg-[#161B2A] px-2 py-1 rounded border border-gray-800 truncate max-w-[120px]" title={txn.txHash || 'System'}>
+                            {txn.txHash || 'System'}
+                          </span>
+                          {txn.txHash && txn.txHash !== 'System' && (
+                            <button 
+                              onClick={() => handleCopy(txn.txHash)}
+                              className="text-gray-500 hover:text-[#00C6FF] transition-colors p-1"
+                              title="Copy Hash"
+                            >
+                              {copiedHash === txn.txHash ? <Check size={14} className="text-[#00FF99]" /> : <Copy size={14} />}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </motion.tr>
                   ))
                 ) : (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="py-20 flex flex-col items-center justify-center text-center"
-                  >
-                    <div className="w-16 h-16 rounded-full bg-[#161B2A] border border-gray-800 flex items-center justify-center mb-4">
-                      <Filter size={24} className="text-gray-600" />
-                    </div>
-                    <h3 className="text-lg font-bold text-white mb-1">No transactions found</h3>
-                    <p className="text-sm text-gray-500">We couldn't find any activities matching your criteria.</p>
-                  </motion.div>
+                  <tr>
+                    <td colSpan="6">
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="py-20 flex flex-col items-center justify-center text-center"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-[#161B2A] border border-gray-800 flex items-center justify-center mb-4">
+                          <Filter size={24} className="text-gray-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-1">No transactions found</h3>
+                        <p className="text-sm text-gray-500">We couldn't find any activities matching your criteria.</p>
+                      </motion.div>
+                    </td>
+                  </tr>
                 )}
               </AnimatePresence>
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
       </motion.div>
 

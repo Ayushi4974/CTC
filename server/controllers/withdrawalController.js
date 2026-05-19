@@ -1,5 +1,7 @@
 const Withdrawal = require('../models/Withdrawal');
 const User = require('../models/User');
+const SystemSettings = require('../models/SystemSettings');
+const AuditLog = require('../models/AuditLog');
 
 const requestWithdrawal = async (req, res, next) => {
   try {
@@ -9,9 +11,40 @@ const requestWithdrawal = async (req, res, next) => {
     if (!user.isKYCVerified) {
       return res.status(403).json({ message: 'Identity verification (KYC) is mandatory for all withdrawals.' });
     }
+    
+    // 1. Fetch System Settings for Global Controls
+    const settings = await SystemSettings.findOne() || await SystemSettings.create({});
+    
+    if (settings.withdrawalFreeze) {
+      await AuditLog.create({ action: 'PAYOUT_FAILURE', userId: user._id, details: { reason: 'Withdrawal freeze active' } });
+      return res.status(403).json({ message: 'Withdrawals are temporarily paused for treasury protection.' });
+    }
 
-    if (amount < 10) {
-      return res.status(400).json({ message: 'Minimum withdrawal amount is 10' });
+    if (amount < settings.minWithdrawalAmount) {
+      return res.status(400).json({ message: `Minimum withdrawal amount is ${settings.minWithdrawalAmount}` });
+    }
+    
+    // 2. User-specific Daily Throttling & Cooldowns
+    const now = new Date();
+    const todayStart = new Date(now.setHours(0,0,0,0));
+    
+    const todaysWithdrawals = await Withdrawal.aggregate([
+      { $match: { user: user._id, createdAt: { $gte: todayStart }, status: { $in: ['pending', 'completed', 'approved'] } } },
+      { $group: { _id: null, totalAmount: { $sum: "$amount" } } }
+    ]);
+    
+    const todayTotal = todaysWithdrawals.length ? todaysWithdrawals[0].totalAmount : 0;
+    if (todayTotal + amount > settings.maxDailyWithdrawalAmount) {
+      await AuditLog.create({ action: 'PAYOUT_FAILURE', userId: user._id, details: { reason: 'Daily withdrawal limit exceeded', amount } });
+      return res.status(400).json({ message: `Daily withdrawal limit of ${settings.maxDailyWithdrawalAmount} exceeded` });
+    }
+    
+    const lastWithdrawal = await Withdrawal.findOne({ user: user._id }).sort({ createdAt: -1 });
+    if (lastWithdrawal) {
+      const hoursSinceLast = (Date.now() - new Date(lastWithdrawal.createdAt).getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLast < settings.withdrawalCooldownHours) {
+        return res.status(400).json({ message: `Please wait ${settings.withdrawalCooldownHours} hours between withdrawal requests.` });
+      }
     }
 
     if (amount % 10 !== 0) {
@@ -68,7 +101,15 @@ const requestWithdrawal = async (req, res, next) => {
       deduction,
       finalAmount,
       walletAddress,
-      type
+      type,
+      status: settings.manualWithdrawalApproval ? 'pending' : 'approved'
+    });
+    
+    await AuditLog.create({
+      action: 'WITHDRAWAL',
+      userId: user._id,
+      amount: amount,
+      details: { withdrawalId: withdrawal._id, type, finalAmount, requiresManualApproval: settings.manualWithdrawalApproval }
     });
 
     const io = req.app.get('io');

@@ -4,7 +4,9 @@ const {
   getAllUsers,
   approveKYC,
   approveWithdrawal,
-  createPackage
+  createPackage,
+  getTreasuryStats,
+  updateTreasurySettings
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
@@ -15,5 +17,9 @@ router.route('/users').get(protect, admin, getAllUsers);
 router.route('/kyc/:id/approve').put(protect, admin, approveKYC);
 router.route('/withdrawal/:id/approve').put(protect, admin, approveWithdrawal);
 router.route('/package/create').post(protect, admin, createPackage);
+
+// Treasury Routes
+router.route('/treasury/stats').get(protect, admin, getTreasuryStats);
+router.route('/treasury/settings').put(protect, admin, updateTreasurySettings);
 
 module.exports = router;

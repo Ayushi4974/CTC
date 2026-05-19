@@ -202,7 +202,7 @@ const Downline = () => {
           </div>
 
           <h2 className="text-sm font-bold text-white mb-8 tracking-wide relative z-10">YOUR PROFILE INFORMATION</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 relative z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 relative z-10">
             
             <div className="flex flex-col">
               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
@@ -231,7 +231,7 @@ const Downline = () => {
               </div>
             </div>
 
-            <div className="flex flex-col col-span-2 md:col-span-1">
+            <div className="flex flex-col col-span-1 sm:col-span-2 md:col-span-1">
               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <Mail size={14} className="text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.6)]" /> Email
               </span>
@@ -305,7 +305,7 @@ const Downline = () => {
         className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-gray-800/60 rounded-3xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] mb-10"
       >
         {/* Table Header */}
-        <div className="hidden md:grid grid-cols-7 gap-4 px-6 py-4 border-b border-gray-800/60 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-[#161B2A]/40">
+        <div className="hidden md:grid grid-cols-6 gap-4 px-6 py-4 border-b border-gray-800/60 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-[#161B2A]/40">
           <div className="col-span-2">Level Details</div>
           <div className="col-span-1 text-center">Members</div>
           <div className="col-span-1">Business Vol.</div>
@@ -317,7 +317,6 @@ const Downline = () => {
             </div>
           </div>
           <div className="col-span-1">Your Commission</div>
-          <div className="col-span-1">Performance</div>
         </div>
 
         {/* Table Rows */}
@@ -326,7 +325,7 @@ const Downline = () => {
             <React.Fragment key={row.level}>
               <div 
                 onClick={() => row.isActive && toggleRow(row.level)}
-                className={`grid grid-cols-1 md:grid-cols-7 gap-4 px-6 py-5 border-b border-gray-800/30 items-center transition-colors ${
+                className={`grid grid-cols-1 md:grid-cols-6 gap-4 px-6 py-5 border-b border-gray-800/30 items-center transition-colors ${
                   row.isActive ? 'hover:bg-[#161B2A]/60 bg-[#161B2A]/20 cursor-pointer' : 'hover:bg-[#161B2A]/40'
                 }`}
               >
@@ -388,20 +387,6 @@ const Downline = () => {
                     $ {row.commEarned}
                   </p>
                   <p className="text-[10px] text-gray-500 hidden md:block">Level {row.level} earnings</p>
-                </div>
-
-                {/* Performance */}
-                <div className="col-span-1">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[10px] text-gray-400">Activity</span>
-                    <span className={`text-xs font-bold ${row.performance > 50 ? 'text-[#00C6FF]' : 'text-white'}`}>{Number(row.performance).toFixed(2)}%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${row.isActive ? 'bg-gradient-to-r from-[#A020F0] to-[#00C6FF]' : 'bg-gray-600'} ${row.performance > 50 ? 'animate-pulse' : ''}`} 
-                      style={{ width: `${row.performance}%` }}
-                    ></div>
-                  </div>
                 </div>
               </div>
 

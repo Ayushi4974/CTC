@@ -98,6 +98,19 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'admin'],
       default: 'user',
     },
+    ipAddress: {
+      type: String, // Used for Anti-Circular Sponsoring and Fraud Detection
+    },
+    lastIps: [{
+      type: String, // Keep history for device/IP fingerprinting
+    }],
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
+    deviceFingerprint: {
+      type: String
+    }
   },
   {
     timestamps: true,

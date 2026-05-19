@@ -3,6 +3,9 @@ const Transaction = require('../models/Transaction');
 const Withdrawal = require('../models/Withdrawal');
 const Package = require('../models/Package');
 const KYC = require('../models/KYC');
+const SystemSettings = require('../models/SystemSettings');
+const AuditLog = require('../models/AuditLog');
+const UserPackage = require('../models/UserPackage');
 
 const getDashboardStats = async (req, res, next) => {
   try {
@@ -102,10 +105,80 @@ const createPackage = async (req, res, next) => {
   }
 };
 
+const getTreasuryStats = async (req, res, next) => {
+  try {
+    const settings = await SystemSettings.findOne() || await SystemSettings.create({});
+    
+    // Active liabilities: total pending ROI remaining across all active packages
+    const activePackages = await UserPackage.find({ status: 'active' });
+    let activeLiabilities = 0;
+    activePackages.forEach(pkg => {
+      const remainingCap = (pkg.amount * 4) - pkg.totalEarned;
+      if (remainingCap > 0) activeLiabilities += remainingCap;
+    });
+
+    const pendingWithdrawals = await Withdrawal.aggregate([
+      { $match: { status: 'pending' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    
+    const todaysWithdrawals = await Withdrawal.aggregate([
+      { $match: { status: { $in: ['approved', 'completed'] }, createdAt: { $gte: new Date(new Date().setHours(0,0,0,0)) } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+
+    res.json({
+      settings,
+      activeLiabilities,
+      pendingPayouts: pendingWithdrawals[0] ? pendingWithdrawals[0].total : 0,
+      dailyWithdrawals: todaysWithdrawals[0] ? todaysWithdrawals[0].total : 0,
+      treasuryReserves: settings.treasuryReserves,
+      riskAlerts: settings.treasuryReserves < settings.emergencyThreshold ? ['RESERVES_CRITICAL'] : []
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateTreasurySettings = async (req, res, next) => {
+  try {
+    const updates = req.body;
+    let settings = await SystemSettings.findOne();
+    if (!settings) settings = await SystemSettings.create({});
+    
+    const allowedFields = [
+      'maintenanceMode', 'payoutPause', 'withdrawalFreeze', 'treasuryProtectionMode',
+      'globalRoiMultiplier', 'minWithdrawalAmount', 'maxDailyWithdrawalAmount',
+      'withdrawalCooldownHours', 'manualWithdrawalApproval', 'treasuryReserves', 'emergencyThreshold'
+    ];
+    
+    allowedFields.forEach(field => {
+      if (updates[field] !== undefined) {
+        settings[field] = updates[field];
+      }
+    });
+
+    await settings.save();
+    
+    await AuditLog.create({
+      action: 'TREASURY_MODE_CHANGE',
+      adminId: req.user._id,
+      details: { updates }
+    });
+
+    res.json({ message: 'Treasury settings updated successfully', settings });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getAllUsers,
   approveKYC,
   approveWithdrawal,
-  createPackage
+  createPackage,
+  getTreasuryStats,
+  updateTreasurySettings
 };
+

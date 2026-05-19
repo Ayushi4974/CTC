@@ -109,30 +109,34 @@ const MiningHistory = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#161B2A]/80 border-b border-gray-800/60 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                <th className="p-5 pl-6">Date</th>
-                <th className="p-5">Amount Earned</th>
-                <th className="p-5">Yield %</th>
-                <th className="p-5">Status</th>
+                <th className="p-3 md:p-5 md:pl-6">Date</th>
+                <th className="p-3 md:p-5">Amount</th>
+                <th className="p-3 md:p-5 hidden sm:table-cell">Yield %</th>
+                <th className="p-3 md:p-5">Status</th>
               </tr>
             </thead>
             <tbody>
               {history.map((record, index) => (
                 <tr key={index} className="border-b border-gray-800/40 hover:bg-[#161B2A]/40 transition-colors">
-                  <td className="p-5 pl-6 text-sm text-gray-300 flex items-center gap-2">
-                    <Calendar size={14} className="text-[#00C6FF]" />
-                    {new Date(record.createdAt).toLocaleDateString()} {new Date(record.createdAt).toLocaleTimeString()}
+                  <td className="p-3 md:p-5 md:pl-6 text-sm text-gray-300">
+                    <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                       <span className="flex items-center gap-1.5 whitespace-nowrap"><Calendar size={14} className="text-[#00C6FF] shrink-0" /> {new Date(record.createdAt).toLocaleDateString()}</span>
+                       <span className="text-xs text-gray-500 whitespace-nowrap">{new Date(record.createdAt).toLocaleTimeString()}</span>
+                    </div>
                   </td>
-                  <td className="p-5">
-                    <div className="flex items-center gap-1.5 text-sm font-bold text-[#00FF99]">
+                  <td className="p-3 md:p-5">
+                    <div className="flex items-center gap-1 text-sm font-bold text-[#00FF99]">
                       <DollarSign size={14} />
                       {record.amount.toFixed(2)}
                     </div>
                   </td>
-                  <td className="p-5 text-sm font-medium text-gray-300 flex items-center gap-1">
-                    {record.percentage.toFixed(2)} <Percent size={12} className="text-gray-500" />
+                  <td className="p-3 md:p-5 text-sm font-medium text-gray-300 hidden sm:table-cell">
+                    <div className="flex items-center gap-1">
+                      {record.percentage.toFixed(2)} <Percent size={10} className="text-gray-500" />
+                    </div>
                   </td>
-                  <td className="p-5">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#00FF99]/10 text-[#00FF99] border border-[#00FF99]/20">
+                  <td className="p-3 md:p-5">
+                    <span className="px-2 py-1 rounded-full text-[10px] md:text-xs font-bold bg-[#00FF99]/10 text-[#00FF99] border border-[#00FF99]/20">
                       Credited
                     </span>
                   </td>

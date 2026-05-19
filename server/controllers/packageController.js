@@ -2,12 +2,13 @@ const Package = require('../models/Package');
 const UserPackage = require('../models/UserPackage');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const AuditLog = require('../models/AuditLog');
 const { verifyTransaction } = require('../services/blockchainService');
 const { distributeDirectReferral } = require('../services/referralService');
 
 const getAllPackages = async (req, res, next) => {
   try {
-    const packages = await Package.find({ status: true });
+    const packages = await Package.find({ status: true }).sort({ minAmount: 1 });
     res.json(packages);
   } catch (error) {
     next(error);
@@ -16,7 +17,11 @@ const getAllPackages = async (req, res, next) => {
 
 const buyPackage = async (req, res, next) => {
   try {
-    const { packageId, amount, txHash } = req.body;
+    const { packageId, amount, txHash, senderAddress } = req.body;
+    
+    if (!senderAddress) {
+      return res.status(400).json({ message: 'Sender wallet address is required for verification.' });
+    }
     
     const pkg = await Package.findById(packageId);
     if (!pkg) return res.status(404).json({ message: 'Package not found' });
@@ -25,7 +30,13 @@ const buyPackage = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid amount for this package' });
     }
 
-    const verification = await verifyTransaction(txHash, amount);
+    // Check for duplicate transaction
+    const existingTx = await Transaction.findOne({ txHash });
+    if (existingTx) {
+      return res.status(400).json({ message: 'This transaction hash has already been used. Duplicate transactions are not allowed.' });
+    }
+
+    const verification = await verifyTransaction(txHash, amount, senderAddress);
     if (!verification.status) {
       return res.status(400).json({ message: verification.message });
     }
@@ -36,19 +47,46 @@ const buyPackage = async (req, res, next) => {
       return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $10,000.' });
     }
     
+    // Multi-Package Rules: Prevent Package Stacking and Handle Upgrades
+    const existingActivePkg = await UserPackage.findOne({ user: user._id, status: 'active' });
+    if (existingActivePkg) {
+      if (amount <= existingActivePkg.amount) {
+        return res.status(400).json({ message: 'Upgrades must be of a higher value than your current active package.' });
+      }
+      // Upgrade logic: Mark old as upgraded, ROI generation will stop for it
+      existingActivePkg.status = 'upgraded';
+      await existingActivePkg.save();
+    }
+    
+    const isBVEligible = true; // External deposits count towards BV
+    
     const userPackage = await UserPackage.create({
       userId: user.userId,
       user: user._id,
       packageId: pkg._id,
       amount,
+      compoundingBalance: amount,
       dailyProfitPercent: pkg.dailyProfit,
-      endDate: new Date(Date.now() + pkg.validity * 24 * 60 * 60 * 1000)
+      endDate: new Date(Date.now() + pkg.validity * 24 * 60 * 60 * 1000),
+      isBVEligible
     });
 
     user.isActive = true;
     user.activePackage = pkg._id;
-    user.totalInvestment += amount;
+    user.totalInvestment += amount; // Expands their 4x global cap
     await user.save();
+    
+    await AuditLog.create({
+      action: 'PACKAGE_ACTIVATION',
+      userId: user._id,
+      packageId: userPackage._id,
+      amount: amount,
+      details: { 
+        txHash, 
+        isUpgrade: !!existingActivePkg,
+        oldPackageId: existingActivePkg ? existingActivePkg._id : null
+      }
+    });
 
     await Transaction.create({
       userId: user.userId,
@@ -56,6 +94,11 @@ const buyPackage = async (req, res, next) => {
       type: 'deposit',
       amount,
       txHash,
+      walletAddress: senderAddress,
+      chainId: verification.chainId,
+      tokenContract: verification.tokenContract,
+      blockNumber: verification.blockNumber,
+      confirmationCount: verification.confirmationCount,
       status: 'success'
     });
 

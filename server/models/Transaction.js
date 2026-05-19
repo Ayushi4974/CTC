@@ -7,6 +7,10 @@ const transactionSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   txHash: { type: String },
   blockchain: { type: String, default: 'BEP20' },
+  chainId: { type: String, default: '56' },
+  tokenContract: { type: String },
+  blockNumber: { type: Number },
+  confirmationCount: { type: Number, default: 0 },
   status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
   walletAddress: { type: String }
 }, { timestamps: true });

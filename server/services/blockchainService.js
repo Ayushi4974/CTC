@@ -5,21 +5,40 @@ const web3 = new Web3(process.env.BSC_RPC_URL || 'https://bsc-dataseed.binance.o
 const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955".toLowerCase();
 const ADMIN_WALLET = "0x185018c5f26B2cE105e0B80b231178CE5913b621".toLowerCase(); // Matches frontend
 
-const verifyTransaction = async (txHash, expectedAmount) => {
+const verifyTransaction = async (txHash, expectedAmount, senderAddress) => {
   try {
     // In development or when using mock hashes, bypass strict Web3 validation
     if (process.env.NODE_ENV === 'development' && txHash.startsWith('mock_')) {
       console.log('Skipping real Web3 verification for mock/dev transaction:', txHash);
-      return { status: true, message: 'Mock transaction verified' };
+      return { 
+        status: true, 
+        message: 'Mock transaction verified',
+        chainId: '56',
+        tokenContract: USDT_CONTRACT,
+        blockNumber: 0,
+        confirmationCount: 5
+      };
     }
 
     const receipt = await web3.eth.getTransactionReceipt(txHash);
     if (!receipt) return { status: false, message: 'Transaction not found. Please wait for a few seconds.' };
-    if (!receipt.status) return { status: false, message: 'Transaction failed on blockchain' };
+    if (!receipt.status) return { status: false, message: 'Transaction failed on blockchain. Status is not SUCCESS.' };
+
+    // Minimum Confirmations Check (e.g. 3 blocks)
+    const currentBlock = await web3.eth.getBlockNumber();
+    const confirmations = Number(currentBlock) - Number(receipt.blockNumber);
+    if (confirmations < 3) {
+      return { status: false, message: `Transaction unconfirmed. Waiting for more blockchain confirmations. Currently ${confirmations}/3.` };
+    }
 
     // Verify correct Token Contract
     if (receipt.to.toLowerCase() !== USDT_CONTRACT) {
       return { status: false, message: 'Invalid token contract used for payment' };
+    }
+
+    // Verify Sender Address
+    if (receipt.from.toLowerCase() !== senderAddress.toLowerCase()) {
+      return { status: false, message: 'Sender wallet address does not match the connected wallet. Spoofing prevented.' };
     }
 
     // Look for the Transfer event log
@@ -41,11 +60,19 @@ const verifyTransaction = async (txHash, expectedAmount) => {
     const amountInWei = web3.utils.toBigInt(amountHex);
     const amountInUSDT = Number(amountInWei / 10n ** 18n);
 
-    if (Math.abs(amountInUSDT - expectedAmount) > 0.1) {
-      return { status: false, message: `Incorrect payment amount. Expected: ${expectedAmount}, Found: ${amountInUSDT}` };
+    // EXACT AMOUNT ONLY - No underpayment allowed (No 0.1 tolerance)
+    if (amountInUSDT !== expectedAmount) {
+      return { status: false, message: `Exact payment required. Expected: ${expectedAmount}, Found: ${amountInUSDT}. Underpayment rejected.` };
     }
 
-    return { status: true, message: 'Transaction verified successfully' };
+    return { 
+      status: true, 
+      message: 'Transaction verified successfully',
+      chainId: '56',
+      tokenContract: USDT_CONTRACT,
+      blockNumber: Number(receipt.blockNumber),
+      confirmationCount: confirmations
+    };
   } catch (error) {
     console.error('Blockchain verification error:', error);
     return { status: false, message: 'Error verifying transaction on blockchain' };
