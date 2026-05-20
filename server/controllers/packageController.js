@@ -8,7 +8,15 @@ const { distributeDirectReferral } = require('../services/referralService');
 
 const getAllPackages = async (req, res, next) => {
   try {
-    const packages = await Package.find({ status: true }).sort({ minAmount: 1 });
+    const user = await User.findById(req.user.id);
+    let filter = { status: true };
+    
+    // If user has no sponsor, hide referral-only packages
+    if (!user || !user.sponsor) {
+      filter.isReferralOnly = { $ne: true };
+    }
+    
+    const packages = await Package.find(filter).sort({ minAmount: 1 });
     res.json(packages);
   } catch (error) {
     next(error);

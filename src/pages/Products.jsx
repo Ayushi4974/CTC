@@ -71,6 +71,22 @@ const packages = [
     iconBgClass: 'bg-[#FF00FF]/20',
     iconTextClass: 'text-[#FF00FF]',
     isPremium: true,
+  },
+  {
+    id: 5,
+    name: 'Referral Package',
+    investment: '$20',
+    minInvestment: 20,
+    maxInvestment: 20,
+    profit: '0.25%',
+    duration: 'every 12 hours',
+    description: 'Exclusive package for referred members. (Monday–Friday active earnings).',
+    icon: Star,
+    glowClass: 'shadow-[0_0_20px_rgba(255,165,0,0.4)] hover:shadow-[0_0_40px_rgba(255,165,0,0.6)] animate-pulse-slow',
+    borderClass: 'border-orange-500/50',
+    iconBgClass: 'bg-orange-500/10',
+    iconTextClass: 'text-orange-500',
+    isPremium: false,
   }
 ];
 
@@ -259,7 +275,7 @@ const Products = () => {
             ...pkgDb,
             minInvestment: pkgDb.minAmount ?? uiConfig?.minInvestment ?? 0,
             maxInvestment: pkgDb.maxAmount ?? uiConfig?.maxInvestment ?? 0,
-            profit: pkgDb.dailyProfit ? `${pkgDb.dailyProfit}%` : uiConfig?.profit
+            profit: pkgDb.dailyProfit ? `${Number(pkgDb.dailyProfit) / 2}%` : uiConfig?.profit
           };
 
           return (

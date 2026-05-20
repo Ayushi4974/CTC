@@ -6,6 +6,7 @@ const packageSchema = new mongoose.Schema({
   maxAmount: { type: Number, required: true },
   dailyProfit: { type: Number, required: true }, // percentage
   validity: { type: Number, required: true }, // days
+  isReferralOnly: { type: Boolean, default: false },
   status: { type: Boolean, default: true }
 }, { timestamps: true });
 
