@@ -2,14 +2,14 @@ import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../redux/slices/authSlice';
-import { 
-  Home, 
-  Package, 
-  ShieldCheck, 
-  ArrowDownCircle, 
-  Users, 
-  DollarSign, 
-  BarChart2, 
+import {
+  Home,
+  Package,
+  ShieldCheck,
+  ArrowDownCircle,
+  Users,
+  DollarSign,
+  BarChart2,
   Cpu,
   LogOut,
   Wallet,
@@ -27,7 +27,7 @@ const navItems = [
   { name: 'KYC Verification', path: '/kyc', icon: ShieldCheck },
   { name: 'Withdrawal', path: '/withdrawal', icon: ArrowDownCircle },
   { name: 'Downline', path: '/downline', icon: Users },
-  { name: 'Referral Income', path: '/referral-income', icon: DollarSign },
+  // { name: 'Referral Income', path: '/referral-income', icon: DollarSign },
   { name: 'Level Income', path: '/level-income', icon: BarChart2 },
   { name: 'Copy Trade History', path: '/mining', icon: Cpu },
   { name: 'Package History', path: '/package-history', icon: Package },
@@ -70,7 +70,7 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       isOpen ? "translate-x-0" : "-translate-x-full"
     )}>
       {/* Mobile Close Button */}
-      <button 
+      <button
         onClick={closeSidebar}
         className="lg:hidden absolute top-4 right-4 p-2 text-gray-400 hover:text-white bg-gray-800/30 rounded-lg"
       >
@@ -98,8 +98,8 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
               className={({ isActive }) =>
                 clsx(
                   'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-sm font-medium',
-                  isActive 
-                    ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-lg shadow-[#A020F0]/30' 
+                  isActive
+                    ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-lg shadow-[#A020F0]/30'
                     : 'text-gray-400 hover:text-white hover:bg-[#12121A]'
                 )
               }
@@ -125,7 +125,7 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
             </span>
           </div>
           {!walletAddress && (
-            <button 
+            <button
               onClick={connectWallet}
               className="w-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white rounded-lg py-2.5 text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
             >

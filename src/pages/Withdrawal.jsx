@@ -152,19 +152,18 @@ const Withdrawal = () => {
                     <button
                       key={source.id}
                       onClick={() => setSelectedSource(source)}
-                      className={`relative flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-300 overflow-hidden ${
+                      className={`relative flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-300 overflow-hidden ${
                         isSelected 
-                          ? 'bg-[#161B2A] border border-transparent shadow-[0_0_20px_rgba(160,32,240,0.3)] scale-105' 
-                          : 'bg-[#161B2A]/50 border border-gray-800 hover:border-gray-600'
+                          ? 'bg-[#161B2A] border border-[#A020F0]/50 shadow-[0_0_20px_rgba(160,32,240,0.3)] scale-105' 
+                          : 'bg-[#161B2A]/50 border border-gray-800 hover:border-gray-600 hover:bg-[#161B2A]'
                       }`}
                     >
-                      {isSelected && <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-br from-[#A020F0] to-[#FF00FF] -z-10"></div>}
-                      {isSelected && <div className="absolute inset-0 bg-[#A020F0]/10 blur-md z-0"></div>}
-                      <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center mb-2 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] ${isSelected ? 'bg-[#A020F0]/20 text-[#FF00FF]' : 'bg-gray-800 text-gray-400'}`}>
-                        <Icon size={14} />
+                      {isSelected && <div className="absolute inset-0 bg-gradient-to-br from-[#A020F0]/10 to-[#FF00FF]/10 z-0 pointer-events-none"></div>}
+                      <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors ${isSelected ? 'bg-[#A020F0]/20 text-[#FF00FF] shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]' : 'bg-gray-800 text-gray-400'}`}>
+                        <Icon size={18} />
                       </div>
-                      <span className={`relative z-10 text-xs font-bold text-center ${isSelected ? 'text-white' : 'text-gray-400'}`}>{source.name}</span>
-                      <span className={`relative z-10 text-sm mt-0.5 ${isSelected ? 'text-[#00C6FF]' : 'text-gray-500'}`}>${source.balance}</span>
+                      <span className={`relative z-10 text-xs font-bold text-center tracking-wider uppercase mb-1 ${isSelected ? 'text-white' : 'text-gray-400'}`}>{source.name}</span>
+                      <span className={`relative z-10 text-lg font-black tracking-tight ${isSelected ? 'text-[#00C6FF] drop-shadow-[0_0_8px_rgba(0,198,255,0.4)]' : 'text-gray-500'}`}>${Number(source.balance || 0).toFixed(3)}</span>
                     </button>
                   );
                 })}
@@ -182,7 +181,7 @@ const Withdrawal = () => {
                   onClick={handleUseMax}
                   className="text-[11px] px-2 py-1 bg-[#A020F0]/10 hover:bg-[#A020F0]/20 text-[#FF00FF] rounded font-bold border border-[#A020F0]/30 transition-colors shadow-[0_0_10px_rgba(160,32,240,0.2)]"
                 >
-                  Use Max: ${selectedSource.balance}
+                  Use Max: ${Number(selectedSource.balance || 0).toFixed(3)}
                 </button>
               </div>
               <div className="relative">
@@ -197,7 +196,7 @@ const Withdrawal = () => {
               </div>
               <div className="flex justify-between text-[11px] text-gray-500 mt-2 font-medium">
                 <span>Minimum: $10</span>
-                <span className="text-[#00C6FF]">Available: ${selectedSource.balance}</span>
+                <span className="text-[#00C6FF]">Available: ${Number(selectedSource.balance || 0).toFixed(3)}</span>
               </div>
             </div>
 

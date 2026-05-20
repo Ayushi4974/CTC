@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, User, Mail, Shield, BarChart3, TrendingUp, 
   ChevronDown, ChevronRight, Award, Activity, Copy, Check, Car, Home, Info, Timer,
-  ShieldCheck, Globe
+  ShieldCheck, Globe, Lock
 } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchProfile } from '../redux/slices/authSlice';
