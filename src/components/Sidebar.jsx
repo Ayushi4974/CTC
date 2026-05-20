@@ -15,7 +15,8 @@ import {
   Wallet,
   FileText,
   User,
-  X
+  X,
+  Trophy
 } from 'lucide-react';
 import clsx from 'clsx';
 import { toast } from 'react-toastify';
@@ -31,6 +32,7 @@ const navItems = [
   { name: 'Level Income', path: '/level-income', icon: BarChart2 },
   { name: 'Copy Trade History', path: '/mining', icon: Cpu },
   { name: 'Package History', path: '/package-history', icon: Package },
+  { name: 'Promotional Bonus', path: '/promotional-bonus', icon: Trophy },
   { name: 'Transactions', path: '/transactions', icon: FileText },
   { name: 'Profile', path: '/profile', icon: User },
 ];

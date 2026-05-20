@@ -6,8 +6,8 @@ const AuditLog = require('../models/AuditLog');
 const { isStrictlyActiveUser } = require('../utils/userValidation');
 
 const LEVEL_PERCENTAGES = [
-  15, 8, 7, 4, 4, 3, 3, 3, 3, 4, 
-  5, 7, 8, 8, 12, 15, 8, 7, 4, 4, 
+  15, 8, 7, 4, 4, 3, 3, 3, 3, 4,
+  5, 7, 8, 8, 12, 15, 8, 7, 4, 4,
   3, 3, 3, 3, 4, 5, 7, 8, 8, 12
 ];
 
@@ -24,11 +24,11 @@ const getPackageScalar = async (userId) => {
   const activePkg = await UserPackage.findOne({ user: userId, status: 'active' }).populate('packageId');
   if (!activePkg || !activePkg.packageId) return 0;
   const pkgName = activePkg.packageId.name.toLowerCase();
-  if (pkgName.includes('package 1')) return 0.20;
-  if (pkgName.includes('package 2')) return 0.30;
-  if (pkgName.includes('package 3')) return 0.40;
-  if (pkgName.includes('package 4')) return 0.50;
-  return 0.20; // default
+  if (pkgName.includes('package 1')) return 0.50;
+  if (pkgName.includes('package 2')) return 0.40;
+  if (pkgName.includes('package 3')) return 0.30;
+  if (pkgName.includes('package 4')) return 0.20;
+  return 0.50; // default
 };
 
 const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
@@ -58,7 +58,7 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
           } else if (currentLevel >= 21 && currentLevel <= 29) {
             if (sponsorUser.totalInvestment < 1500) isLevelActive = false; // Leadership requirement
           } else if (currentLevel === 30) {
-             // Level 30 Unique Fastrack/Leadership requirement
+            // Level 30 Unique Fastrack/Leadership requirement
             if (!sponsorUser.fastrackQualified) isLevelActive = false;
           }
         }
@@ -69,7 +69,7 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
         if (sponsorRemainingCap <= 0) {
           sponsorUser.isActive = false;
           await sponsorUser.save();
-          
+
           await AuditLog.create({
             action: 'CAP_COMPLETED',
             userId: sponsorUser._id,
@@ -78,13 +78,13 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
         } else if (isLevelActive) {
           const percentage = LEVEL_PERCENTAGES[currentLevel - 1];
           let totalIncome = (baseAmount * percentage) / 100;
-          
+
           let capHit = false;
           if (totalIncome > sponsorRemainingCap) {
-             totalIncome = sponsorRemainingCap; // Truncate to exact remaining amount
-             capHit = true;
+            totalIncome = sponsorRemainingCap; // Truncate to exact remaining amount
+            capHit = true;
           }
-          
+
           // 1st label 50% and 2nd Label 50% eligible criteria
           // Distributing 50% to available balance (withdrawable) and 50% to another metric (e.g. promotional/reinvestment)
           const payoutAmount = totalIncome * 0.50;
@@ -103,24 +103,24 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
 
           sponsorUser.levelIncome += totalIncome;
           sponsorUser.totalEarning += totalIncome;
-          
+
           // Apply the 50/50 split rule
           sponsorUser.availableBalance += payoutAmount;
           // The other 50% is reserved/reinvested, here we track it as promotionalIncome or simply keep it in totalEarning without adding to availableBalance
           sponsorUser.promotionalIncome += reservedAmount;
-          
+
           if (capHit || sponsorUser.totalEarning >= sponsorUser.totalInvestment * 4) {
-             sponsorUser.isActive = false;
-             
-             await AuditLog.create({
-               action: 'CAP_COMPLETED',
-               userId: sponsorUser._id,
-               details: { reason: '4x cap reached EXACTLY after level income addition' }
-             });
+            sponsorUser.isActive = false;
+
+            await AuditLog.create({
+              action: 'CAP_COMPLETED',
+              userId: sponsorUser._id,
+              details: { reason: '4x cap reached EXACTLY after level income addition' }
+            });
           }
-          
+
           await sponsorUser.save();
-          
+
           await AuditLog.create({
             action: 'LEVEL_INCOME',
             userId: sponsorUser._id,

@@ -79,7 +79,7 @@ const packages = [
     minInvestment: 20,
     maxInvestment: 20,
     profit: '0.25%',
-    duration: 'every 12 hours',
+    duration: 'daily',
     description: 'Exclusive package for referred members. (Monday–Friday active earnings).',
     icon: Star,
     glowClass: 'shadow-[0_0_20px_rgba(255,165,0,0.4)] hover:shadow-[0_0_40px_rgba(255,165,0,0.6)] animate-pulse-slow',
@@ -275,7 +275,7 @@ const Products = () => {
             ...pkgDb,
             minInvestment: pkgDb.minAmount ?? uiConfig?.minInvestment ?? 0,
             maxInvestment: pkgDb.maxAmount ?? uiConfig?.maxInvestment ?? 0,
-            profit: pkgDb.dailyProfit ? `${Number(pkgDb.dailyProfit) / 2}%` : uiConfig?.profit
+            profit: uiConfig?.profit || '0%'
           };
 
           return (

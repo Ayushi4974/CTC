@@ -47,7 +47,17 @@ const Transactions = () => {
   };
 
   const filteredTransactions = transactions.filter(txn => {
-    const matchesFilter = activeFilter === 'All' || txn.type === activeFilter;
+    const txnTypeMatch = txn.type ? txn.type.toLowerCase() : '';
+    const activeFilterMatch = activeFilter.toLowerCase();
+    
+    // Map backend transaction types to UI tabs if necessary
+    // Because backend uses 'bonus'/'salary', but UI tab is 'Bonus'
+    // 'investment', 'referral' might not exist in the Transaction collection, 
+    // but this ensures at least Deposit, Withdrawal, and Bonus work perfectly.
+    const matchesFilter = activeFilter === 'All' || 
+                          txnTypeMatch === activeFilterMatch || 
+                          (activeFilter === 'Bonus' && (txnTypeMatch === 'bonus' || txnTypeMatch === 'salary'));
+
     const matchesSearch = 
       (txn._id && txn._id.toLowerCase().includes(searchQuery.toLowerCase())) || 
       (txn.description && txn.description.toLowerCase().includes(searchQuery.toLowerCase())) ||

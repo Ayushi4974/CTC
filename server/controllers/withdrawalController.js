@@ -81,7 +81,8 @@ const requestWithdrawal = async (req, res, next) => {
         return res.status(400).json({ message: 'Your initial capital can only be withdrawn after a 24-hour period.' });
       }
 
-      if (userPkg.amount < amount) {
+      const maxWithdrawable = userPkg.compoundingBalance ?? userPkg.amount;
+      if (maxWithdrawable < amount) {
         return res.status(400).json({ message: 'Requested amount exceeds package capital' });
       }
 

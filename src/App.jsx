@@ -14,6 +14,7 @@ import MiningHistory from './pages/MiningHistory';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import PackageHistory from './pages/PackageHistory';
+import PromotionalBonusHistory from './pages/PromotionalBonusHistory';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setWalletAddress } from './redux/slices/authSlice';
@@ -72,7 +73,8 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="level-income" element={<LevelIncome />} />
           <Route path="mining" element={<MiningHistory />} />
-          <Route path="/package-history" element={<PackageHistory />} />
+          <Route path="package-history" element={<PackageHistory />} />
+          <Route path="promotional-bonus" element={<PromotionalBonusHistory />} />
           {/* Add placeholders for other routes */}
           <Route path="*" element={<div className="p-8 text-text-secondary text-center">Coming Soon</div>} />
         </Route>

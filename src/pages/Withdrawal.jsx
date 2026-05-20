@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TrendingUp, Users, AlertTriangle, CheckCircle2, 
   DollarSign, Lock, Coins, ArrowRight,
-  Info, ShieldCheck, Database, XCircle, Clock
+  Info, ShieldCheck, Database, XCircle, Clock,
+  Wallet, Cpu, Layers, Gift
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProfile } from '../redux/slices/authSlice';
@@ -36,19 +37,44 @@ const Withdrawal = () => {
   const { profile, user } = useSelector(state => state.auth);
   const currentUser = profile || user;
 
-  const dynamicSources = [
-    { id: 'balance', name: 'Available Balance', balance: currentUser?.availableBalance || 0, icon: TrendingUp, color: '#00C6FF' },
-  ];
-
-  const [selectedSource, setSelectedSource] = useState(dynamicSources[0]);
+  const [activePackages, setActivePackages] = useState([]);
+  const [selectedSource, setSelectedSource] = useState(null);
   const [amount, setAmount] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(true);
 
+  const dynamicSources = [
+    { id: 'balance', name: 'Available Balance', balance: currentUser?.availableBalance || 0, icon: TrendingUp, color: '#00C6FF', type: 'profit' },
+    ...activePackages.map(pkg => ({
+      id: pkg._id,
+      name: `SOS: ${pkg.packageId?.name || 'Package'}`,
+      balance: pkg.compoundingBalance ?? pkg.amount,
+      icon: AlertTriangle,
+      color: '#ef4444',
+      type: 'principal',
+      userPackageId: pkg._id
+    }))
+  ];
+
+  useEffect(() => {
+    if (!selectedSource && dynamicSources.length > 0) {
+      setSelectedSource(dynamicSources[0]);
+    }
+  }, [activePackages, currentUser, selectedSource]);
+
+  useEffect(() => {
+    if (selectedSource?.type === 'principal') {
+      setAmount(selectedSource.balance);
+    } else {
+      setAmount('');
+    }
+  }, [selectedSource]);
+
   useEffect(() => {
     dispatch(fetchProfile());
     fetchHistory();
+    fetchPackages();
   }, [dispatch]);
 
   const fetchHistory = async () => {
@@ -60,8 +86,17 @@ const Withdrawal = () => {
     }
   };
 
+  const fetchPackages = async () => {
+    try {
+      const res = await api.get('/package/my-packages');
+      setActivePackages(res.data.filter(p => p.status === 'active'));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleUseMax = () => {
-    setAmount(currentUser?.availableBalance || 0);
+    setAmount(selectedSource?.balance || 0);
   };
 
   const handleWithdraw = async () => {
@@ -69,12 +104,23 @@ const Withdrawal = () => {
     if (!walletAddress) return toast.error('Please enter your receiving wallet address');
     
     try {
-      await api.post('/withdrawal/request', { amount: Number(amount), walletAddress });
+      const payload = { 
+        amount: Number(amount), 
+        walletAddress,
+        type: selectedSource?.type || 'profit',
+      };
+      
+      if (selectedSource?.type === 'principal') {
+        payload.userPackageId = selectedSource?.userPackageId;
+      }
+
+      await api.post('/withdrawal/request', payload);
       toast.success('Withdrawal requested successfully!');
       setAmount('');
       setWalletAddress('');
       dispatch(fetchProfile());
       fetchHistory();
+      fetchPackages();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Withdrawal failed');
     }
@@ -125,6 +171,37 @@ const Withdrawal = () => {
         </motion.button>
       </div>
 
+      {/* Income Cards Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        {[
+          { title: 'Available Balance', value: currentUser?.availableBalance || 0, icon: Wallet, color: 'text-[#A020F0]', bg: 'bg-[#A020F0]/10', border: 'border-[#A020F0]/20' },
+          { title: 'Total Earnings', value: currentUser?.totalEarning || 0, icon: TrendingUp, color: 'text-[#00FF99]', bg: 'bg-[#00FF99]/10', border: 'border-[#00FF99]/20' },
+          { title: 'Copy Trade ROI', value: currentUser?.miningIncome || 0, icon: Cpu, color: 'text-[#00C6FF]', bg: 'bg-[#00C6FF]/10', border: 'border-[#00C6FF]/20' },
+          { title: 'Referral Income', value: currentUser?.referralIncome || 0, icon: Users, color: 'text-[#FF00FF]', bg: 'bg-[#FF00FF]/10', border: 'border-[#FF00FF]/20' },
+          { title: 'Level Income', value: currentUser?.levelIncome || 0, icon: Layers, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+          { title: 'Promotional Income', value: currentUser?.promotionalIncome || 0, icon: Gift, color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+        ].map((item, idx) => (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.05 }}
+            className="bg-[#0f0f13]/80 backdrop-blur-md border border-gray-800 rounded-2xl p-4 flex flex-col justify-between hover:border-gray-700 hover:bg-[#161B2A]/40 transition-all group relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-transparent to-white/[0.01] pointer-events-none"></div>
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{item.title}</span>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.bg} ${item.color} group-hover:scale-110 transition-transform`}>
+                <item.icon size={16} />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg md:text-xl font-bold text-white tracking-tight">${Number(item.value).toFixed(2)}</h3>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -144,30 +221,59 @@ const Withdrawal = () => {
             {/* Source Selection */}
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-300 mb-3">Select Source</label>
-              <div className="grid grid-cols-1 gap-3">
-                {dynamicSources.map((source) => {
-                  const isSelected = selectedSource.id === source.id;
-                  const Icon = source.icon;
-                  return (
-                    <button
-                      key={source.id}
-                      onClick={() => setSelectedSource(source)}
-                      className={`relative flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-300 overflow-hidden ${
-                        isSelected 
-                          ? 'bg-[#161B2A] border border-[#A020F0]/50 shadow-[0_0_20px_rgba(160,32,240,0.3)] scale-105' 
-                          : 'bg-[#161B2A]/50 border border-gray-800 hover:border-gray-600 hover:bg-[#161B2A]'
-                      }`}
-                    >
-                      {isSelected && <div className="absolute inset-0 bg-gradient-to-br from-[#A020F0]/10 to-[#FF00FF]/10 z-0 pointer-events-none"></div>}
-                      <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors ${isSelected ? 'bg-[#A020F0]/20 text-[#FF00FF] shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]' : 'bg-gray-800 text-gray-400'}`}>
-                        <Icon size={18} />
-                      </div>
-                      <span className={`relative z-10 text-xs font-bold text-center tracking-wider uppercase mb-1 ${isSelected ? 'text-white' : 'text-gray-400'}`}>{source.name}</span>
-                      <span className={`relative z-10 text-lg font-black tracking-tight ${isSelected ? 'text-[#00C6FF] drop-shadow-[0_0_8px_rgba(0,198,255,0.4)]' : 'text-gray-500'}`}>${Number(source.balance || 0).toFixed(3)}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              
+              {/* Available Balance Source (Full Width) */}
+              {dynamicSources.length > 0 && (() => {
+                const source = dynamicSources[0];
+                const isSelected = selectedSource?.id === source.id;
+                const Icon = source.icon;
+                return (
+                  <button
+                    key={source.id}
+                    onClick={() => setSelectedSource(source)}
+                    className={`w-full relative flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-300 overflow-hidden mb-3 ${
+                      isSelected 
+                        ? 'bg-[#161B2A] border border-[#A020F0]/50 shadow-[0_0_20px_rgba(160,32,240,0.3)] scale-[1.02]' 
+                        : 'bg-[#161B2A]/50 border border-gray-800 hover:border-gray-600 hover:bg-[#161B2A]'
+                    }`}
+                  >
+                    {isSelected && <div className="absolute inset-0 bg-gradient-to-br from-[#A020F0]/10 to-[#FF00FF]/10 z-0 pointer-events-none"></div>}
+                    <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors ${isSelected ? 'bg-[#A020F0]/20 text-[#FF00FF] shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]' : 'bg-gray-800 text-gray-400'}`}>
+                      <Icon size={18} />
+                    </div>
+                    <span className={`relative z-10 text-xs font-bold text-center tracking-wider uppercase mb-1 ${isSelected ? 'text-white' : 'text-gray-400'}`}>{source.name}</span>
+                    <span className={`relative z-10 text-lg font-black tracking-tight ${isSelected ? 'text-[#00C6FF] drop-shadow-[0_0_8px_rgba(0,198,255,0.4)]' : 'text-gray-500'}`}>${Number(source.balance || 0).toFixed(3)}</span>
+                  </button>
+                );
+              })()}
+
+              {/* SOS Package Sources (Grid of 2 columns) */}
+              {dynamicSources.length > 1 && (
+                <div className="grid grid-cols-2 gap-3">
+                  {dynamicSources.slice(1).map((source) => {
+                    const isSelected = selectedSource?.id === source.id;
+                    const Icon = source.icon;
+                    return (
+                      <button
+                        key={source.id}
+                        onClick={() => setSelectedSource(source)}
+                        className={`relative flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-300 overflow-hidden ${
+                          isSelected 
+                            ? 'bg-[#161B2A] border border-[#A020F0]/50 shadow-[0_0_20px_rgba(160,32,240,0.3)] scale-[1.02]' 
+                            : 'bg-[#161B2A]/50 border border-gray-800 hover:border-gray-600 hover:bg-[#161B2A]'
+                        }`}
+                      >
+                        {isSelected && <div className="absolute inset-0 bg-gradient-to-br from-[#A020F0]/10 to-[#FF00FF]/10 z-0 pointer-events-none"></div>}
+                        <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors ${isSelected ? 'bg-[#A020F0]/20 text-[#FF00FF] shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]' : 'bg-gray-800 text-gray-400'}`}>
+                          <Icon size={18} />
+                        </div>
+                        <span className={`relative z-10 text-[10px] font-bold text-center tracking-wider uppercase mb-1 truncate w-full ${isSelected ? 'text-white' : 'text-gray-400'}`}>{source.name}</span>
+                        <span className={`relative z-10 text-sm font-black tracking-tight ${isSelected ? 'text-[#00C6FF] drop-shadow-[0_0_8px_rgba(0,198,255,0.4)]' : 'text-gray-500'}`}>${Number(source.balance || 0).toFixed(3)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Glassmorphism Divider */}
@@ -177,12 +283,14 @@ const Withdrawal = () => {
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
                 <label className="text-sm font-semibold text-gray-300">Withdrawal Amount (USD)</label>
-                <button 
-                  onClick={handleUseMax}
-                  className="text-[11px] px-2 py-1 bg-[#A020F0]/10 hover:bg-[#A020F0]/20 text-[#FF00FF] rounded font-bold border border-[#A020F0]/30 transition-colors shadow-[0_0_10px_rgba(160,32,240,0.2)]"
-                >
-                  Use Max: ${Number(selectedSource.balance || 0).toFixed(3)}
-                </button>
+                {selectedSource?.type !== 'principal' && (
+                  <button 
+                    onClick={handleUseMax}
+                    className="text-[11px] px-2 py-1 bg-[#A020F0]/10 hover:bg-[#A020F0]/20 text-[#FF00FF] rounded font-bold border border-[#A020F0]/30 transition-colors shadow-[0_0_10px_rgba(160,32,240,0.2)]"
+                  >
+                    Use Max: ${Number(selectedSource?.balance || 0).toFixed(3)}
+                  </button>
+                )}
               </div>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">$</span>
@@ -191,12 +299,23 @@ const Withdrawal = () => {
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full bg-[#050505]/50 border border-gray-700/80 rounded-xl pl-8 pr-4 py-3.5 text-white font-semibold placeholder-gray-600 focus:outline-none focus:border-[#FF00FF] focus:ring-1 focus:ring-[#FF00FF] focus:shadow-[0_0_20px_rgba(255,0,255,0.2)] transition-all"
+                  readOnly={selectedSource?.type === 'principal'}
+                  className={`w-full border rounded-xl pl-8 pr-4 py-3.5 font-semibold transition-all ${
+                    selectedSource?.type === 'principal'
+                      ? 'bg-[#161B2A]/40 border-red-500/35 text-red-400 cursor-not-allowed'
+                      : 'bg-[#050505]/50 border-gray-700/80 text-white placeholder-gray-600 focus:outline-none focus:border-[#FF00FF] focus:ring-1 focus:ring-[#FF00FF] focus:shadow-[0_0_20px_rgba(255,0,255,0.2)]'
+                  }`}
                 />
               </div>
               <div className="flex justify-between text-[11px] text-gray-500 mt-2 font-medium">
-                <span>Minimum: $10</span>
-                <span className="text-[#00C6FF]">Available: ${Number(selectedSource.balance || 0).toFixed(3)}</span>
+                {selectedSource?.type === 'principal' ? (
+                  <span className="text-red-400/90 font-semibold">★ Full package capital must be withdrawn.</span>
+                ) : (
+                  <>
+                    <span>Minimum: $10</span>
+                    <span className="text-[#00C6FF]">Available: ${Number(selectedSource?.balance || 0).toFixed(3)}</span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -229,7 +348,7 @@ const Withdrawal = () => {
             </div>
 
             {/* Transparent Fee Labeling */}
-            <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 mb-8">
+            <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 mb-6">
               <div className="flex gap-3 mb-2">
                 <Info className="text-orange-500 shrink-0 mt-0.5" size={16} />
                 <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Deduction Policy</h4>
@@ -239,6 +358,28 @@ const Withdrawal = () => {
                 <li>For Principal withdrawals, a <strong className="text-orange-400">20% processing deduction</strong> applies.</li>
               </ul>
             </div>
+
+            {/* Calculation Preview */}
+            {(Number(amount) || 0) > 0 && (
+              <div className="bg-[#161B2A]/50 border border-gray-800 rounded-xl p-4 mb-6">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Estimated Settlement</h4>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between text-gray-400">
+                    <span>Requested Amount:</span>
+                    <span className="font-semibold text-white">${(Number(amount) || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-red-400">
+                    <span>Deduction ({selectedSource?.type === 'principal' ? 20 : 10}%):</span>
+                    <span className="font-semibold">-${((Number(amount) || 0) * (selectedSource?.type === 'principal' ? 20 : 10) / 100).toFixed(2)}</span>
+                  </div>
+                  <div className="h-[1px] bg-gray-800 my-2"></div>
+                  <div className="flex justify-between text-[#00FF99] font-bold text-sm">
+                    <span>You Receive:</span>
+                    <span className="drop-shadow-[0_0_8px_rgba(0,255,153,0.3)]">${((Number(amount) || 0) * (1 - (selectedSource?.type === 'principal' ? 0.20 : 0.10))).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Submit Button with Shimmer */}
             <button onClick={handleWithdraw} className="relative overflow-hidden w-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] hover:shadow-[0_0_30px_rgba(255,0,255,0.6)] text-white rounded-xl py-4 font-bold transition-all hover:-translate-y-0.5 mb-4 group">

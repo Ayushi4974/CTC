@@ -6,8 +6,8 @@ import { toast } from 'react-toastify';
 
 const steps = [
   { id: 1, name: 'Profile', icon: User },
-  { id: 2, name: 'Aadhar', icon: CreditCard },
-  { id: 3, name: 'PAN Card', icon: FileText },
+  { id: 2, name: 'Primary ID', icon: CreditCard },
+  { id: 3, name: 'Bill Proof', icon: FileText },
   { id: 4, name: 'Bank Details', icon: Building },
 ];
 
@@ -331,58 +331,58 @@ const Kyc = () => {
             </div>
           )}
 
-          {/* Step 2: Aadhar */}
+          {/* Step 2: Primary ID (Passport / National ID / Driver's License) */}
           {currentStep === 2 && (
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-2xl font-bold text-white">Aadhar Verification</h2>
+                <h2 className="text-2xl font-bold text-white">Primary Photo ID</h2>
                 <div className="px-2 py-1 bg-emerald-500/10 rounded text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1"><Lock size={12}/> Secured</div>
               </div>
-              <p className="text-gray-400 mb-8 text-sm">Enter your government ID details securely.</p>
+              <p className="text-gray-400 mb-8 text-sm">Upload a valid government-issued photo ID (Passport, National ID, or Driver's License).</p>
               
               <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-400 mb-2">Aadhar Number</label>
+                <label className="block text-sm font-medium text-gray-400 mb-2">ID Document / Passport / License Number</label>
                 <input 
                   type="text" 
                   name="aadharNumber"
                   value={formData.aadharNumber}
                   onChange={handleInputChange}
-                  placeholder="1234 5678 9012"
+                  placeholder="Enter your document number"
                   className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FileUploadBox label="Front Side" id="aadharFront" />
-                <FileUploadBox label="Back Side" id="aadharBack" />
+                <FileUploadBox label="Front Side (ID / License) or Passport Photo Page" id="aadharFront" />
+                <FileUploadBox label="Back Side of Document (if applicable)" id="aadharBack" />
               </div>
             </div>
           )}
 
-          {/* Step 3: PAN Card */}
+          {/* Step 3: Address Proof (Utility Bill / Bank Statement) */}
           {currentStep === 3 && (
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-2xl font-bold text-white">PAN Verification</h2>
+                <h2 className="text-2xl font-bold text-white">Proof of Address</h2>
                 <div className="px-2 py-1 bg-emerald-500/10 rounded text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1"><Lock size={12}/> Secured</div>
               </div>
-              <p className="text-gray-400 mb-8 text-sm">Tax identification details.</p>
+              <p className="text-gray-400 mb-8 text-sm">Upload a document showing your current address (Utility Bill or Bank Statement, issued within the last 3 months).</p>
               
               <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-400 mb-2">PAN Number</label>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Document Reference Number (Optional)</label>
                 <input 
                   type="text" 
                   name="panNumber"
                   value={formData.panNumber}
                   onChange={handleInputChange}
-                  placeholder="ABCDE1234F"
+                  placeholder="e.g. Account Number, Invoice Number, Ref No"
                   className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.2)] transition-all uppercase"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FileUploadBox label="PAN Card Photo" id="panFront" />
-                <FileUploadBox label="Signed Agreement" id="panAgreement" />
+                <FileUploadBox label="Utility Bill / Bank Statement Page 1" id="panFront" />
+                <FileUploadBox label="Bill / Statement Additional Page (if any) or Selfie with ID" id="panAgreement" />
               </div>
             </div>
           )}
