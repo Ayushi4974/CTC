@@ -14,7 +14,7 @@ const marginBonusMap = {
 };
 
 // Run every 12 hours (Monday to Friday) UTC time
-cron.schedule("0 */12 * * 1-5", async () => {
+const runMiningCronCycle = async (force = false) => {
   const cronName = 'MINING_CRON_12H';
   const cycleId = `MINING_${new Date().toISOString().split('T')[0]}_${new Date().getHours()}`;
 
@@ -24,13 +24,13 @@ cron.schedule("0 */12 * * 1-5", async () => {
     state = await CronState.create({ cronName, isRunning: false });
   }
 
-  if (state.isRunning) {
+  if (state.isRunning && !force) {
     console.log(`[CRON] ${cronName} is currently locked/running. Skipping.`);
-    return;
+    return { success: false, reason: 'LOCKED' };
   }
-  if (state.lastCycleId === cycleId) {
+  if (state.lastCycleId === cycleId && !force) {
     console.log(`[CRON] ${cronName} already completed cycle ${cycleId}. Skipping.`);
-    return;
+    return { success: false, reason: 'ALREADY_COMPLETED' };
   }
 
   // Lock the cron
@@ -40,10 +40,10 @@ cron.schedule("0 */12 * * 1-5", async () => {
   
   const today = new Date();
   const day = today.getDay(); // 0 = Sunday, 6 = Saturday
-  if (day === 0 || day === 6) {
+  if ((day === 0 || day === 6) && !force) {
     console.log('[CRON] Skipping mining cron distribution on weekend (Saturday/Sunday)');
     await CronState.updateOne({ cronName }, { $set: { isRunning: false, lastCycleId: cycleId, lastRunAt: new Date() } });
-    return;
+    return { success: false, reason: 'WEEKEND_SKIPPED' };
   }
 
   // Helper for decimal precision control
@@ -177,11 +177,18 @@ cron.schedule("0 */12 * * 1-5", async () => {
       { $set: { isRunning: false, lastCycleId: cycleId, lastRunAt: new Date(), errorLog: null } }
     );
     console.log('[CRON] Mining cron finished successfully.');
+    return { success: true };
   } catch (error) {
     console.error('[CRON] Error in mining cron:', error);
     await CronState.updateOne({ cronName }, { $set: { isRunning: false, errorLog: error.message } });
+    return { success: false, error: error.message };
   }
-}, {
+};
+
+// Schedule it
+cron.schedule("0 */12 * * 1-5", () => runMiningCronCycle(false), {
   scheduled: true,
   timezone: "UTC"
 });
+
+module.exports = { runMiningCronCycle };

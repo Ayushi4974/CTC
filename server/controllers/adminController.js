@@ -6,6 +6,10 @@ const KYC = require('../models/KYC');
 const SystemSettings = require('../models/SystemSettings');
 const AuditLog = require('../models/AuditLog');
 const UserPackage = require('../models/UserPackage');
+const CronState = require('../models/CronState');
+const ReferralIncome = require('../models/ReferralIncome');
+const MiningIncome = require('../models/MiningIncome');
+
 
 const getDashboardStats = async (req, res, next) => {
   try {
@@ -24,12 +28,68 @@ const getDashboardStats = async (req, res, next) => {
 
     const activePackages = await Package.countDocuments({ status: true });
 
+    // Aggregate last 7 days of daily trends
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const dailyDeposits = await Transaction.aggregate([
+      { $match: { type: 'deposit', status: 'success', createdAt: { $gte: sevenDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          total: { $sum: '$amount' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const dailyWithdrawals = await Withdrawal.aggregate([
+      { $match: { status: 'approved', createdAt: { $gte: sevenDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          total: { $sum: '$amount' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const dailyRoi = await MiningIncome.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          total: { $sum: '$amount' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const chartData = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateString = d.toISOString().split('T')[0];
+
+      const depositObj = dailyDeposits.find(x => x._id === dateString);
+      const withdrawalObj = dailyWithdrawals.find(x => x._id === dateString);
+      const roiObj = dailyRoi.find(x => x._id === dateString);
+
+      chartData.push({
+        name: dateString.split('-').slice(1).join('/'),
+        deposits: depositObj ? depositObj.total : 0,
+        withdrawals: withdrawalObj ? withdrawalObj.total : 0,
+        roi: roiObj ? roiObj.total : 0
+      });
+    }
+
     res.json({
       totalUsers,
       activeUsers,
       totalDeposits: deposits[0] ? deposits[0].total : 0,
       totalWithdrawals: withdrawals[0] ? withdrawals[0].total : 0,
-      activePackages
+      activePackages,
+      chartData
     });
   } catch (error) {
     next(error);
@@ -172,13 +232,208 @@ const updateTreasurySettings = async (req, res, next) => {
   }
 };
 
+const rejectKYC = async (req, res, next) => {
+  try {
+    const kyc = await KYC.findById(req.params.id);
+    if (!kyc) return res.status(404).json({ message: 'KYC not found' });
+
+    kyc.status = 'rejected';
+    kyc.verifiedBy = req.user._id;
+    await kyc.save();
+
+    const user = await User.findById(kyc.user);
+    if (user) {
+      user.isKYCVerified = false;
+      await user.save();
+    }
+
+    res.json({ message: 'KYC Rejected', kyc });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const rejectWithdrawal = async (req, res, next) => {
+  try {
+    const withdrawal = await Withdrawal.findById(req.params.id);
+    if (!withdrawal) return res.status(404).json({ message: 'Withdrawal not found' });
+
+    withdrawal.status = 'rejected';
+    withdrawal.approvedBy = req.user._id;
+    withdrawal.approvedAt = Date.now();
+    await withdrawal.save();
+
+    // Revert availableBalance back to the user
+    const user = await User.findById(withdrawal.user);
+    if (user) {
+      user.availableBalance += withdrawal.amount;
+      await user.save();
+    }
+
+    await Transaction.create({
+      userId: withdrawal.userId,
+      user: withdrawal.user,
+      type: 'bonus', // Revert transactions
+      amount: withdrawal.amount,
+      status: 'failed',
+      description: 'Withdrawal rejected & refunded'
+    });
+
+    res.json({ message: 'Withdrawal Rejected', withdrawal });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const toggleBlockUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.isBlocked = !user.isBlocked;
+    await user.save();
+
+    await AuditLog.create({
+      action: user.isBlocked ? 'BLOCK_USER' : 'UNBLOCK_USER',
+      adminId: req.user._id,
+      details: { targetUser: user.userId }
+    });
+
+    res.json({ message: `User ${user.isBlocked ? 'blocked' : 'unblocked'} successfully`, user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAllWithdrawals = async (req, res, next) => {
+  try {
+    const withdrawals = await Withdrawal.find().populate('user', 'email fullName userId');
+    res.json(withdrawals);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAllKYCs = async (req, res, next) => {
+  try {
+    const kycs = await KYC.find().populate('user', 'email fullName userId');
+    res.json(kycs);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAllPackages = async (req, res, next) => {
+  try {
+    const packages = await Package.find();
+    res.json(packages);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updatePackage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const pkg = await Package.findByIdAndUpdate(id, req.body, { new: true });
+    res.json({ message: 'Package updated', pkg });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCronStatus = async (req, res, next) => {
+  try {
+    const states = await CronState.find();
+    res.json(states);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const triggerMiningCron = async (req, res, next) => {
+  try {
+    const { runMiningCronCycle } = require('../cron/miningCron');
+    const result = await runMiningCronCycle(true); // force = true
+    res.json({ message: 'Mining cron manually executed', result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAllTransactions = async (req, res, next) => {
+  try {
+    const txsPromise = Transaction.find().populate('user', 'email fullName userId');
+    const pkgsPromise = UserPackage.find().populate('user', 'email fullName userId').populate('packageId');
+    const referralsPromise = ReferralIncome.find().populate('user', 'email fullName userId');
+
+    const [txs, pkgs, referrals] = await Promise.all([txsPromise, pkgsPromise, referralsPromise]);
+
+    const investmentHistory = pkgs.map(pkg => ({
+      _id: pkg._id,
+      userId: pkg.user?.userId || 'N/A',
+      user: pkg.user,
+      type: 'investment',
+      description: `Purchased ${pkg.packageId?.name || 'Standard Package'}`,
+      amount: pkg.amount,
+      txHash: pkg.txHash || 'System',
+      status: pkg.status === 'cancelled' ? 'failed' : 'success',
+      createdAt: pkg.startDate || pkg.createdAt
+    }));
+
+    const referralHistory = referrals.map(ref => ({
+      _id: ref._id,
+      userId: ref.user?.userId || 'N/A',
+      user: ref.user,
+      type: 'referral',
+      description: `Direct Referral Commission from ${ref.fromUserId}`,
+      amount: ref.income,
+      txHash: 'System',
+      status: 'success',
+      createdAt: ref.createdAt
+    }));
+
+    const formattedTxs = txs.map(tx => {
+      const txObj = tx.toObject();
+      if (!txObj.description) {
+        if (txObj.type === 'deposit') txObj.description = 'Account Funding';
+        else if (txObj.type === 'withdrawal') txObj.description = 'Funds Withdrawal';
+        else if (txObj.type === 'bonus') txObj.description = 'Rank Achievement Bonus';
+        else if (txObj.type === 'salary') txObj.description = 'Leadership Salary';
+        else txObj.description = 'Platform Activity';
+      }
+      return {
+        ...txObj,
+        userId: txObj.user?.userId || txObj.userId || 'N/A'
+      };
+    });
+
+    const combinedHistory = [...formattedTxs, ...investmentHistory, ...referralHistory]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json(combinedHistory);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getAllUsers,
   approveKYC,
+  rejectKYC,
   approveWithdrawal,
+  rejectWithdrawal,
   createPackage,
   getTreasuryStats,
-  updateTreasurySettings
+  updateTreasurySettings,
+  toggleBlockUser,
+  getAllWithdrawals,
+  getAllKYCs,
+  getAllPackages,
+  updatePackage,
+  getCronStatus,
+  triggerMiningCron,
+  getAllTransactions
 };
 
