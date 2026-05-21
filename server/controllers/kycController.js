@@ -1,13 +1,27 @@
 const KYC = require('../models/KYC');
 
+// Helper: extract the storable URL from a multer file object.
+// - Cloudinary storage: file.path = full https://res.cloudinary.com/… URL
+// - Disk storage:       file.filename = just the filename → store as /uploads/<filename>
+const getFileUrl = (file) => {
+  if (!file) return null;
+  // Cloudinary gives a full URL in file.path
+  if (file.path && file.path.startsWith('http')) return file.path;
+  // Disk storage gives a local filename
+  if (file.filename) return `/uploads/${file.filename}`;
+  // Fallback
+  if (file.path) return file.path;
+  return null;
+};
+
 const uploadKYC = async (req, res, next) => {
   try {
     const { bankName, accountNumber, ifscCode } = req.body;
-    
-    const aadhaarFront = req.files && req.files['aadharFront'] ? `/uploads/${req.files['aadharFront'][0].filename}` : null;
-    const aadhaarBack = req.files && req.files['aadharBack'] ? `/uploads/${req.files['aadharBack'][0].filename}` : null;
-    const panCard = req.files && req.files['panFront'] ? `/uploads/${req.files['panFront'][0].filename}` : null;
-    const profilePic = req.files && req.files['profile'] ? `/uploads/${req.files['profile'][0].filename}` : null;
+
+    const aadhaarFront = getFileUrl(req.files?.['aadharFront']?.[0]);
+    const aadhaarBack  = getFileUrl(req.files?.['aadharBack']?.[0]);
+    const panCard      = getFileUrl(req.files?.['panFront']?.[0]);
+    const profilePic   = getFileUrl(req.files?.['profile']?.[0]);
 
     let kyc = await KYC.findOne({ user: req.user._id });
     if (kyc) {
@@ -22,10 +36,10 @@ const uploadKYC = async (req, res, next) => {
       panCard,
       bankName,
       accountNumber,
-      ifscCode
+      ifscCode,
     });
 
-    // Optionally update user's profile picture if one was uploaded
+    // Update user's profile picture if one was uploaded
     if (profilePic) {
       await require('../models/User').findByIdAndUpdate(req.user._id, { profilePic });
     }
