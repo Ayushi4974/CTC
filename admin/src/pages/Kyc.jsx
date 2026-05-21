@@ -3,17 +3,22 @@ import { UserCheck, ShieldAlert, FileText, Check, X, Search, Clock, CheckCircle2
 import api from '../api';
 import { toast } from 'react-toastify';
 
-const getImageUrl = (path) => {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+const getImageUrl = (filePath) => {
+  if (!filePath) return '';
+  // Already a full URL (Cloudinary or external)
+  if (filePath.startsWith('http')) return filePath;
+  // Local /uploads/ path — build absolute URL to avoid resolving relative to /admin/
+  const cleanPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
   const apiUrl = import.meta.env.VITE_API_URL;
   if (apiUrl) {
+    // e.g. VITE_API_URL = https://copytrade.world/api → strip /api
     const serverUrl = apiUrl.replace(/\/api$/, '');
     return `${serverUrl}${cleanPath}`;
   }
-  return cleanPath;
+  // Fallback: use current page origin (works when frontend & backend share same domain)
+  return `${window.location.origin}${cleanPath}`;
 };
+
 
 const STATUS_TABS = [
   { key: 'pending',  label: 'Pending',  icon: Clock,          color: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  activeBg: 'bg-amber-500/20'  },
