@@ -79,4 +79,63 @@ const verifyTransaction = async (txHash, expectedAmount, senderAddress) => {
   }
 };
 
-module.exports = { verifyTransaction };
+const verifyWithdrawalTransaction = async (txHash, expectedAmount, recipientAddress) => {
+  try {
+    if (process.env.NODE_ENV === 'development' && txHash.startsWith('mock_')) {
+      console.log('Skipping real Web3 verification for mock/dev withdrawal transaction:', txHash);
+      return { 
+        status: true, 
+        message: 'Mock withdrawal transaction verified',
+        chainId: '56',
+        tokenContract: USDT_CONTRACT,
+        blockNumber: 0,
+        confirmationCount: 5
+      };
+    }
+
+    const receipt = await web3.eth.getTransactionReceipt(txHash);
+    if (!receipt) return { status: false, message: 'Transaction not found. Please wait for a few seconds.' };
+    if (!receipt.status) return { status: false, message: 'Transaction failed on blockchain. Status is not SUCCESS.' };
+
+    const currentBlock = await web3.eth.getBlockNumber();
+    const confirmations = Number(currentBlock) - Number(receipt.blockNumber);
+    if (confirmations < 1) {
+      return { status: false, message: `Transaction unconfirmed. Waiting for confirmation. Currently ${confirmations}/1.` };
+    }
+
+    if (receipt.to.toLowerCase() !== USDT_CONTRACT) {
+      return { status: false, message: 'Invalid token contract used for withdrawal payout' };
+    }
+
+    const transferEventSignature = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+    const log = receipt.logs.find(l => l.topics[0] === transferEventSignature);
+    if (!log) return { status: false, message: 'No transfer event found in transaction logs' };
+
+    const recipient = "0x" + log.topics[2].slice(26).toLowerCase();
+    if (recipient !== recipientAddress.toLowerCase()) {
+      return { status: false, message: `Payout recipient wallet address mismatch. Expected: ${recipientAddress.toLowerCase()}, Found: ${recipient}` };
+    }
+
+    const amountHex = log.data;
+    const amountInWei = web3.utils.toBigInt(amountHex);
+    const amountInUSDT = Number(amountInWei / 10n ** 18n);
+
+    if (Math.abs(amountInUSDT - expectedAmount) > 0.01) {
+      return { status: false, message: `Payout amount mismatch. Expected: ${expectedAmount}, Found: ${amountInUSDT}` };
+    }
+
+    return { 
+      status: true, 
+      message: 'Withdrawal transaction verified successfully',
+      chainId: '56',
+      tokenContract: USDT_CONTRACT,
+      blockNumber: Number(receipt.blockNumber),
+      confirmationCount: confirmations
+    };
+  } catch (error) {
+    console.error('Blockchain verification error:', error);
+    return { status: false, message: 'Error verifying withdrawal transaction on blockchain' };
+  }
+};
+
+module.exports = { verifyTransaction, verifyWithdrawalTransaction };

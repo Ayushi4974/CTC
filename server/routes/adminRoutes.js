@@ -13,10 +13,12 @@ const {
   getAllWithdrawals,
   getAllKYCs,
   getAllPackages,
+  getUserPackages,
   updatePackage,
   getCronStatus,
   triggerMiningCron,
-  getAllTransactions
+  getAllTransactions,
+  updateUser
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
@@ -24,6 +26,7 @@ const router = express.Router();
 
 router.route('/dashboard').get(protect, admin, getDashboardStats);
 router.route('/users').get(protect, admin, getAllUsers);
+router.route('/user/:id').put(protect, admin, updateUser);
 router.route('/user/:id/block').put(protect, admin, toggleBlockUser);
 
 // KYC Routes
@@ -38,6 +41,7 @@ router.route('/withdrawal/:id/reject').put(protect, admin, rejectWithdrawal);
 
 // Package Control Routes
 router.route('/packages').get(protect, admin, getAllPackages);
+router.route('/user-packages').get(protect, admin, getUserPackages);
 router.route('/package/create').post(protect, admin, createPackage);
 router.route('/package/:id').put(protect, admin, updatePackage);
 

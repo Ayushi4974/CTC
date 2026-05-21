@@ -15,7 +15,7 @@ const systemSettingsSchema = new mongoose.Schema({
   maxDailyWithdrawalAmount: { type: Number, default: 10000 },
   withdrawalCooldownHours: { type: Number, default: 24 },
   treasuryPercentageWithdrawalLimit: { type: Number, default: 5 }, // Max 5% of reserves per day
-  manualWithdrawalApproval: { type: Boolean, default: false }, // If true, all withdrawals require admin approval
+  manualWithdrawalApproval: { type: Boolean, default: true }, // If true, all withdrawals require admin approval
 
   // Treasury Health
   treasuryReserves: { type: Number, default: 0 }, // Total USDT in hot/cold wallets

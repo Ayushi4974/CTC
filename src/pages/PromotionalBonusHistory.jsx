@@ -1,11 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api';
 import { motion } from 'framer-motion';
-import { Award, DollarSign, Calendar, Clock, Trophy } from 'lucide-react';
+import { Award, DollarSign, Calendar, Clock, Trophy, Users, ShieldAlert } from 'lucide-react';
 
 const PromotionalBonusHistory = () => {
   const [bonuses, setBonuses] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const promoRules = [
+    { level: 'L1', team: '5 DIRECT', salary: '$30', margin: '0.50%', bonus: '$100' },
+    { level: 'L2', team: '2 DIRECT L1 / 25 TEAM', salary: '$150', margin: '1.00%', bonus: '$300' },
+    { level: 'L3', team: '3 DIRECT L1 / 125 TEAM', salary: '$500', margin: '2.00%', bonus: '$800' },
+    { level: 'L4', team: '4 DIRECT L1 / 500 TEAM', salary: '$1200', margin: '2.50%', bonus: '$2000' },
+    { level: 'L5', team: '5 DIRECT L1 / 1000 TEAM', salary: '$2400', margin: '3.00%', bonus: '$5000' },
+    { level: 'L6', team: '6 DIRECT L1 / 2000 TEAM', salary: '$5000', margin: '3.50%', bonus: '$12000' },
+    { level: 'L7', team: '7 DIRECT L1 / 5000 TEAM', salary: '$10000', margin: '4.00%', bonus: '$25000' },
+    { level: 'L8', team: '3 DIRECT L7 / 20,000 TEAM', salary: '$60000', margin: '4.50%', bonus: '$100000' },
+    { level: 'L9', team: '4 DIRECT L7 / 50,000 TEAM', salary: '$100000', margin: '5.00%', bonus: '$200000' },
+    { level: 'L10', team: '3 DIRECT L8 / 1,000,000 TEAM', salary: '$300000', margin: '5.50%', bonus: '$500000' },
+    { level: 'L11', team: '4 DIRECT L8 / 2,000,000 TEAM', salary: '$600000', margin: '6.00%', bonus: '$1000000' },
+    { level: 'L12', team: '5 DIRECT L9 / 3,000,000 TEAM', salary: '$1000000', margin: '6.50%', bonus: '$2000000' },
+  ];
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -69,6 +84,66 @@ const PromotionalBonusHistory = () => {
         >
           Track your rank achievement rewards and bi-monthly salary payouts.
         </motion.p>
+      </div>
+
+      {/* Promotional Bonus Structure Table */}
+      <div className="mb-10 bg-[#0a0a0a] rounded-3xl border border-gray-800 p-6 md:p-8 relative overflow-hidden shadow-[0_0_40px_rgba(160,32,240,0.1)]">
+        <div className="absolute top-0 left-0 w-64 h-64 bg-[#FF00FF] rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#A020F0] rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
+
+        <div className="relative z-10">
+          <h2 className="text-2xl font-bold text-white mb-6 text-center md:text-left flex items-center gap-2">
+            <Trophy className="text-[#FF00FF]" size={24} />
+            Promotional Bonus Structure
+          </h2>
+          
+          <div className="overflow-x-auto border border-gray-800 rounded-2xl bg-gray-900/20 backdrop-blur-md">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="border-b border-gray-800 bg-gray-900/50 text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4">Position / Level</th>
+                  <th className="px-6 py-4">Team</th>
+                  <th className="px-6 py-4">Salary Upto</th>
+                  <th className="px-6 py-4">Margin Bonus</th>
+                  <th className="px-6 py-4">Bonus</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800/60 text-xs font-semibold text-gray-300">
+                {promoRules.map((rule, idx) => (
+                  <tr key={idx} className="hover:bg-[#161B2A]/20 transition-colors">
+                    <td className="px-6 py-3.5 text-white font-bold">{rule.level}</td>
+                    <td className="px-6 py-3.5 text-gray-400 font-mono">{rule.team}</td>
+                    <td className="px-6 py-3.5 text-[#A020F0] font-bold">{rule.salary}</td>
+                    <td className="px-6 py-3.5 text-[#00C6FF] font-bold">{rule.margin}</td>
+                    <td className="px-6 py-3.5 text-emerald-400 font-bold">{rule.bonus}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer Notes */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pt-6 border-t border-gray-800">
+            <div className="flex items-center gap-3 bg-[#161B2A]/20 p-4 rounded-xl border border-gray-800/40">
+              <Calendar className="text-[#FF00FF] shrink-0" size={20} />
+              <p className="text-[11px] text-gray-400 leading-normal">
+                Salary is paid 2 times per month, on the 15th & month end.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 bg-[#161B2A]/20 p-4 rounded-xl border border-gray-800/40">
+              <Users className="text-[#00C6FF] shrink-0" size={20} />
+              <p className="text-[11px] text-gray-400 leading-normal">
+                Team count 30% strong leg - 70% from the other legs.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 bg-[#161B2A]/20 p-4 rounded-xl border border-gray-800/40">
+              <ShieldAlert className="text-emerald-400 shrink-0" size={20} />
+              <p className="text-[11px] text-gray-400 leading-normal">
+                ONLY APPLY ON 300$ AND ABOVE ID'S.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* History List */}

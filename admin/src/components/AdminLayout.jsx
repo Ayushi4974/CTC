@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Box, CreditCard, History, 
   ShieldAlert, UserCheck, Network, Cpu, Settings, 
-  Terminal, ShieldCheck, LogOut, Menu, X, Clock
+  Terminal, ShieldCheck, LogOut, Menu, X, Clock, Layers
 } from 'lucide-react';
 
 const AdminLayout = () => {
@@ -22,6 +22,7 @@ const AdminLayout = () => {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'User Management', path: '/users', icon: Users },
     { name: 'Package Control', path: '/packages', icon: Box },
+    { name: 'Package History', path: '/package-history', icon: Layers },
     { name: 'Withdrawals', path: '/withdrawals', icon: CreditCard },
     { name: 'KYC Verification', path: '/kyc', icon: UserCheck },
     { name: 'Referral & Level', path: '/referrals', icon: Network },

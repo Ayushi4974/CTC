@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Network, Search, User, ChevronRight, Zap } from 'lucide-react';
+import { Network, Search, User, ChevronRight, Zap, ArrowLeft } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
 
@@ -9,6 +9,7 @@ const Referrals = () => {
   const [searchId, setSearchId] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [directs, setDirects] = useState([]);
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -37,6 +38,7 @@ const Referrals = () => {
     if (found) {
       setSelectedUser(found);
       setDirects(users.filter(u => u.sponsorId === found.userId));
+      setHistory([]);
       setSearchId('');
     } else {
       toast.error('No user found with that ID');
@@ -44,8 +46,20 @@ const Referrals = () => {
   };
 
   const handleSelectUser = (user) => {
+    if (selectedUser) {
+      setHistory(prev => [...prev, selectedUser]);
+    }
     setSelectedUser(user);
     setDirects(users.filter(u => u.sponsorId === user.userId));
+  };
+
+  const handleGoBack = () => {
+    if (history.length === 0) return;
+    const newHistory = [...history];
+    const prevUser = newHistory.pop();
+    setHistory(newHistory);
+    setSelectedUser(prevUser);
+    setDirects(users.filter(u => u.sponsorId === prevUser.userId));
   };
 
   return (
@@ -64,7 +78,7 @@ const Referrals = () => {
             onChange={(e) => setSearchId(e.target.value)}
             className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0]"
           />
-          <button 
+          <button
             type="submit"
             className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-gradient-to-r from-[#A020F0] to-[#6A0DAD] hover:from-[#B026FF] text-white text-xs font-bold rounded-lg uppercase transition-all"
           >
@@ -81,6 +95,14 @@ const Referrals = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Selected User details */}
           <div className="lg:col-span-1 bg-[#0B0F1A] border border-gray-800 rounded-3xl p-6 space-y-6">
+            {history.length > 0 && (
+              <button
+                onClick={handleGoBack}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#FF00FF] font-bold transition-all pb-2 border-b border-gray-800/40 w-full"
+              >
+                <ArrowLeft size={14} /> Back to {history[history.length - 1].fullName}
+              </button>
+            )}
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-[#A020F0]/10 border border-[#A020F0]/30 flex items-center justify-center text-[#FF00FF] font-bold text-lg uppercase">
                 {selectedUser.fullName[0]}

@@ -8,6 +8,15 @@ const Transactions = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all');
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Reset page when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterType]);
 
   const fetchTxs = async () => {
     try {
@@ -63,6 +72,15 @@ const Transactions = () => {
 
     return matchesSearch && matchesType;
   }) : [];
+
+  // Pagination calculation
+  const totalItems = filteredTxs.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  
+  const currentTxs = filteredTxs.slice(startIndex, endIndex);
 
   return (
     <div className="space-y-6">
@@ -134,7 +152,7 @@ const Transactions = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800 text-sm text-gray-300">
-                {filteredTxs.map((t) => (
+                {currentTxs.map((t) => (
                   <tr key={t._id} className="hover:bg-[#161B2A]/20 transition-colors">
                     <td className="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">
                       {new Date(t.createdAt).toLocaleString()}
@@ -165,8 +183,91 @@ const Transactions = () => {
                     </td>
                   </tr>
                 ))}
+                {currentTxs.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-10 text-center text-gray-500 text-sm">
+                      No transactions matched the active filters.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-6 border-t border-gray-800 bg-[#161B2A]/10">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span>Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-[#161B2A] border border-gray-800 rounded-lg px-2 py-1 text-gray-300 focus:outline-none focus:border-[#A020F0]"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span>entries</span>
+              <span className="mx-2">|</span>
+              <span>Showing {totalItems === 0 ? 0 : startIndex + 1} to {endIndex} of {totalItems} entries</span>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`px-3 py-1.5 rounded-lg border border-gray-850 text-xs font-bold transition-all duration-300 ${
+                  currentPage === 1 
+                    ? 'text-gray-600 bg-gray-900/10 cursor-not-allowed border-transparent' 
+                    : 'text-gray-300 hover:text-white hover:border-gray-700 bg-[#161B2A]/30 hover:bg-[#161B2A]/60'
+                }`}
+              >
+                Previous
+              </button>
+              
+              {/* Page numbers */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => {
+                  return p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1;
+                })
+                .map((p, idx, arr) => {
+                  const isPageActive = currentPage === p;
+                  const prevPage = arr[idx - 1];
+                  const showEllipsis = prevPage && p - prevPage > 1;
+                  
+                  return (
+                    <React.Fragment key={p}>
+                      {showEllipsis && <span className="px-2 text-gray-600 text-xs">...</span>}
+                      <button
+                        onClick={() => setCurrentPage(p)}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all duration-300 ${
+                          isPageActive 
+                            ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_10px_rgba(160,32,240,0.3)]' 
+                            : 'text-gray-400 hover:text-white hover:bg-[#161B2A]/50 border border-transparent'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+                
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className={`px-3 py-1.5 rounded-lg border border-gray-855 text-xs font-bold transition-all duration-300 ${
+                  currentPage === totalPages || totalPages === 0
+                    ? 'text-gray-600 bg-gray-900/10 cursor-not-allowed border-transparent' 
+                    : 'text-gray-300 hover:text-white hover:border-gray-700 bg-[#161B2A]/30 hover:bg-[#161B2A]/60'
+                }`}
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       )}

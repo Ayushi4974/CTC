@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import Cron from './pages/Cron';
 import Fraud from './pages/Fraud';
 import Transactions from './pages/Transactions';
+import PackageHistory from './pages/PackageHistory';
 import Login from './pages/Login';
 
 const ProtectedRoute = ({ children }) => {
@@ -24,7 +25,7 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/admin">
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
@@ -32,6 +33,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users" element={<Users />} />
           <Route path="packages" element={<Packages />} />
+          <Route path="package-history" element={<PackageHistory />} />
           <Route path="withdrawals" element={<Withdrawals />} />
           <Route path="kyc" element={<Kyc />} />
           <Route path="referrals" element={<Referrals />} />

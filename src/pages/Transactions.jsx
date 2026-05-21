@@ -1,22 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, ArrowUpRight, ArrowDownRight, Package, Users, Gift, 
-  CheckCircle2, Clock, XCircle, Copy, Check, Filter
+import {
+  Search, ArrowUpRight, ArrowDownRight, Package, Users, Gift,
+  CheckCircle2, Clock, XCircle, Copy, Check, Filter, Layers
 } from 'lucide-react';
 import api from '../api';
 import { useEffect } from 'react';
 
-const mockTransactions = [
-  { id: 'TXN-98234', type: 'Deposit', desc: 'Account Funding', amount: '+$ 5,000.00', isPositive: true, date: '2026-05-12 14:30', status: 'Completed', hash: '0x3f8a...9a2c' },
-  { id: 'TXN-98233', type: 'Investment', desc: 'Purchased Package 3', amount: '-$ 10,000.00', isPositive: false, date: '2026-05-11 09:15', status: 'Completed', hash: '0x7c2b...1e4d' },
-  { id: 'TXN-98232', type: 'Withdrawal', desc: 'Bank Transfer', amount: '-$ 250.00', isPositive: false, date: '2026-05-10 18:45', status: 'Pending', hash: '0x1a9f...8b3e' },
-  { id: 'TXN-98231', type: 'Referral', desc: 'Level 1 Commission', amount: '+$ 1,250.00', isPositive: true, date: '2026-05-09 11:20', status: 'Completed', hash: 'System' },
-  { id: 'TXN-98230', type: 'Bonus', desc: 'Fastrack Reward', amount: '+$ 500.00', isPositive: true, date: '2026-05-08 16:00', status: 'Completed', hash: 'System' },
-  { id: 'TXN-98229', type: 'Withdrawal', desc: 'USDT (BEP-20)', amount: '-$ 1,000.00', isPositive: false, date: '2026-05-05 10:10', status: 'Failed', hash: '0x9d4e...2c1f' },
-];
 
-const filters = ['All', 'Deposit', 'Withdrawal', 'Investment', 'Referral', 'Bonus'];
+const filters = ['All', 'Deposit', 'Withdrawal', 'Investment', 'Referral', 'Level Income', 'Bonus'];
 
 const Transactions = () => {
   const [activeFilter, setActiveFilter] = useState('All');
@@ -49,30 +41,32 @@ const Transactions = () => {
   const filteredTransactions = transactions.filter(txn => {
     const txnTypeMatch = txn.type ? txn.type.toLowerCase() : '';
     const activeFilterMatch = activeFilter.toLowerCase();
-    
+
     // Map backend transaction types to UI tabs if necessary
     // Because backend uses 'bonus'/'salary', but UI tab is 'Bonus'
     // 'investment', 'referral' might not exist in the Transaction collection, 
     // but this ensures at least Deposit, Withdrawal, and Bonus work perfectly.
-    const matchesFilter = activeFilter === 'All' || 
-                          txnTypeMatch === activeFilterMatch || 
-                          (activeFilter === 'Bonus' && (txnTypeMatch === 'bonus' || txnTypeMatch === 'salary'));
+    const matchesFilter = activeFilter === 'All' ||
+      txnTypeMatch === activeFilterMatch ||
+      (activeFilter === 'Bonus' && (txnTypeMatch === 'bonus' || txnTypeMatch === 'salary'));
 
-    const matchesSearch = 
-      (txn._id && txn._id.toLowerCase().includes(searchQuery.toLowerCase())) || 
+    const matchesSearch =
+      (txn._id && txn._id.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (txn.description && txn.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (txn.txHash && txn.txHash.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     return matchesFilter && matchesSearch;
   });
 
   const getTypeIcon = (type) => {
-    switch(type) {
-      case 'Deposit': return <ArrowDownRight size={16} className="text-[#00FF99]" />;
-      case 'Withdrawal': return <ArrowUpRight size={16} className="text-[#FF00FF]" />;
-      case 'Investment': return <Package size={16} className="text-[#00C6FF]" />;
-      case 'Referral': return <Users size={16} className="text-[#A020F0]" />;
-      case 'Bonus': return <Gift size={16} className="text-yellow-500" />;
+    const lowerType = type ? type.toLowerCase() : '';
+    switch (lowerType) {
+      case 'deposit': return <ArrowDownRight size={16} className="text-[#00FF99]" />;
+      case 'withdrawal': return <ArrowUpRight size={16} className="text-[#FF00FF]" />;
+      case 'investment': return <Package size={16} className="text-[#00C6FF]" />;
+      case 'referral': return <Users size={16} className="text-[#A020F0]" />;
+      case 'level income': return <Layers size={16} className="text-amber-500" />;
+      case 'bonus': return <Gift size={16} className="text-yellow-500" />;
       default: return <ArrowUpRight size={16} />;
     }
   };
@@ -91,17 +85,17 @@ const Transactions = () => {
 
   return (
     <div className="max-w-7xl mx-auto pb-12 pt-4 px-4 sm:px-6 lg:px-8">
-      
+
       {/* Header */}
       <div className="mb-8">
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-3xl font-extrabold text-white mb-2"
         >
           Transaction History
         </motion.h1>
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
@@ -111,7 +105,7 @@ const Transactions = () => {
         </motion.p>
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -119,18 +113,17 @@ const Transactions = () => {
       >
         {/* Filter & Search Bar */}
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-[#161B2A]/50 p-2 rounded-2xl border border-gray-800/50">
-          
+
           {/* Filter Pills */}
           <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
             {filters.map((filter) => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${
-                  activeFilter === filter 
-                    ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_15px_rgba(160,32,240,0.4)]' 
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${activeFilter === filter
+                    ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_15px_rgba(160,32,240,0.4)]'
                     : 'bg-[#0B0F1A] text-gray-400 border border-gray-800 hover:border-gray-600 hover:text-white'
-                }`}
+                  }`}
               >
                 {filter}
               </button>
@@ -142,9 +135,9 @@ const Transactions = () => {
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
               <Search size={16} />
             </span>
-            <input 
-              type="text" 
-              placeholder="Search transactions..." 
+            <input
+              type="text"
+              placeholder="Search transactions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#0B0F1A] border border-gray-800 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#A020F0] focus:ring-1 focus:ring-[#A020F0] transition-all"
@@ -173,7 +166,7 @@ const Transactions = () => {
                   </tr>
                 ) : filteredTransactions.length > 0 ? (
                   filteredTransactions.map((txn, idx) => (
-                    <motion.tr 
+                    <motion.tr
                       key={txn._id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -225,7 +218,7 @@ const Transactions = () => {
                             {txn.txHash || 'System'}
                           </span>
                           {txn.txHash && txn.txHash !== 'System' && (
-                            <button 
+                            <button
                               onClick={() => handleCopy(txn.txHash)}
                               className="text-gray-500 hover:text-[#00C6FF] transition-colors p-1"
                               title="Copy Hash"
@@ -240,7 +233,7 @@ const Transactions = () => {
                 ) : (
                   <tr>
                     <td colSpan="6">
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="py-20 flex flex-col items-center justify-center text-center"

@@ -7,6 +7,40 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProfile } from '../redux/slices/authSlice';
 import { useEffect } from 'react';
+import api from '../api';
+import { toast } from 'react-toastify';
+
+const InputField = ({ label, value, icon: Icon, fullWidth = false, colorClass = "text-[#A020F0]", editable = false, type = "text", name, onChange }) => (
+  <div className={`group relative bg-[#161B2A]/40 backdrop-blur-[12px] rounded-xl p-4 transition-all duration-300 ${!editable ? 'hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(160,32,240,0.1)]' : ''} overflow-hidden ${fullWidth ? 'col-span-1 md:col-span-2' : 'col-span-1'}`}>
+    <div className="absolute inset-0 rounded-xl border border-transparent bg-gradient-to-br from-[#A020F0]/30 via-transparent to-transparent pointer-events-none" style={{ WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude', padding: '1px' }}></div>
+    <div className="flex flex-col relative z-10 w-full">
+      <label className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+        <Icon size={12} className={`${colorClass} drop-shadow-[0_0_5px_currentColor]`} /> {label}
+      </label>
+      {editable ? (
+        type === "textarea" ? (
+          <textarea
+            name={name}
+            value={value}
+            onChange={onChange}
+            rows={2}
+            className="bg-[#0B0F1A]/60 border border-gray-800 focus:border-[#A020F0] focus:ring-1 focus:ring-[#A020F0] rounded-lg px-3 py-2 text-sm text-white focus:outline-none w-full transition-all duration-300 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]"
+          />
+        ) : (
+          <input
+            type={type}
+            name={name}
+            value={value}
+            onChange={onChange}
+            className="bg-[#0B0F1A]/60 border border-gray-800 focus:border-[#A020F0] focus:ring-1 focus:ring-[#A020F0] rounded-lg px-3 py-2 text-sm text-white focus:outline-none w-full transition-all duration-300 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]"
+          />
+        )
+      ) : (
+        <div className="text-sm md:text-base font-bold text-white tracking-wide break-all w-full">{value}</div>
+      )}
+    </div>
+  </div>
+);
 
 const Profile = () => {
   const [copied, setCopied] = useState(false);
@@ -19,6 +53,99 @@ const Profile = () => {
   }, [dispatch]);
 
   const currentUser = profile || user;
+
+  // Profile Edit State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    fullName: '',
+    email: '',
+    mobile: '',
+    address: ''
+  });
+
+  // Password Change State
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      setEditData({
+        fullName: currentUser.fullName || '',
+        email: currentUser.email || '',
+        mobile: currentUser.mobile || '',
+        address: currentUser.address || ''
+      });
+    }
+  }, [currentUser]);
+
+  const handleEditChange = (e) => {
+    setEditData({
+      ...editData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editData.fullName || !editData.email) {
+      toast.error('Name and Email are required');
+      return;
+    }
+    try {
+      const response = await api.put('/user/profile', editData);
+      toast.success(response.data.message || 'Profile updated successfully!');
+      dispatch(fetchProfile());
+      setIsEditing(false);
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Failed to update profile');
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswordData({
+      ...passwordData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSavePassword = async (e) => {
+    e.preventDefault();
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast.error('All fields are required');
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      setIsSavingPassword(true);
+      await api.put('/user/change-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+      toast.success('Password updated successfully!');
+      setShowPasswordModal(false);
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Failed to change password');
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
 
   const profileData = {
     initial: currentUser?.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'U',
@@ -50,13 +177,43 @@ const Profile = () => {
           Profile
         </motion.h1>
         
-        <motion.button 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="w-full md:w-auto bg-gradient-to-r from-[#00C6FF] to-[#A020F0] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(0,198,255,0.4)] hover:shadow-[0_0_25px_rgba(160,32,240,0.6)] transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5"
-        >
-          <Edit3 size={16} /> Edit Profile
-        </motion.button>
+        {isEditing ? (
+          <div className="flex gap-3 w-full md:w-auto">
+            <motion.button 
+              onClick={handleSaveProfile}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex-1 md:flex-none bg-gradient-to-r from-[#00FF99] to-[#00C6FF] text-black px-5 py-2.5 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(0,255,153,0.4)] hover:shadow-[0_0_25px_rgba(0,198,255,0.6)] transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5"
+            >
+              Save Changes
+            </motion.button>
+            <motion.button 
+              onClick={() => {
+                setIsEditing(false);
+                setEditData({
+                  fullName: currentUser?.fullName || '',
+                  email: currentUser?.email || '',
+                  mobile: currentUser?.mobile || '',
+                  address: currentUser?.address || ''
+                });
+              }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex-1 md:flex-none bg-gray-800 text-white border border-gray-700 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-700 transition-all flex items-center justify-center gap-2"
+            >
+              Cancel
+            </motion.button>
+          </div>
+        ) : (
+          <motion.button 
+            onClick={() => setIsEditing(true)}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="w-full md:w-auto bg-gradient-to-r from-[#00C6FF] to-[#A020F0] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(0,198,255,0.4)] hover:shadow-[0_0_25px_rgba(160,32,240,0.6)] transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5"
+          >
+            <Edit3 size={16} /> Edit Profile
+          </motion.button>
+        )}
       </div>
 
       <motion.div 
@@ -98,43 +255,64 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Re-add InputField definition since it was removed */}
-        {(() => {
-          const InputField = ({ label, value, icon: Icon, fullWidth = false, colorClass = "text-[#A020F0]" }) => (
-            <div className={`group relative bg-[#161B2A]/40 backdrop-blur-[12px] rounded-xl p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(160,32,240,0.1)] overflow-hidden ${fullWidth ? 'col-span-1 md:col-span-2' : 'col-span-1'}`}>
-              <div className="absolute inset-0 rounded-xl border border-transparent bg-gradient-to-br from-[#A020F0]/30 via-transparent to-transparent pointer-events-none" style={{ WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude', padding: '1px' }}></div>
-              <div className="flex flex-col relative z-10 w-full">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">
-                  <Icon size={12} className={`${colorClass} drop-shadow-[0_0_5px_currentColor]`} /> {label}
-                </label>
-                <div className="text-sm md:text-base font-bold text-white tracking-wide break-all w-full">{value}</div>
-              </div>
-            </div>
-          );
-          return (
-            <>
-              {/* Section Divider */}
-              <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-gray-700 to-transparent my-8"></div>
+        {/* Section Divider */}
+        <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-gray-700 to-transparent my-8"></div>
 
-              {/* Personal Information */}
-              <div className="mb-10 relative">
-                {/* Subtle background aura */}
-                <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-[#00C6FF]/5 rounded-full blur-3xl -translate-y-1/2 pointer-events-none"></div>
+        {/* Personal Information */}
+        <div className="mb-10 relative">
+          {/* Subtle background aura */}
+          <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-[#00C6FF]/5 rounded-full blur-3xl -translate-y-1/2 pointer-events-none"></div>
 
-                <h3 className="text-[#00C6FF] font-bold text-sm mb-6 drop-shadow-[0_0_5px_rgba(0,198,255,0.4)] flex items-center gap-2 relative z-10 uppercase tracking-widest">
-                  <User size={16} /> Personal Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
-                  <InputField label="Full Name" value={profileData.name} icon={User} colorClass="text-[#00C6FF]" />
-                  <InputField label="Email" value={profileData.email} icon={Mail} colorClass="text-[#A020F0]" />
-                  <InputField label="Mobile" value={profileData.mobile} icon={Phone} colorClass="text-[#FF00FF]" />
-                  <InputField label="Address" value={profileData.address} icon={MapPin} colorClass="text-[#00FF99]" fullWidth />
-                  <InputField label="Member Since" value={profileData.memberSince} icon={Calendar} colorClass="text-yellow-500" />
-                </div>
-              </div>
-            </>
-          );
-        })()}
+          <h3 className="text-[#00C6FF] font-bold text-sm mb-6 drop-shadow-[0_0_5px_rgba(0,198,255,0.4)] flex items-center gap-2 relative z-10 uppercase tracking-widest">
+            <User size={16} /> Personal Information
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+            <InputField 
+              label="Full Name" 
+              value={isEditing ? editData.fullName : profileData.name} 
+              icon={User} 
+              colorClass="text-[#00C6FF]" 
+              editable={isEditing}
+              name="fullName"
+              onChange={handleEditChange}
+            />
+            <InputField 
+              label="Email" 
+              value={isEditing ? editData.email : profileData.email} 
+              icon={Mail} 
+              colorClass="text-[#A020F0]" 
+              editable={isEditing}
+              name="email"
+              onChange={handleEditChange}
+            />
+            <InputField 
+              label="Mobile" 
+              value={isEditing ? editData.mobile : profileData.mobile} 
+              icon={Phone} 
+              colorClass="text-[#FF00FF]" 
+              editable={isEditing}
+              name="mobile"
+              onChange={handleEditChange}
+            />
+            <InputField 
+              label="Address" 
+              value={isEditing ? editData.address : profileData.address} 
+              icon={MapPin} 
+              colorClass="text-[#00FF99]" 
+              fullWidth 
+              editable={isEditing}
+              type="textarea"
+              name="address"
+              onChange={handleEditChange}
+            />
+            <InputField 
+              label="Member Since" 
+              value={profileData.memberSince} 
+              icon={Calendar} 
+              colorClass="text-yellow-500" 
+            />
+          </div>
+        </div>
 
         {/* Section Divider */}
         <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#A020F0]/30 to-transparent my-8 shadow-[0_0_15px_rgba(160,32,240,0.3)]"></div>
@@ -200,7 +378,10 @@ const Profile = () => {
         {/* Security Actions */}
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 relative z-10 w-full">
           
-          <button className="flex-1 group bg-gradient-to-r from-[#A020F0] to-[#00C6FF] text-white py-3.5 sm:py-4 rounded-xl font-bold shadow-[0_0_15px_rgba(160,32,240,0.3)] hover:shadow-[0_0_30px_rgba(0,198,255,0.5)] hover:-translate-y-1 transition-all flex items-center justify-center gap-3 relative overflow-hidden">
+          <button 
+            onClick={() => setShowPasswordModal(true)}
+            className="flex-1 group bg-gradient-to-r from-[#A020F0] to-[#00C6FF] text-white py-3.5 sm:py-4 rounded-xl font-bold shadow-[0_0_15px_rgba(160,32,240,0.3)] hover:shadow-[0_0_30px_rgba(0,198,255,0.5)] hover:-translate-y-1 transition-all flex items-center justify-center gap-3 relative overflow-hidden"
+          >
             <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <KeyRound size={20} className="relative z-10 drop-shadow-md" /> 
             <span className="relative z-10 text-sm sm:text-base">Change Password</span>
@@ -220,6 +401,90 @@ const Profile = () => {
         </div>
 
       </motion.div>
+
+      {/* Change Password Modal */}
+      <AnimatePresence>
+        {showPasswordModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-[#0B0F1A] border border-gray-800/80 rounded-3xl p-6 md:p-8 shadow-[0_20px_50px_rgba(160,32,240,0.2)] overflow-hidden"
+            >
+              {/* Decorative aura */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#A020F0]/10 rounded-full blur-3xl pointer-events-none"></div>
+              
+              <h3 className="text-xl font-extrabold text-white mb-6 flex items-center gap-2">
+                <KeyRound size={20} className="text-[#A020F0]" /> Change Password
+              </h3>
+
+              <form onSubmit={handleSavePassword} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Current Password</label>
+                  <input
+                    type="password"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    className="bg-[#161B2A]/60 border border-gray-800 focus:border-[#A020F0] focus:ring-1 focus:ring-[#A020F0] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none w-full transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">New Password</label>
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    className="bg-[#161B2A]/60 border border-gray-800 focus:border-[#A020F0] focus:ring-1 focus:ring-[#A020F0] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none w-full transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Confirm New Password</label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    className="bg-[#161B2A]/60 border border-gray-800 focus:border-[#A020F0] focus:ring-1 focus:ring-[#A020F0] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none w-full transition-all"
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="submit"
+                    disabled={isSavingPassword}
+                    className="flex-1 bg-gradient-to-r from-[#A020F0] to-[#00C6FF] text-white py-2.5 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(160,32,240,0.3)] hover:shadow-[0_0_20px_rgba(0,198,255,0.4)] transition-all disabled:opacity-50"
+                  >
+                    {isSavingPassword ? 'Updating...' : 'Update Password'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                    }}
+                    className="flex-1 bg-gray-800 text-white border border-gray-700 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-700 transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

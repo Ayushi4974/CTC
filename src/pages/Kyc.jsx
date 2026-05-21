@@ -207,13 +207,13 @@ const Kyc = () => {
       {/* Stepper */}
       <div className="mb-8 md:mb-12 relative px-2 md:px-12">
         {/* Progress Lines */}
-        <div className="absolute top-5 md:top-7 left-0 right-0 px-2 md:px-12 z-0 flex items-center justify-center">
-           <div className="w-[calc(100%-2rem)] md:w-[calc(100%-3.5rem)] h-[2px] bg-gray-800 relative">
-             <div 
-               className="h-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] transition-all duration-700 ease-in-out"
-               style={{ width: `${Math.min(((currentStep - 1) / 3) * 100, 100)}%` }}
-             />
-           </div>
+        <div className="absolute top-5 md:top-7 left-[28px] right-[28px] md:left-[76px] md:right-[76px] z-0 flex items-center">
+          <div className="w-full h-[3px] bg-gray-800/60 rounded-full relative">
+            <div 
+              className="h-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] rounded-full transition-all duration-700 ease-in-out shadow-[0_0_12px_rgba(160,32,240,0.8)]"
+              style={{ width: `${Math.min(((currentStep - 1) / 3) * 100, 100)}%` }}
+            />
+          </div>
         </div>
 
         <div className="flex justify-between items-start relative z-10">
@@ -221,24 +221,35 @@ const Kyc = () => {
             const isActive = currentStep === step.id;
             const isCompleted = currentStep > step.id;
             const Icon = step.icon;
+            const isClickable = step.id < currentStep;
 
             return (
-              <div key={step.id} className="flex flex-col items-center gap-2 md:gap-3">
+              <button 
+                key={step.id} 
+                onClick={isClickable ? () => setCurrentStep(step.id) : undefined}
+                disabled={!isClickable}
+                className="flex flex-col items-center gap-2 md:gap-3 focus:outline-none group cursor-default disabled:cursor-default"
+              >
                 <div 
                   className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-300 relative ${
                     isActive 
-                      ? 'bg-[#161B2A] border-2 border-[#A020F0] text-[#FF00FF] shadow-[0_0_20px_rgba(160,32,240,0.4)] scale-110' 
+                      ? 'bg-[#0E1322] border-2 border-[#FF00FF] text-[#FF00FF] shadow-[0_0_25px_rgba(255,0,255,0.5)] scale-110 ring-4 ring-[#A020F0]/10' 
                       : isCompleted
-                        ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white'
-                        : 'bg-[#161B2A] border border-gray-700 text-gray-500'
+                        ? 'bg-gradient-to-tr from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_15px_rgba(160,32,240,0.3)] cursor-pointer group-hover:scale-105'
+                        : 'bg-[#0A0D16]/80 border border-gray-800 text-gray-500'
                   }`}
                 >
-                  {isCompleted ? <CheckCircle2 size={18} className="md:size-24" /> : <Icon size={isActive ? 22 : 18} className="md:size-24" />}
+                  {isCompleted ? (
+                    <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                  ) : (
+                    <Icon className={`w-5 h-5 md:w-6 md:h-6 transition-transform ${isActive ? 'text-[#FF00FF] scale-110' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                  )}
+                  {/* Subtle inner radial glow for active step */}
+                  {isActive && (
+                    <span className="absolute inset-0 rounded-xl md:rounded-2xl bg-[#FF00FF]/5 blur-sm pointer-events-none -z-10 animate-pulse"></span>
+                  )}
                 </div>
-                <span className={`text-[10px] md:text-sm font-semibold transition-colors ${isActive ? 'text-white' : isCompleted ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {step.name}
-                </span>
-              </div>
+              </button>
             );
           })}
         </div>

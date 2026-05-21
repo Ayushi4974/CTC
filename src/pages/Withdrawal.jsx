@@ -34,7 +34,7 @@ const mockHistory = [
 
 const Withdrawal = () => {
   const dispatch = useDispatch();
-  const { profile, user } = useSelector(state => state.auth);
+  const { profile, user, walletAddress: connectedWallet } = useSelector(state => state.auth);
   const currentUser = profile || user;
 
   const [activePackages, setActivePackages] = useState([]);
@@ -42,7 +42,22 @@ const Withdrawal = () => {
   const [amount, setAmount] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [history, setHistory] = useState([]);
+
+  // Computed summary stats from real history
+  const totalWithdrawn = history
+    .filter(r => r.status === 'approved')
+    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  const totalPending = history
+    .filter(r => r.status === 'pending')
+    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const [showHistory, setShowHistory] = useState(true);
+
+  // Auto-populate with connected wallet address when it becomes available
+  useEffect(() => {
+    if (connectedWallet) {
+      setWalletAddress(connectedWallet);
+    }
+  }, [connectedWallet]);
 
   const dynamicSources = [
     { id: 'balance', name: 'Available Balance', balance: currentUser?.availableBalance || 0, icon: TrendingUp, color: '#00C6FF', type: 'profit' },
@@ -174,10 +189,34 @@ const Withdrawal = () => {
       {/* Income Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {[
-          { title: 'Available Balance', value: currentUser?.availableBalance || 0, icon: Wallet, color: 'text-[#A020F0]', bg: 'bg-[#A020F0]/10', border: 'border-[#A020F0]/20' },
+          { 
+            title: 'Available Balance', 
+            value: currentUser?.availableBalance || 0, 
+            icon: Wallet, 
+            color: 'text-[#A020F0]', 
+            bg: 'bg-[#A020F0]/10', 
+            border: 'border-[#A020F0]/20',
+            onClick: () => {
+              if (dynamicSources.length > 0) {
+                setSelectedSource(dynamicSources[0]);
+              }
+            }
+          },
           { title: 'Total Earnings', value: currentUser?.totalEarning || 0, icon: TrendingUp, color: 'text-[#00FF99]', bg: 'bg-[#00FF99]/10', border: 'border-[#00FF99]/20' },
           { title: 'Copy Trade ROI', value: currentUser?.miningIncome || 0, icon: Cpu, color: 'text-[#00C6FF]', bg: 'bg-[#00C6FF]/10', border: 'border-[#00C6FF]/20' },
-          { title: 'Referral Income', value: currentUser?.referralIncome || 0, icon: Users, color: 'text-[#FF00FF]', bg: 'bg-[#FF00FF]/10', border: 'border-[#FF00FF]/20' },
+          { 
+            title: 'Principal Withdrawal', 
+            value: activePackages.reduce((acc, pkg) => acc + (pkg.compoundingBalance ?? pkg.amount), 0), 
+            icon: Lock, 
+            color: 'text-[#FF00FF]', 
+            bg: 'bg-[#FF00FF]/10', 
+            border: 'border-[#FF00FF]/20',
+            onClick: () => {
+              if (dynamicSources.length > 1) {
+                setSelectedSource(dynamicSources[1]);
+              }
+            }
+          },
           { title: 'Level Income', value: currentUser?.levelIncome || 0, icon: Layers, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
           { title: 'Promotional Income', value: currentUser?.promotionalIncome || 0, icon: Gift, color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
         ].map((item, idx) => (
@@ -186,7 +225,8 @@ const Withdrawal = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
-            className="bg-[#0f0f13]/80 backdrop-blur-md border border-gray-800 rounded-2xl p-4 flex flex-col justify-between hover:border-gray-700 hover:bg-[#161B2A]/40 transition-all group relative overflow-hidden"
+            onClick={item.onClick}
+            className={`bg-[#0f0f13]/80 backdrop-blur-md border border-gray-800 rounded-2xl p-4 flex flex-col justify-between hover:border-gray-700 hover:bg-[#161B2A]/40 transition-all group relative overflow-hidden ${item.onClick ? 'cursor-pointer' : ''}`}
           >
             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-transparent to-white/[0.01] pointer-events-none"></div>
             <div className="flex justify-between items-center mb-3">
@@ -320,7 +360,18 @@ const Withdrawal = () => {
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Receiving Wallet Address (USDT BEP-20)</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-sm font-semibold text-gray-300">Receiving Wallet Address (USDT BEP-20)</label>
+                {connectedWallet && (
+                  <button 
+                    type="button"
+                    onClick={() => setWalletAddress(connectedWallet)}
+                    className="text-[11px] px-2 py-1 bg-[#00FF99]/10 hover:bg-[#00FF99]/20 text-[#00FF99] rounded font-bold border border-[#00FF99]/30 transition-colors shadow-[0_0_10px_rgba(0,255,153,0.2)]"
+                  >
+                    Use Connected Wallet
+                  </button>
+                )}
+              </div>
               <input 
                 type="text" 
                 placeholder="0x..."
@@ -427,7 +478,7 @@ const Withdrawal = () => {
             <div className="overflow-x-auto">
               <div className="min-w-[700px]">
                 <div className="grid grid-cols-6 gap-4 border-b border-gray-800/50 pb-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider px-2 relative z-10">
-                  <div className="col-span-1">Source</div>
+                  <div className="col-span-1">Source / Wallet</div>
                   <div className="col-span-1 text-center">Amount</div>
                   <div className="col-span-1 text-center">Date</div>
                   <div className="col-span-1 text-center">Method</div>
@@ -438,10 +489,17 @@ const Withdrawal = () => {
                 {/* Table Content */}
                 <div className="flex-1 flex flex-col relative z-10">
                   {history.length > 0 ? (
-                    <div className="flex flex-col gap-1 py-2 overflow-y-auto max-h-[300px]">
+                    <div className="flex flex-col gap-1 py-2">
                       {history.map((row, i) => (
                         <div key={i} className="grid grid-cols-6 gap-4 py-4 px-2 hover:bg-[#161B2A]/50 rounded-xl items-center border-b border-gray-800/30 transition-colors">
-                          <div className="col-span-1 text-sm text-gray-300 font-medium">Withdrawal</div>
+                          <div className="col-span-1 flex flex-col justify-center">
+                            <span className="text-sm text-gray-300 font-medium capitalize">
+                              {row.type === 'principal' ? 'SOS Capital' : 'Available Balance'}
+                            </span>
+                            <span className="text-[10px] text-gray-500 font-mono tracking-tight mt-0.5 select-all truncate" title={row.walletAddress}>
+                              {row.walletAddress ? `${row.walletAddress.substring(0, 6)}...${row.walletAddress.substring(row.walletAddress.length - 4)}` : 'N/A'}
+                            </span>
+                          </div>
                           <div className="col-span-1 text-center text-sm font-bold text-white">${row.amount}</div>
                           <div className="col-span-1 text-center text-sm text-gray-400">{new Date(row.createdAt).toLocaleDateString()}</div>
                           <div className="col-span-1 text-center text-[11px] text-[#00C6FF] font-medium bg-[#00C6FF]/10 py-1 rounded-lg border border-[#00C6FF]/20">USDT</div>
@@ -499,7 +557,7 @@ const Withdrawal = () => {
                 <h3 className="text-white font-bold text-sm">Total Withdrawn</h3>
                 <p className="text-xs text-gray-500 mt-1">All Time</p>
               </div>
-              <span className="text-2xl font-extrabold text-[#00C6FF]">$ 0.00</span>
+              <span className="text-2xl font-extrabold text-[#00C6FF]">$ {totalWithdrawn.toFixed(2)}</span>
             </motion.div>
             
             <motion.div 
@@ -512,7 +570,7 @@ const Withdrawal = () => {
                 <h3 className="text-white font-bold text-sm">Pending</h3>
                 <p className="text-xs text-gray-500 mt-1">Awaiting Processing</p>
               </div>
-              <span className="text-2xl font-extrabold text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.4)]">$ 0.00</span>
+              <span className="text-2xl font-extrabold text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.4)]">$ {totalPending.toFixed(2)}</span>
             </motion.div>
 
             <motion.div 

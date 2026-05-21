@@ -40,14 +40,14 @@ const requestWithdrawal = async (req, res, next) => {
     }
     
     const lastWithdrawal = await Withdrawal.findOne({ user: user._id }).sort({ createdAt: -1 });
-    if (lastWithdrawal) {
+    if (lastWithdrawal && process.env.NODE_ENV === 'production') {
       const hoursSinceLast = (Date.now() - new Date(lastWithdrawal.createdAt).getTime()) / (1000 * 60 * 60);
       if (hoursSinceLast < settings.withdrawalCooldownHours) {
         return res.status(400).json({ message: `Please wait ${settings.withdrawalCooldownHours} hours between withdrawal requests.` });
       }
     }
 
-    if (amount % 10 !== 0) {
+    if (amount % 10 !== 0 && process.env.NODE_ENV === 'production') {
       return res.status(400).json({ message: 'Withdrawal amount must be a multiple of 10' });
     }
 
@@ -77,7 +77,7 @@ const requestWithdrawal = async (req, res, next) => {
       
       const timeElapsed = Date.now() - new Date(userPkg.createdAt).getTime();
       const hoursElapsed = timeElapsed / (1000 * 60 * 60);
-      if (hoursElapsed < 24) {
+      if (hoursElapsed < 24 && process.env.NODE_ENV === 'production') {
         return res.status(400).json({ message: 'Your initial capital can only be withdrawn after a 24-hour period.' });
       }
 
@@ -103,7 +103,7 @@ const requestWithdrawal = async (req, res, next) => {
       finalAmount,
       walletAddress,
       type,
-      status: settings.manualWithdrawalApproval ? 'pending' : 'approved'
+      status: settings.manualWithdrawalApproval !== false ? 'pending' : 'approved'
     });
     
     await AuditLog.create({

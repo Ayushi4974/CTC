@@ -9,6 +9,7 @@ const UserPackage = require('../models/UserPackage');
 const CronState = require('../models/CronState');
 const ReferralIncome = require('../models/ReferralIncome');
 const MiningIncome = require('../models/MiningIncome');
+const { verifyWithdrawalTransaction } = require('../services/blockchainService');
 
 
 const getDashboardStats = async (req, res, next) => {
@@ -128,12 +129,30 @@ const approveKYC = async (req, res, next) => {
 
 const approveWithdrawal = async (req, res, next) => {
   try {
+    const { txHash } = req.body;
     const withdrawal = await Withdrawal.findById(req.params.id);
     if (!withdrawal) return res.status(404).json({ message: 'Withdrawal not found' });
+
+    if (!txHash) {
+      return res.status(400).json({ message: 'Transaction hash is required to approve and release the withdrawal.' });
+    }
+
+    // Check for duplicate transaction
+    const existingTx = await Transaction.findOne({ txHash });
+    if (existingTx) {
+      return res.status(400).json({ message: 'This transaction hash has already been used. Duplicate transactions are not allowed.' });
+    }
+
+    // Verify withdrawal payout transaction on blockchain
+    const verification = await verifyWithdrawalTransaction(txHash, withdrawal.finalAmount, withdrawal.walletAddress);
+    if (!verification.status) {
+      return res.status(400).json({ message: verification.message });
+    }
 
     withdrawal.status = 'approved';
     withdrawal.approvedBy = req.user._id;
     withdrawal.approvedAt = Date.now();
+    withdrawal.txHash = txHash;
     await withdrawal.save();
 
     await Transaction.create({
@@ -142,7 +161,12 @@ const approveWithdrawal = async (req, res, next) => {
       type: 'withdrawal',
       amount: withdrawal.amount,
       status: 'success',
-      walletAddress: withdrawal.walletAddress
+      walletAddress: withdrawal.walletAddress,
+      txHash,
+      chainId: verification.chainId,
+      tokenContract: verification.tokenContract,
+      blockNumber: verification.blockNumber,
+      confirmationCount: verification.confirmationCount
     });
 
     const io = req.app.get('io');
@@ -316,7 +340,7 @@ const getAllWithdrawals = async (req, res, next) => {
 
 const getAllKYCs = async (req, res, next) => {
   try {
-    const kycs = await KYC.find().populate('user', 'email fullName userId');
+    const kycs = await KYC.find().populate('user', 'email fullName userId phone mobile profilePic');
     res.json(kycs);
   } catch (error) {
     next(error);
@@ -327,6 +351,18 @@ const getAllPackages = async (req, res, next) => {
   try {
     const packages = await Package.find();
     res.json(packages);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getUserPackages = async (req, res, next) => {
+  try {
+    const userPackages = await UserPackage.find()
+      .populate('user', 'email fullName userId')
+      .populate('packageId')
+      .sort({ createdAt: -1 });
+    res.json(userPackages);
   } catch (error) {
     next(error);
   }
@@ -417,6 +453,64 @@ const getAllTransactions = async (req, res, next) => {
   }
 };
 
+const updateUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      fullName,
+      email,
+      isActive,
+      availableBalance,
+      miningIncome,
+      referralIncome,
+      levelIncome,
+      promotionalIncome,
+      sponsorId,
+      rank
+    } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (fullName !== undefined) user.fullName = fullName;
+    if (email !== undefined) user.email = email;
+    if (isActive !== undefined) user.isActive = isActive;
+    if (availableBalance !== undefined) user.availableBalance = Number(availableBalance);
+    if (miningIncome !== undefined) user.miningIncome = Number(miningIncome);
+    if (referralIncome !== undefined) user.referralIncome = Number(referralIncome);
+    if (levelIncome !== undefined) user.levelIncome = Number(levelIncome);
+    if (promotionalIncome !== undefined) user.promotionalIncome = Number(promotionalIncome);
+    if (rank !== undefined) user.rank = rank;
+
+    if (sponsorId !== undefined && sponsorId !== user.sponsorId) {
+      const cleanSponsorId = sponsorId ? sponsorId.trim().toUpperCase() : '';
+      user.sponsorId = cleanSponsorId;
+      if (cleanSponsorId) {
+        const sponsorUser = await User.findOne({ userId: cleanSponsorId });
+        if (sponsorUser) {
+          user.sponsor = sponsorUser._id;
+        } else {
+          return res.status(400).json({ message: `Sponsor ID ${sponsorId} does not exist.` });
+        }
+      } else {
+        user.sponsor = null;
+      }
+    }
+
+    await user.save();
+
+    await AuditLog.create({
+      action: 'ADMIN_UPDATE_USER',
+      adminId: req.user._id,
+      details: { targetUser: user.userId, updates: req.body }
+    });
+
+    res.json({ message: 'User updated successfully', user });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getAllUsers,
@@ -431,9 +525,11 @@ module.exports = {
   getAllWithdrawals,
   getAllKYCs,
   getAllPackages,
+  getUserPackages,
   updatePackage,
   getCronStatus,
   triggerMiningCron,
-  getAllTransactions
+  getAllTransactions,
+  updateUser
 };
 

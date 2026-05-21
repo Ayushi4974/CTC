@@ -1,6 +1,7 @@
 const Transaction = require('../models/Transaction');
 const UserPackage = require('../models/UserPackage');
 const ReferralIncome = require('../models/ReferralIncome');
+const LevelIncome = require('../models/LevelIncome');
 const Package = require('../models/Package'); // Populate packageId
 
 const getTransactionHistory = async (req, res, next) => {
@@ -16,7 +17,15 @@ const getTransactionHistory = async (req, res, next) => {
     // Fetch referral income
     const referralsPromise = ReferralIncome.find({ user: userId });
 
-    const [txs, pkgs, referrals] = await Promise.all([txsPromise, pkgsPromise, referralsPromise]);
+    // Fetch level income
+    const levelsPromise = LevelIncome.find({ user: userId });
+
+    const [txs, pkgs, referrals, levels] = await Promise.all([
+      txsPromise,
+      pkgsPromise,
+      referralsPromise,
+      levelsPromise
+    ]);
 
     // Map packages to unified transaction format
     const investmentHistory = pkgs.map(pkg => ({
@@ -44,6 +53,19 @@ const getTransactionHistory = async (req, res, next) => {
       createdAt: ref.createdAt
     }));
 
+    // Map level incomes to unified transaction format
+    const levelHistory = levels.map(levelInc => ({
+      _id: levelInc._id,
+      userId: levelInc.userId,
+      user: levelInc.user,
+      type: 'level income',
+      description: `Level ${levelInc.level} Commission from ${levelInc.fromUserId}`,
+      amount: levelInc.amount,
+      txHash: 'System',
+      status: levelInc.status === 'credited' ? 'success' : 'failed',
+      createdAt: levelInc.createdAt
+    }));
+
     // Format normal transactions to include a description if missing
     const formattedTxs = txs.map(tx => {
       const txObj = tx.toObject();
@@ -58,8 +80,12 @@ const getTransactionHistory = async (req, res, next) => {
     });
 
     // Combine all history
-    const combinedHistory = [...formattedTxs, ...investmentHistory, ...referralHistory]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const combinedHistory = [
+      ...formattedTxs,
+      ...investmentHistory,
+      ...referralHistory,
+      ...levelHistory
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     res.json(combinedHistory);
   } catch (error) {

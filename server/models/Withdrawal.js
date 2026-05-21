@@ -10,7 +10,8 @@ const withdrawalSchema = new mongoose.Schema({
   type: { type: String, enum: ['profit', 'principal'], default: 'profit' },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  approvedAt: { type: Date }
+  approvedAt: { type: Date },
+  txHash: { type: String }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Withdrawal', withdrawalSchema);

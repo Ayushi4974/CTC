@@ -10,7 +10,8 @@ const Settings = () => {
     withdrawalCooldownHours: 24,
     emergencyThreshold: 5000,
     treasuryReserves: 25000,
-    globalRoiMultiplier: 1.0
+    globalRoiMultiplier: 1.0,
+    manualWithdrawalApproval: true
   });
   const [loading, setLoading] = useState(true);
 
@@ -60,7 +61,7 @@ const Settings = () => {
     <div className="space-y-6">
       {/* settings card form */}
       <div className="bg-[#0B0F1A] border border-gray-800 rounded-3xl p-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[#A020F0]/5 rounded-full blur-2xl"></div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#A020F0]/5 rounded-full blur-2xl pointer-events-none"></div>
 
         <div className="flex justify-between items-center border-b border-gray-800/50 pb-4 mb-6">
           <div>
@@ -116,6 +117,20 @@ const Settings = () => {
                 className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
               />
               <span className="block text-[10px] text-gray-500 mt-1">Prevents withdrawals for X hours after last package purchase or payout request.</span>
+            </div>
+
+            <div className="flex items-center gap-3 bg-[#161B2A]/40 border border-gray-800/40 p-4 rounded-xl">
+              <input
+                type="checkbox"
+                id="manualWithdrawalApproval"
+                name="manualWithdrawalApproval"
+                checked={settings.manualWithdrawalApproval}
+                onChange={handleChange}
+                className="w-4 h-4 rounded border-gray-700 text-[#A020F0] focus:ring-[#A020F0] focus:ring-offset-0 bg-[#0B0F1A]"
+              />
+              <label htmlFor="manualWithdrawalApproval" className="text-xs font-bold text-gray-300 uppercase cursor-pointer select-none">
+                Require Manual Admin Approval
+              </label>
             </div>
           </div>
 
