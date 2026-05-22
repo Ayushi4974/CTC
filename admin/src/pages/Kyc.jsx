@@ -3,22 +3,17 @@ import { UserCheck, ShieldAlert, FileText, Check, X, Search, Clock, CheckCircle2
 import api from '../api';
 import { toast } from 'react-toastify';
 
-const getImageUrl = (filePath) => {
-  if (!filePath) return '';
-  // Already a full URL (Cloudinary or external)
-  if (filePath.startsWith('http')) return filePath;
-  // Local /uploads/ path — build absolute URL to avoid resolving relative to /admin/
-  const cleanPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
+const getImageUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
   const apiUrl = import.meta.env.VITE_API_URL;
   if (apiUrl) {
-    // e.g. VITE_API_URL = https://copytrade.world/api → strip /api
     const serverUrl = apiUrl.replace(/\/api$/, '');
     return `${serverUrl}${cleanPath}`;
   }
-  // Fallback: use current page origin (works when frontend & backend share same domain)
-  return `${window.location.origin}${cleanPath}`;
+  return cleanPath;
 };
-
 
 const STATUS_TABS = [
   { key: 'pending',  label: 'Pending',  icon: Clock,          color: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  activeBg: 'bg-amber-500/20'  },
@@ -137,7 +132,7 @@ const Kyc = () => {
       </div>
 
       {/* Status Tabs */}
-      <div className="flex items-center gap-2 bg-[#0B0F1A] border border-gray-800 p-2 rounded-2xl">
+      <div className="flex items-center gap-2 bg-[#0B0F1A] border border-gray-800 p-2 rounded-2xl overflow-x-auto hide-scrollbar">
         {STATUS_TABS.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;
@@ -145,7 +140,7 @@ const Kyc = () => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+              className={`flex-1 shrink-0 whitespace-nowrap flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
                 isActive
                   ? `${tab.activeBg} ${tab.color} border ${tab.border} shadow-inner`
                   : 'text-gray-500 hover:text-gray-300 hover:bg-[#161B2A]/40'

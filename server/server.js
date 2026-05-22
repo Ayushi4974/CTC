@@ -47,20 +47,13 @@ app.use(helmet({ crossOriginResourcePolicy: false })); // Security headers
 app.use(cors({ origin: true, credentials: true })); // Enable CORS dynamically
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: false })); // Parse URL-encoded bodies
-// Ensure uploads directory exists (for local disk storage)
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!require('fs').existsSync(uploadsDir)) {
-  require('fs').mkdirSync(uploadsDir, { recursive: true });
-}
-app.use('/uploads', express.static(uploadsDir)); // Serve uploaded files
-
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded files
 
 // Serve Frontend in Production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../dist')));
   app.get('*', (req, res, next) => {
-    // Let API and file uploads pass through
-    if (req.url.startsWith('/api') || req.url.startsWith('/uploads')) return next();
+    if (req.url.startsWith('/api')) return next();
     res.sendFile(path.join(__dirname, '../dist/index.html'));
   });
 }

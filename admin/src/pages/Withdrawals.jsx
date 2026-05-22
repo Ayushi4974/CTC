@@ -234,14 +234,14 @@ const Withdrawals = () => {
         {/* Filter controls row */}
         <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-gray-800/40">
           {/* Status Tabs */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 w-full sm:w-auto">
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</span>
-            <div className="flex bg-[#161B2A]/50 border border-gray-800 rounded-xl p-1 shrink-0">
+            <div className="flex bg-[#161B2A]/50 border border-gray-800 rounded-xl p-1 overflow-x-auto hide-scrollbar">
               {['pending', 'approved', 'rejected', 'all'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setFilterStatus(status)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
                     filterStatus === status 
                       ? 'bg-[#A020F0]/10 text-[#FF00FF] border border-[#A020F0]/20' 
                       : 'text-gray-400 hover:text-white border border-transparent'
@@ -254,14 +254,14 @@ const Withdrawals = () => {
           </div>
 
           {/* Type Tabs */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 w-full sm:w-auto">
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Wallet Type</span>
-            <div className="flex bg-[#161B2A]/50 border border-gray-800 rounded-xl p-1 shrink-0">
+            <div className="flex bg-[#161B2A]/50 border border-gray-800 rounded-xl p-1 overflow-x-auto hide-scrollbar">
               {['all', 'profit', 'principal'].map((type) => (
                 <button
                   key={type}
                   onClick={() => setFilterType(type)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
                     filterType === type 
                       ? 'bg-[#A020F0]/10 text-[#FF00FF] border border-[#A020F0]/20' 
                       : 'text-gray-400 hover:text-white border border-transparent'
