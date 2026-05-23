@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Check, X, ShieldAlert, AlertTriangle, ArrowUpRight, Search, FileText } from 'lucide-react';
+import { CreditCard, Check, X, ShieldAlert, AlertTriangle, ArrowUpRight, Search, FileText, Copy, CheckCheck } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
 import { ethers } from 'ethers';
@@ -13,6 +13,14 @@ const Withdrawals = () => {
   const [selectedWithdrawalForApproval, setSelectedWithdrawalForApproval] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [manualTxHash, setManualTxHash] = useState('');
+  const [copiedAddress, setCopiedAddress] = useState(null);
+
+  const handleCopyAddress = (address) => {
+    navigator.clipboard.writeText(address).then(() => {
+      setCopiedAddress(address);
+      setTimeout(() => setCopiedAddress(null), 2000);
+    });
+  };
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -349,9 +357,18 @@ const Withdrawals = () => {
 
                   {/* Recipient Details */}
                   <div className="space-y-2.5 text-xs border-t border-gray-800/30 pt-4 mb-6">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col gap-1.5">
                       <span className="text-gray-400">Withdrawal Destination</span>
-                      <span className="font-mono text-white text-[11px] select-all bg-gray-800/50 px-2 py-0.5 rounded border border-gray-700/30">{w.walletAddress}</span>
+                      <div className="flex items-center gap-2 bg-gray-800/50 border border-gray-700/30 rounded-xl px-3 py-2">
+                        <span className="font-mono text-white text-[11px] break-all flex-1 select-all leading-relaxed">{w.walletAddress}</span>
+                        <button
+                          onClick={() => handleCopyAddress(w.walletAddress)}
+                          title="Copy address"
+                          className="shrink-0 text-gray-400 hover:text-[#00FF99] transition-colors"
+                        >
+                          {copiedAddress === w.walletAddress ? <CheckCheck size={14} className="text-[#00FF99]" /> : <Copy size={14} />}
+                        </button>
+                      </div>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400">Deduction Method</span>
@@ -505,11 +522,20 @@ const Withdrawals = () => {
                     {selectedWithdrawalForApproval.type === 'principal' ? 'SOS Capital Exit' : 'Profit Wallet Withdrawal'}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs">
+                <div className="flex flex-col gap-1.5 text-xs">
                   <span className="text-gray-400">Destination Address</span>
-                  <span className="font-mono text-white select-all bg-gray-800/50 px-2 py-0.5 rounded border border-gray-700/30">
-                    {selectedWithdrawalForApproval.walletAddress}
-                  </span>
+                  <div className="flex items-center gap-2 bg-gray-800/50 border border-gray-700/30 rounded-xl px-3 py-2">
+                    <span className="font-mono text-white text-[11px] break-all flex-1 select-all leading-relaxed">
+                      {selectedWithdrawalForApproval.walletAddress}
+                    </span>
+                    <button
+                      onClick={() => handleCopyAddress(selectedWithdrawalForApproval.walletAddress)}
+                      title="Copy address"
+                      className="shrink-0 text-gray-400 hover:text-[#00FF99] transition-colors"
+                    >
+                      {copiedAddress === selectedWithdrawalForApproval.walletAddress ? <CheckCheck size={14} className="text-[#00FF99]" /> : <Copy size={14} />}
+                    </button>
+                  </div>
                 </div>
                 <div className="border-t border-gray-800/50 my-2 pt-2 grid grid-cols-3 gap-2 text-center">
                   <div>
