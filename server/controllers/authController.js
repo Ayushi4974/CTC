@@ -97,6 +97,11 @@ const loginUser = async (req, res, next) => {
     console.log('User found in DB:', user ? user.userId : 'No user found');
 
     if (user && (await bcrypt.compare(password, user.password))) {
+      // Block admin accounts from logging into the user dashboard
+      if (user.role === 'admin') {
+        return res.status(403).json({ message: 'Admin accounts cannot log in here. Please use the Admin Panel.' });
+      }
+
       res.json({
         _id: user.id,
         userId: user.userId,
