@@ -50,7 +50,11 @@ const userSchema = new mongoose.Schema(
     },
     rank: {
       type: String,
-      default: 'L1',
+      default: 'None',
+    },
+    claimedRankBonuses: {
+      type: [String],
+      default: [],
     },
     walletAddress: {
       type: String,

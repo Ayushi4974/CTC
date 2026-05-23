@@ -75,26 +75,96 @@ const PromotionalBonusHistory = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const [txRes, levelRes] = await Promise.all([
+        const [profileRes, txRes, levelRes] = await Promise.all([
+          api.get('/user/profile'),
           api.get('/transaction/history'),
           api.get('/user/level-income')
         ]);
         
+        const user = profileRes.data;
+        const userRank = user.rank || 'None';
+
         // Filter only promotional bonuses (rank bonuses and salary)
         const promoData = txRes.data.filter(tx => tx.type === 'bonus' || tx.type === 'salary');
         
+        // Generate list of all achieved rank bonuses
+        const ranks = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10', 'L11', 'L12'];
+        const rankBonusMap = {
+          'L1': 100, 'L2': 300, 'L3': 800, 'L4': 2000, 'L5': 5000, 'L6': 12000,
+          'L7': 25000, 'L8': 100000, 'L9': 200000, 'L10': 500000, 'L11': 1000000, 'L12': 2000000
+        };
+
+        const currentRankIndex = ranks.indexOf(userRank);
+        const virtualRankBonuses = [];
+
+        if (currentRankIndex !== -1) {
+          for (let i = 0; i <= currentRankIndex; i++) {
+            const rank = ranks[i];
+            const bonusAmount = rankBonusMap[rank];
+            
+            // Check if there is an existing bonus transaction of this amount that was successful/approved
+            const existingApprovedTx = promoData.find(
+              tx => tx.type === 'bonus' && 
+                    tx.amount === bonusAmount && 
+                    (tx.status?.toLowerCase() === 'success' || tx.status?.toLowerCase() === 'approved')
+            );
+            
+            // Check if there is an existing pending bonus transaction of this amount
+            const existingPendingTx = promoData.find(
+              tx => tx.type === 'bonus' && 
+                    tx.amount === bonusAmount && 
+                    tx.status?.toLowerCase() === 'pending'
+            );
+
+            if (existingApprovedTx) {
+              // Ensure status is marked clean
+              existingApprovedTx.status = 'Approved';
+            } else if (existingPendingTx) {
+              existingPendingTx.status = 'Pending';
+            } else {
+              // No successful or pending transaction exists in the database for this rank's bonus.
+              // Show it as Pending per the requirement.
+              virtualRankBonuses.push({
+                _id: `virtual_bonus_${rank}`,
+                type: 'bonus',
+                amount: bonusAmount,
+                status: 'Pending',
+                createdAt: user.createdAt || new Date().toISOString(),
+                level: rank
+              });
+            }
+          }
+        }
+
+        // Map status labels of actual transactions to standard forms
+        const processedPromoData = promoData.map(tx => {
+          const lowerStatus = tx.status?.toLowerCase();
+          let statusText = tx.status;
+          if (lowerStatus === 'success' || lowerStatus === 'approved') {
+            statusText = 'Approved';
+          } else if (lowerStatus === 'pending') {
+            statusText = 'Pending';
+          } else if (lowerStatus === 'failed' || lowerStatus === 'rejected') {
+            statusText = 'Failed';
+          }
+          return {
+            ...tx,
+            status: statusText
+          };
+        });
+
         // The dashboard promotional balance includes the 50% split from level income
         // We map level income to match the transaction shape for the UI
         const levelData = levelRes.data.map(li => ({
           _id: li._id,
           type: 'level_split',
           amount: li.amount * 0.50, // 50% reserved split
-          status: li.status,
+          status: li.status === 'credited' ? 'Approved' : li.status || 'Approved',
           createdAt: li.createdAt,
           level: li.level
         }));
 
-        const combined = [...promoData, ...levelData].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const combined = [...processedPromoData, ...virtualRankBonuses, ...levelData].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setBonuses(combined);
       } catch (error) {
         console.error('Error fetching promotion history:', error);
@@ -250,9 +320,28 @@ const PromotionalBonusHistory = () => {
                   <p className="text-lg sm:text-xl md:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
                     +${tx.amount.toFixed(2)}
                   </p>
-                  <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">
-                    {tx.status}
-                  </span>
+                  {(() => {
+                    const status = tx.status?.toLowerCase();
+                    if (status === 'approved' || status === 'success' || status === 'completed') {
+                      return (
+                        <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#00FF99]/10 text-[#00FF99] border border-[#00FF99]/20 uppercase tracking-wider">
+                          Approved
+                        </span>
+                      );
+                    } else if (status === 'pending') {
+                      return (
+                        <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 uppercase tracking-wider animate-pulse">
+                          Pending
+                        </span>
+                      );
+                    } else {
+                      return (
+                        <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 uppercase tracking-wider font-mono">
+                          {tx.status || 'Failed'}
+                        </span>
+                      );
+                    }
+                  })()}
                 </div>
               </motion.div>
             ))

@@ -86,25 +86,40 @@ cron.schedule("0 0 15,28 * *", async () => {
       if (checkRank('L9', 5, 300000)) newRank = 'L12';
 
       const oldRank = user.rank || 'None';
-      user.rank = newRank;
+      
+      // Handle One-Time Promotional Bonus for reaching a new rank (and any missed intermediate ranks)
+      const ranksOrder = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10', 'L11', 'L12'];
+      if (newRank !== 'None') {
+        const targetRankIndex = ranksOrder.indexOf(newRank);
+        if (targetRankIndex !== -1) {
+          for (let i = 0; i <= targetRankIndex; i++) {
+            const rankToAward = ranksOrder[i];
+            if (!user.claimedRankBonuses) {
+              user.claimedRankBonuses = [];
+            }
+            if (!user.claimedRankBonuses.includes(rankToAward)) {
+              const rankBonusAmount = rankBonusMap[rankToAward];
+              if (rankBonusAmount) {
+                user.availableBalance += rankBonusAmount;
+                user.totalEarning += rankBonusAmount;
+                user.promotionalIncome += rankBonusAmount;
 
-      // Handle One-Time Promotional Bonus for reaching a new rank
-      if (newRank !== 'None' && newRank !== oldRank && rankBonusMap[newRank]) {
-        // Simple logic: if rank changed, award the one-time bonus for the new rank
-        // (In a more robust system, we would track an array of claimed rank bonuses to prevent double claiming if ranks fluctuate)
-        const rankBonusAmount = rankBonusMap[newRank];
-        user.availableBalance += rankBonusAmount;
-        user.totalEarning += rankBonusAmount;
-        user.promotionalIncome += rankBonusAmount;
+                await Transaction.create({
+                  userId: user.userId,
+                  user: user._id,
+                  type: 'bonus',
+                  amount: rankBonusAmount,
+                  status: 'success'
+                });
 
-        await Transaction.create({
-          userId: user.userId,
-          user: user._id,
-          type: 'bonus',
-          amount: rankBonusAmount,
-          status: 'success'
-        });
+                user.claimedRankBonuses.push(rankToAward);
+              }
+            }
+          }
+        }
       }
+
+      user.rank = newRank;
 
       if (salaryMap[newRank]) {
         // Paid 2 times a month, so half salary
