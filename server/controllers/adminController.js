@@ -10,7 +10,44 @@ const CronState = require('../models/CronState');
 const ReferralIncome = require('../models/ReferralIncome');
 const MiningIncome = require('../models/MiningIncome');
 const { verifyWithdrawalTransaction } = require('../services/blockchainService');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
+const generateAdminToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+// @desc    Authenticate an admin user only
+// @route   POST /api/admin/login
+// @access  Public
+const adminLogin = async (req, res, next) => {
+  try {
+    const { userId, password } = req.body;
+    if (!userId || !password) {
+      return res.status(400).json({ message: 'Please provide User ID and password.' });
+    }
+
+    const searchId = userId.trim().toUpperCase();
+    const user = await User.findOne({ userId: searchId });
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ message: 'Invalid credentials.' });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access Denied: Not authorized as Administrator.' });
+    }
+
+    return res.json({
+      _id: user.id,
+      userId: user.userId,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      token: generateAdminToken(user._id),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 const getDashboardStats = async (req, res, next) => {
   try {
@@ -652,6 +689,7 @@ const assignPackage = async (req, res, next) => {
 };
 
 module.exports = {
+  adminLogin,
   getDashboardStats,
   getAllUsers,
   approveKYC,
@@ -674,4 +712,3 @@ module.exports = {
   impersonateUser,
   assignPackage
 };
-

@@ -1,5 +1,6 @@
 const express = require('express');
 const {
+  adminLogin,
   getDashboardStats,
   getAllUsers,
   approveKYC,
@@ -25,6 +26,9 @@ const {
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
 const router = express.Router();
+
+// Public Admin Login (admin-only, separate from user login)
+router.post('/login', adminLogin);
 
 router.route('/dashboard').get(protect, admin, getDashboardStats);
 router.route('/users').get(protect, admin, getAllUsers);

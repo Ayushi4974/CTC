@@ -19,7 +19,7 @@ const Login = () => {
     
     setLoading(true);
     try {
-      const res = await api.post('/auth/login', { userId, password });
+      const res = await api.post('/admin/login', { userId, password });
       const user = res.data;
       
       if (user.role !== 'admin') {
