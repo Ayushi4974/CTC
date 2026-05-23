@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Terminal, Play, ShieldAlert, ShieldCheck, Clock, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Play, RefreshCw } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
 
@@ -7,21 +7,22 @@ const Cron = () => {
   const [crons, setCrons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState(false);
-
-  const fetchCrons = async () => {
-    try {
-      const res = await api.get('/admin/cron/status');
-      setCrons(res.data);
-    } catch (error) {
-      toast.error('Failed to load cron monitor status');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    const fetchCrons = async () => {
+      try {
+        const res = await api.get('/admin/cron/status');
+        setCrons(res.data);
+      } catch (error) {
+        console.error(error);
+        toast.error('Failed to load cron monitor status');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchCrons();
-  }, []);
+  }, [refreshKey]);
 
   const handleManualTrigger = async () => {
     if (!window.confirm('WARNING: Force running the cron cycle bypasses weekend constraints and locks. Proceed only for manual overrides.')) return;
@@ -29,8 +30,9 @@ const Cron = () => {
     try {
       const res = await api.post('/admin/cron/trigger');
       toast.success(res.data.message || 'Mining cron manually executed successfully!');
-      fetchCrons();
+      setRefreshKey((prev) => prev + 1);
     } catch (error) {
+      console.error(error);
       toast.error('Failed to manually trigger mining cron');
     } finally {
       setTriggering(false);

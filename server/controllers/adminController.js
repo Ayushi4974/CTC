@@ -397,6 +397,30 @@ const triggerMiningCron = async (req, res, next) => {
   }
 };
 
+const impersonateUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '30d',
+    });
+
+    res.json({
+      _id: user._id,
+      userId: user.userId,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      isKYCVerified: user.isKYCVerified,
+      token,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getAllTransactions = async (req, res, next) => {
   try {
     const txsPromise = Transaction.find().populate('user', 'email fullName userId');
@@ -511,6 +535,122 @@ const updateUser = async (req, res, next) => {
   }
 };
 
+const assignPackage = async (req, res, next) => {
+  try {
+    const { userId, packageId, amount } = req.body;
+
+    if (!userId || !packageId || !amount) {
+      return res.status(400).json({ message: 'User ID, Package, and Amount are required.' });
+    }
+
+    // Find the user by custom userId or email
+    const user = await User.findOne({
+      $or: [
+        { userId: userId.trim().toUpperCase() },
+        { email: userId.trim() }
+      ]
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const pkg = await Package.findById(packageId);
+    if (!pkg) {
+      return res.status(404).json({ message: 'Package not found' });
+    }
+
+    const numericAmount = Number(amount);
+    if (numericAmount < pkg.minAmount || numericAmount > pkg.maxAmount) {
+      return res.status(400).json({ message: `Amount must be between $${pkg.minAmount} and $${pkg.maxAmount} for this package.` });
+    }
+
+    // Multi-Package Rules: Prevent Package Stacking and Handle Upgrades
+    const existingActivePkg = await UserPackage.findOne({ user: user._id, status: 'active' });
+    if (existingActivePkg) {
+      if (numericAmount <= existingActivePkg.amount) {
+        return res.status(400).json({ message: 'Upgrades must be of a higher value than your current active package.' });
+      }
+      // Upgrade logic: Mark old as upgraded, ROI generation will stop for it
+      existingActivePkg.status = 'upgraded';
+      await existingActivePkg.save();
+    }
+
+    const userPackage = await UserPackage.create({
+      userId: user.userId,
+      user: user._id,
+      packageId: pkg._id,
+      amount: numericAmount,
+      compoundingBalance: numericAmount,
+      dailyProfitPercent: pkg.dailyProfit,
+      endDate: new Date(Date.now() + pkg.validity * 24 * 60 * 60 * 1000),
+      isBVEligible: true
+    });
+
+    user.isActive = true;
+    user.activePackage = pkg._id;
+    user.totalInvestment += numericAmount; // Expands their 4x global cap
+    await user.save();
+
+    await AuditLog.create({
+      action: 'PACKAGE_ACTIVATION',
+      userId: user._id,
+      adminId: req.user._id,
+      packageId: userPackage._id,
+      amount: numericAmount,
+      details: {
+        isManualAssignment: true,
+        targetUser: user.userId,
+        isUpgrade: !!existingActivePkg,
+        oldPackageId: existingActivePkg ? existingActivePkg._id : null
+      }
+    });
+
+    await Transaction.create({
+      userId: user.userId,
+      user: user._id,
+      type: 'deposit',
+      amount: numericAmount,
+      txHash: 'ADMIN_MANUAL_ASSIGN',
+      status: 'success',
+      description: `Manual package assignment by Admin: ${pkg.name}`
+    });
+
+    if (user.sponsor) {
+      const { distributeDirectReferral } = require('../services/referralService');
+      await distributeDirectReferral(user.sponsor, numericAmount, user.userId, user._id);
+      
+      // Check Fastrack Bonus for Sponsor
+      const sponsor = await User.findById(user.sponsor);
+      if (sponsor && !sponsor.fastrackQualified && sponsor.activePackage) {
+        const sponsorPkg = await UserPackage.findOne({ user: sponsor._id, status: 'active' }).sort({ createdAt: -1 });
+        if (sponsorPkg) {
+          const tenDaysAgo = new Date();
+          tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+          
+          if (sponsorPkg.createdAt >= tenDaysAgo) {
+            // Count directs with same or qualifying package
+            const directsWithQualifyingPkg = await UserPackage.countDocuments({
+              user: { $in: await User.find({ sponsor: sponsor._id }).distinct('_id') },
+              amount: { $gte: sponsorPkg.amount },
+              status: 'active'
+            });
+
+            if (directsWithQualifyingPkg >= 5) {
+              sponsor.fastrackQualified = true;
+              await sponsor.save();
+            }
+          }
+        }
+      }
+    }
+
+    res.json({ message: 'Package manually assigned and activated successfully', userPackage });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getAllUsers,
@@ -530,6 +670,8 @@ module.exports = {
   getCronStatus,
   triggerMiningCron,
   getAllTransactions,
-  updateUser
+  updateUser,
+  impersonateUser,
+  assignPackage
 };
 

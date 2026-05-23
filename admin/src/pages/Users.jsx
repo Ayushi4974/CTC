@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, ShieldAlert, ShieldCheck, Mail, Phone, Calendar, ArrowRight } from 'lucide-react';
+import { Search, Eye, ShieldAlert, ShieldCheck, Mail, Phone, Calendar, ArrowRight, Copy } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
 
@@ -46,6 +46,31 @@ const Users = () => {
     fetchUsers();
   }, []);
 
+  const handleImpersonate = async () => {
+    if (!selectedUser) return;
+    try {
+      const res = await api.post(`/admin/user/${selectedUser._id}/impersonate`);
+      const data = res.data;
+      
+      const origin = window.location.origin;
+      const clientBaseUrl = origin.includes('5174') ? 'http://localhost:5173' : origin;
+      
+      const queryParams = new URLSearchParams({
+        _id: data._id,
+        userId: data.userId,
+        fullName: data.fullName,
+        email: data.email,
+        role: data.role,
+        isKYCVerified: data.isKYCVerified ? 'true' : 'false',
+        token: data.token
+      }).toString();
+      
+      window.open(`${clientBaseUrl}/login?${queryParams}`, '_blank');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to impersonate user');
+    }
+  };
+
   const handleSelectUser = (user) => {
     setSelectedUser(user);
     setIsEditing(false);
@@ -61,6 +86,11 @@ const Users = () => {
       sponsorId: user.sponsorId || '',
       rank: user.rank || 'L1'
     });
+  };
+
+  const handleCopy = (text, type) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${type} copied to clipboard!`);
   };
 
   const handleBlockToggle = async (userId, isBlocked) => {
@@ -107,9 +137,9 @@ const Users = () => {
   };
 
   const filteredUsers = users.filter(user => 
-    user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.userId?.toLowerCase().includes(searchTerm.toLowerCase())
+    (user.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.userId || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Pagination calculation
@@ -164,9 +194,29 @@ const Users = () => {
                   <tr key={user._id} className="hover:bg-[#161B2A]/20 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-white">{user.fullName}</div>
-                      <div className="text-xs text-gray-500">{user.email}</div>
+                      <div className="text-xs text-gray-500 flex items-center gap-1.5">
+                        <span>{user.email}</span>
+                        <button
+                          onClick={() => handleCopy(user.email, 'Email')}
+                          className="text-gray-500 hover:text-white transition-colors p-0.5 rounded hover:bg-gray-800"
+                          title="Copy Email"
+                        >
+                          <Copy size={10} />
+                        </button>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 font-mono font-semibold text-emerald-400">{user.userId}</td>
+                    <td className="px-6 py-4 font-mono font-semibold text-emerald-400">
+                      <div className="flex items-center gap-1.5">
+                        <span>{user.userId}</span>
+                        <button
+                          onClick={() => handleCopy(user.userId, 'User ID')}
+                          className="text-gray-500 hover:text-white transition-colors p-0.5 rounded hover:bg-gray-800"
+                          title="Copy ID"
+                        >
+                          <Copy size={10} />
+                        </button>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 font-mono text-gray-400">{user.sponsorId || 'None'}</td>
                     <td className="px-6 py-4 font-bold text-white">${Number(user.totalInvestment || 0).toFixed(2)}</td>
                     <td className="px-6 py-4 font-bold text-[#00C6FF]">${Number(user.availableBalance || 0).toFixed(2)}</td>
@@ -305,6 +355,15 @@ const Users = () => {
                 <p className="text-xs text-gray-500">ID: {selectedUser.userId}</p>
               </div>
               <div className="flex items-center gap-2">
+                {!isEditing && (
+                  <button 
+                    type="button"
+                    onClick={handleImpersonate}
+                    className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg transition-colors text-xs font-bold shadow-md"
+                  >
+                    View user dashboard without Login
+                  </button>
+                )}
                 {!isEditing ? (
                   <button 
                     type="button"

@@ -19,6 +19,24 @@ const Login = () => {
   );
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      const userData = {
+        _id: params.get('_id'),
+        userId: params.get('userId'),
+        fullName: params.get('fullName'),
+        email: params.get('email'),
+        role: params.get('role'),
+        isKYCVerified: params.get('isKYCVerified') === 'true',
+        token: token
+      };
+      localStorage.setItem('user', JSON.stringify(userData));
+      window.location.href = '/dashboard';
+    }
+  }, []);
+
+  useEffect(() => {
     if (isError) {
       toast.error(message);
     }

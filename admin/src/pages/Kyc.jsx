@@ -96,9 +96,9 @@ const Kyc = () => {
   const filteredKycs = kycs.filter(k =>
     k.status === activeTab &&
     (
-      k.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      k.user?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      k.bankName?.toLowerCase().includes(searchTerm.toLowerCase())
+      (k.userId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (k.user?.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (k.bankName || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 

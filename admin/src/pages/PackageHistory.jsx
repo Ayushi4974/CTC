@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, Coins, TrendingUp, Users, RefreshCw, Layers } from 'lucide-react';
+import { Search, Filter, Calendar, Coins, TrendingUp, Users, RefreshCw, Layers, Plus, X, Copy } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
 
@@ -9,6 +9,11 @@ const PackageHistory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [packageFilter, setPackageFilter] = useState('all');
+  const [packages, setPackages] = useState([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignForm, setAssignForm] = useState({ userId: '', packageId: '', amount: '' });
+  const [assigning, setAssigning] = useState(false);
+  const [users, setUsers] = useState([]);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -22,8 +27,12 @@ const PackageHistory = () => {
   const fetchPurchases = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/user-packages');
-      setPurchases(res.data);
+      const [purchasesRes, usersRes] = await Promise.all([
+        api.get('/admin/user-packages'),
+        api.get('/admin/users')
+      ]);
+      setPurchases(purchasesRes.data);
+      setUsers(usersRes.data);
     } catch (error) {
       toast.error('Failed to load package purchase history');
     } finally {
@@ -31,18 +40,81 @@ const PackageHistory = () => {
     }
   };
 
+  const fetchPackages = async () => {
+    try {
+      const res = await api.get('/admin/packages');
+      setPackages(res.data.filter(p => p.status === true));
+    } catch (error) {
+      console.error('Failed to load packages for assignment', error);
+    }
+  };
+
   useEffect(() => {
     fetchPurchases();
+    fetchPackages();
   }, []);
 
+  const handleAssignSubmit = async (e) => {
+    e.preventDefault();
+    if (!assignForm.userId || !assignForm.packageId || !assignForm.amount) {
+      return toast.error('Please fill in all fields.');
+    }
+    
+    try {
+      setAssigning(true);
+      const res = await api.post('/admin/package/assign', {
+        userId: assignForm.userId,
+        packageId: assignForm.packageId,
+        amount: Number(assignForm.amount)
+      });
+      toast.success(res.data.message || 'Package manually assigned successfully!');
+      setShowAssignModal(false);
+      setAssignForm({ userId: '', packageId: '', amount: '' });
+      fetchPurchases();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to assign package manually.');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const handleCopy = (text, type) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${type} copied to clipboard!`);
+  };
+
+  const noPackagePurchases = users
+    .filter((user) => {
+      const hasPurchase = purchases.some((p) => p.userId === user.userId);
+      return !hasPurchase;
+    })
+    .map((user) => ({
+      _id: user._id,
+      userId: user.userId,
+      user: {
+        fullName: user.fullName,
+        email: user.email,
+      },
+      packageId: {
+        name: 'No Active Package',
+      },
+      amount: 0,
+      compoundingBalance: 0,
+      dailyProfitPercent: 0,
+      totalEarned: 0,
+      createdAt: user.createdAt,
+      status: 'no_package',
+    }));
+
   // Filter logic
-  const filteredPurchases = purchases.filter((p) => {
-    const matchesSearch = 
+  const sourceList = statusFilter === 'no_package' ? noPackagePurchases : purchases;
+  const filteredPurchases = sourceList.filter((p) => {
+    const matchesSearch =
       p.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.user?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.user?.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || statusFilter === 'no_package' || p.status === statusFilter;
 
     const matchesPackage = packageFilter === 'all' || p.packageId?._id === packageFilter;
 
@@ -141,7 +213,7 @@ const PackageHistory = () => {
             <h2 className="text-xl font-bold text-white">Package Purchase History ({filteredPurchases.length})</h2>
             <p className="text-xs text-gray-500 mt-1">Monitor user staking allocations, compounding growth, and active status rules</p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
@@ -153,8 +225,16 @@ const PackageHistory = () => {
                 className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0]"
               />
             </div>
-            
-            <button 
+
+            <button
+              onClick={() => setShowAssignModal(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#A020F0] to-[#FF00FF] hover:shadow-[0_0_20px_rgba(160,32,240,0.4)] text-white rounded-xl text-xs font-bold uppercase transition-all active:scale-95 shrink-0"
+            >
+              <Plus size={14} />
+              Assign Package
+            </button>
+
+            <button
               onClick={fetchPurchases}
               className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#161B2A] border border-gray-800 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase transition-all"
             >
@@ -168,18 +248,17 @@ const PackageHistory = () => {
         <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-800/40">
           <div className="flex flex-col gap-1.5">
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Filter By Status</span>
-            <div className="flex bg-[#161B2A]/50 border border-gray-800 rounded-xl p-1">
-              {['all', 'active', 'completed', 'cancelled', 'expired'].map((status) => (
+            <div className="flex bg-[#161B2A]/50 border border-gray-800 rounded-xl p-1 flex-wrap gap-1">
+              {['all', 'active', 'completed', 'cancelled', 'expired', 'no_package'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                    statusFilter === status 
-                      ? 'bg-[#A020F0]/10 text-[#FF00FF] border border-[#A020F0]/20' 
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${statusFilter === status
+                      ? 'bg-[#A020F0]/10 text-[#FF00FF] border border-[#A020F0]/20'
                       : 'text-gray-400 hover:text-white border border-transparent'
-                  }`}
+                    }`}
                 >
-                  {status}
+                  {status === 'no_package' ? 'No Purchase' : status}
                 </button>
               ))}
             </div>
@@ -234,9 +313,29 @@ const PackageHistory = () => {
                     return (
                       <tr key={p._id} className="hover:bg-[#161B2A]/10 transition-colors text-xs text-white">
                         <td className="py-4.5 px-6">
-                          <div className="font-bold text-sm">{p.user?.fullName || 'Unknown User'}</div>
-                          <div className="text-[10px] text-gray-500 font-mono mt-0.5 uppercase tracking-wider">ID: {p.userId}</div>
-                          <div className="text-[10px] text-gray-500 mt-0.5">{p.user?.email}</div>
+                          <div className="font-bold text-sm text-white">{p.user?.fullName || 'Unknown User'}</div>
+                          <div className="text-[10px] text-gray-500 font-mono mt-0.5 uppercase tracking-wider flex items-center gap-1.5">
+                            <span>ID: {p.userId}</span>
+                            <button
+                              onClick={() => handleCopy(p.userId, 'User ID')}
+                              className="text-gray-500 hover:text-white transition-colors p-0.5 rounded hover:bg-gray-800"
+                              title="Copy ID"
+                            >
+                              <Copy size={10} />
+                            </button>
+                          </div>
+                          {p.user?.email && (
+                            <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1.5">
+                              <span className="truncate max-w-[150px]" title={p.user.email}>{p.user.email}</span>
+                              <button
+                                onClick={() => handleCopy(p.user.email, 'Email')}
+                                className="text-gray-500 hover:text-white transition-colors p-0.5 rounded hover:bg-gray-800"
+                                title="Copy Email"
+                              >
+                                <Copy size={10} />
+                              </button>
+                            </div>
+                          )}
                         </td>
                         <td className="py-4.5 px-6 font-semibold">
                           <span className="text-white text-sm">{p.packageId?.name || 'SOS Capital Tier'}</span>
@@ -271,6 +370,8 @@ const PackageHistory = () => {
                             <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-gray-800 text-gray-400 border border-gray-700 uppercase tracking-wider">Expired</span>
                           ) : p.status === 'cancelled' ? (
                             <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 uppercase tracking-wider">Cancelled</span>
+                          ) : p.status === 'no_package' ? (
+                            <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-gray-800 text-gray-500 border border-gray-700 uppercase tracking-wider">No Purchase</span>
                           ) : (
                             <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-wider">{p.status}</span>
                           )}
@@ -303,20 +404,19 @@ const PackageHistory = () => {
                 <span className="mx-2">|</span>
                 <span>Showing {totalItems === 0 ? 0 : startIndex + 1} to {endIndex} of {totalItems} entries</span>
               </div>
-              
+
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className={`px-3 py-1.5 rounded-lg border border-gray-850 text-xs font-bold transition-all duration-300 ${
-                    currentPage === 1 
-                      ? 'text-gray-600 bg-gray-900/10 cursor-not-allowed border-transparent' 
+                  className={`px-3 py-1.5 rounded-lg border border-gray-850 text-xs font-bold transition-all duration-300 ${currentPage === 1
+                      ? 'text-gray-600 bg-gray-900/10 cursor-not-allowed border-transparent'
                       : 'text-gray-300 hover:text-white hover:border-gray-700 bg-[#161B2A]/30 hover:bg-[#161B2A]/60'
-                  }`}
+                    }`}
                 >
                   Previous
                 </button>
-                
+
                 {/* Page numbers */}
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter(p => {
@@ -326,32 +426,30 @@ const PackageHistory = () => {
                     const isPageActive = currentPage === p;
                     const prevPage = arr[idx - 1];
                     const showEllipsis = prevPage && p - prevPage > 1;
-                    
+
                     return (
                       <React.Fragment key={p}>
                         {showEllipsis && <span className="px-2 text-gray-600 text-xs">...</span>}
                         <button
                           onClick={() => setCurrentPage(p)}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all duration-300 ${
-                            isPageActive 
-                              ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_10px_rgba(160,32,240,0.3)]' 
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all duration-300 ${isPageActive
+                              ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_10px_rgba(160,32,240,0.3)]'
                               : 'text-gray-400 hover:text-white hover:bg-[#161B2A]/50 border border-transparent'
-                          }`}
+                            }`}
                         >
                           {p}
                         </button>
                       </React.Fragment>
                     );
                   })}
-                  
+
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages || totalPages === 0}
-                  className={`px-3 py-1.5 rounded-lg border border-gray-855 text-xs font-bold transition-all duration-300 ${
-                    currentPage === totalPages || totalPages === 0
-                      ? 'text-gray-600 bg-gray-900/10 cursor-not-allowed border-transparent' 
+                  className={`px-3 py-1.5 rounded-lg border border-gray-855 text-xs font-bold transition-all duration-300 ${currentPage === totalPages || totalPages === 0
+                      ? 'text-gray-600 bg-gray-900/10 cursor-not-allowed border-transparent'
                       : 'text-gray-300 hover:text-white hover:border-gray-700 bg-[#161B2A]/30 hover:bg-[#161B2A]/60'
-                  }`}
+                    }`}
                 >
                   Next
                 </button>
@@ -360,6 +458,109 @@ const PackageHistory = () => {
           </div>
         )}
       </div>
+
+      {showAssignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-[#0B0F1A] border border-[#A020F0]/30 rounded-3xl overflow-hidden shadow-2xl relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#A020F0]/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#161B2A]/30">
+              <div>
+                <h3 className="text-lg font-bold text-white">Manual Package Assignment</h3>
+                <p className="text-xs text-gray-500">Instantly activate staking packages for users</p>
+              </div>
+              <button 
+                onClick={() => setShowAssignModal(false)}
+                className="p-1.5 text-gray-400 hover:text-white bg-gray-800 rounded-lg transition-colors border border-gray-700"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAssignSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1.5">User ID or Email</label>
+                <input
+                  type="text"
+                  placeholder="e.g. CTC123456 or user@email.com"
+                  value={assignForm.userId}
+                  onChange={(e) => setAssignForm({ ...assignForm, userId: e.target.value })}
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1.5">Select Staking Package</label>
+                <select
+                  value={assignForm.packageId}
+                  onChange={(e) => {
+                    const pkgId = e.target.value;
+                    const pkg = packages.find(p => p._id === pkgId);
+                    setAssignForm({
+                      ...assignForm,
+                      packageId: pkgId,
+                      amount: pkg ? pkg.minAmount.toString() : ''
+                    });
+                  }}
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                  required
+                >
+                  <option value="">-- Choose Package --</option>
+                  {packages.map(p => (
+                    <option key={p._id} value={p._id}>
+                      {p.name} (${p.minAmount} - ${p.maxAmount}) [{p.dailyProfit}% Daily]
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {assignForm.packageId && (() => {
+                const pkg = packages.find(p => p._id === assignForm.packageId);
+                return (
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">Investment Amount ($)</label>
+                      {pkg && (
+                        <span className="text-[10px] text-[#00C6FF] font-semibold">
+                          Range: ${pkg.minAmount} - ${pkg.maxAmount}
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="number"
+                      placeholder="e.g. 500"
+                      min={pkg ? pkg.minAmount : undefined}
+                      max={pkg ? pkg.maxAmount : undefined}
+                      value={assignForm.amount}
+                      onChange={(e) => setAssignForm({ ...assignForm, amount: e.target.value })}
+                      className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono font-bold"
+                      required
+                    />
+                  </div>
+                );
+              })()}
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAssignModal(false)}
+                  className="px-4 py-2 bg-gray-800 text-gray-400 hover:text-white rounded-xl transition-colors text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={assigning}
+                  className="px-6 py-2 bg-gradient-to-r from-[#A020F0] to-[#FF00FF] hover:shadow-[0_0_15px_rgba(160,32,240,0.4)] text-white rounded-xl transition-colors text-xs font-bold disabled:opacity-50"
+                >
+                  {assigning ? 'Assigning...' : 'Confirm Assignment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

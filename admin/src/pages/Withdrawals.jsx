@@ -185,9 +185,9 @@ const Withdrawals = () => {
   // Filter & Search
   const filteredWithdrawals = withdrawals.filter((w) => {
     const matchesSearch = 
-      w.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      w.walletAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      w.user?.fullName?.toLowerCase().includes(searchTerm.toLowerCase());
+      (w.userId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (w.walletAddress || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (w.user?.fullName || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const isSos = w.isPrincipalExit || w.type === 'principal' || w.userPackageId;
     const matchesType = 

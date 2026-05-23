@@ -18,7 +18,9 @@ const {
   getCronStatus,
   triggerMiningCron,
   getAllTransactions,
-  updateUser
+  updateUser,
+  impersonateUser,
+  assignPackage
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
@@ -28,6 +30,8 @@ router.route('/dashboard').get(protect, admin, getDashboardStats);
 router.route('/users').get(protect, admin, getAllUsers);
 router.route('/user/:id').put(protect, admin, updateUser);
 router.route('/user/:id/block').put(protect, admin, toggleBlockUser);
+router.route('/user/:id/impersonate').post(protect, admin, impersonateUser);
+router.route('/package/assign').post(protect, admin, assignPackage);
 
 // KYC Routes
 router.route('/kycs').get(protect, admin, getAllKYCs);

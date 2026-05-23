@@ -62,9 +62,9 @@ const Transactions = () => {
 
   const filteredTxs = Array.isArray(txs) ? txs.filter((t) => {
     const matchesSearch = 
-      t.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.txHash?.toLowerCase().includes(searchTerm.toLowerCase());
+      (t.userId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.txHash || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesType = 
       filterType === 'all' || 

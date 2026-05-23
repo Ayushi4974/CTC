@@ -6,6 +6,56 @@ import { Award, DollarSign, Calendar, Clock, Trophy, Users, ShieldAlert } from '
 const PromotionalBonusHistory = () => {
   const [bonuses, setBonuses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const totalPages = Math.ceil(bonuses.length / itemsPerPage);
+  const paginatedBonuses = bonuses.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [bonuses.length]);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      
+      let start = Math.max(2, currentPage - 1);
+      let end = Math.min(totalPages - 1, currentPage + 1);
+      
+      if (currentPage <= 2) {
+        end = 4;
+      } else if (currentPage >= totalPages - 1) {
+        start = totalPages - 3;
+      }
+      
+      if (start > 2) {
+        pages.push('...');
+      }
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (end < totalPages - 1) {
+        pages.push('...');
+      }
+      
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
 
   const promoRules = [
     { level: 'L1', team: '5 DIRECT', salary: '$30', margin: '0.50%', bonus: '$100' },
@@ -72,7 +122,7 @@ const PromotionalBonusHistory = () => {
         <motion.h1 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#A020F0] to-[#FF00FF] mb-4 drop-shadow-[0_0_15px_rgba(255,0,255,0.4)]"
+          className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#A020F0] to-[#FF00FF] mb-4 drop-shadow-[0_0_15px_rgba(255,0,255,0.4)]"
         >
           Promotion Bonus History
         </motion.h1>
@@ -80,19 +130,19 @@ const PromotionalBonusHistory = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="text-gray-400 text-lg max-w-2xl"
+          className="text-gray-400 text-sm md:text-lg max-w-2xl"
         >
           Track your rank achievement rewards and bi-monthly salary payouts.
         </motion.p>
       </div>
 
       {/* Promotional Bonus Structure Table */}
-      <div className="mb-10 bg-[#0a0a0a] rounded-3xl border border-gray-800 p-6 md:p-8 relative overflow-hidden shadow-[0_0_40px_rgba(160,32,240,0.1)]">
+      <div className="mb-10 bg-[#0a0a0a] rounded-3xl border border-gray-800 p-4 sm:p-6 md:p-8 relative overflow-hidden shadow-[0_0_40px_rgba(160,32,240,0.1)]">
         <div className="absolute top-0 left-0 w-64 h-64 bg-[#FF00FF] rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#A020F0] rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
 
         <div className="relative z-10">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center md:text-left flex items-center gap-2">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-6 text-center md:text-left flex items-center gap-2">
             <Trophy className="text-[#FF00FF]" size={24} />
             Promotional Bonus Structure
           </h2>
@@ -147,7 +197,7 @@ const PromotionalBonusHistory = () => {
       </div>
 
       {/* History List */}
-      <div className="bg-[#0a0a0a] rounded-3xl border border-gray-800 p-6 md:p-8 relative overflow-hidden shadow-[0_0_40px_rgba(160,32,240,0.1)]">
+      <div className="bg-[#0a0a0a] rounded-3xl border border-gray-800 p-4 sm:p-6 md:p-8 relative overflow-hidden shadow-[0_0_40px_rgba(160,32,240,0.1)]">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#A020F0] rounded-full mix-blend-multiply filter blur-[100px] opacity-20 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#FF00FF] rounded-full mix-blend-multiply filter blur-[100px] opacity-20 pointer-events-none"></div>
 
@@ -161,13 +211,13 @@ const PromotionalBonusHistory = () => {
               <p className="text-gray-500 text-sm mt-2">Achieve leadership ranks to unlock bonuses and salary.</p>
             </div>
           ) : (
-            bonuses.map((tx, idx) => (
+            paginatedBonuses.map((tx, idx) => (
               <motion.div 
                 key={tx._id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-2xl p-5 hover:border-[#FF00FF]/40 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+                className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-2xl p-4 sm:p-5 hover:border-[#FF00FF]/40 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
@@ -180,7 +230,7 @@ const PromotionalBonusHistory = () => {
                     {tx.type === 'bonus' ? <Trophy size={24} /> : tx.type === 'level_split' ? <Award size={24} /> : <DollarSign size={24} />}
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-lg">
+                    <h3 className="text-white font-bold text-sm sm:text-base md:text-lg">
                       {tx.type === 'bonus' ? 'Rank Achievement Bonus' : tx.type === 'level_split' ? `Level ${tx.level} Promo Split` : 'Leadership Salary'}
                     </h3>
                     <div className="flex items-center gap-4 mt-1">
@@ -197,7 +247,7 @@ const PromotionalBonusHistory = () => {
                 </div>
 
                 <div className="text-right ml-auto md:ml-0">
-                  <p className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+                  <p className="text-lg sm:text-xl md:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
                     +${tx.amount.toFixed(2)}
                   </p>
                   <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">
@@ -206,6 +256,57 @@ const PromotionalBonusHistory = () => {
                 </div>
               </motion.div>
             ))
+          )}
+
+          {/* Pagination */}
+          {!loading && bonuses.length > 0 && totalPages > 1 && (
+            <div className="border-t border-gray-800/50 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 relative z-10">
+              <span className="text-xs text-gray-500 font-medium">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, bonuses.length)} of {bonuses.length} entries
+              </span>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="bg-[#161B2A]/80 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-600 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                
+                {getPageNumbers().map((page, index) => {
+                  if (page === '...') {
+                    return (
+                      <span key={`ellipsis-${index}`} className="px-2 text-xs text-gray-500 font-medium select-none">
+                        ...
+                      </span>
+                    );
+                  }
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        currentPage === page
+                          ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_10px_rgba(160,32,240,0.4)]'
+                          : 'bg-[#161B2A]/80 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-600'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="bg-[#161B2A]/80 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-600 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>

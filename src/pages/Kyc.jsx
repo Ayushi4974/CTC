@@ -11,6 +11,60 @@ const steps = [
   { id: 4, name: 'Bank Details', icon: Building },
 ];
 
+const FileUploadBox = ({ label, id, uploadedFiles, isUploading, handleRemoveFile, handleFileUpload }) => {
+  const isUploaded = !!uploadedFiles[id];
+  const isLoading = isUploading[id];
+  
+  return (
+    <div className="flex flex-col gap-2">
+      {label && <label className="text-sm font-medium text-gray-400">{label}</label>}
+      
+      {isLoading ? (
+        <div className="relative border border-gray-700 bg-[#161B2A] rounded-2xl h-40 flex flex-col items-center justify-center overflow-hidden">
+          <div className="w-full h-full bg-gray-800 animate-pulse absolute inset-0"></div>
+          <div className="relative z-10 flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-4 border-[#A020F0] border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-[#A020F0] text-sm font-semibold animate-pulse">Encrypting & Uploading...</span>
+          </div>
+        </div>
+      ) : isUploaded ? (
+        <div className="relative border border-[#A020F0] bg-[#161B2A] rounded-2xl h-40 flex flex-col items-center justify-center overflow-hidden group">
+          <img src={uploadedFiles[id]} alt={label} className="absolute inset-0 w-full h-full object-cover opacity-60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+          <div className="relative z-10 flex flex-col items-center">
+            <CheckCircle2 className="text-[#00FF99] mb-2" size={32} />
+            <span className="text-white font-semibold">Uploaded</span>
+          </div>
+          <button 
+            onClick={() => handleRemoveFile(id)}
+            className="absolute top-3 right-3 bg-red-500/20 hover:bg-red-500 text-white rounded-full p-1.5 transition-colors z-20"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      ) : (
+        <label 
+          htmlFor={`file-upload-${id}`}
+          className="relative border border-dashed border-gray-600 hover:border-[#A020F0] bg-[#161B2A]/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-300 group hover:shadow-[inset_0_0_20px_rgba(160,32,240,0.15)] h-40 w-full"
+        >
+          <input 
+            id={`file-upload-${id}`}
+            type="file" 
+            accept="image/*"
+            className="hidden" 
+            onChange={(e) => handleFileUpload(e, id)} 
+          />
+          <UploadCloud className="text-gray-500 group-hover:text-[#A020F0] transition-colors" size={32} />
+          <div className="text-center">
+            <p className="text-sm font-semibold text-[#A020F0]">Click to upload</p>
+            <p className="text-[10px] text-gray-500 mt-1">SVG, PNG, JPG (MAX. 5MB)</p>
+          </div>
+        </label>
+      )}
+    </div>
+  );
+};
+
 const Kyc = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [kycStatus, setKycStatus] = useState(null); // 'none', 'pending', 'approved', 'rejected'
@@ -121,59 +175,7 @@ const Kyc = () => {
     });
   };
 
-  const FileUploadBox = ({ label, id }) => {
-    const isUploaded = !!uploadedFiles[id];
-    const isLoading = isUploading[id];
-    
-    return (
-      <div className="flex flex-col gap-2">
-        {label && <label className="text-sm font-medium text-gray-400">{label}</label>}
-        
-        {isLoading ? (
-          <div className="relative border border-gray-700 bg-[#161B2A] rounded-2xl h-40 flex flex-col items-center justify-center overflow-hidden">
-            <div className="w-full h-full bg-gray-800 animate-pulse absolute inset-0"></div>
-            <div className="relative z-10 flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-4 border-[#A020F0] border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-[#A020F0] text-sm font-semibold animate-pulse">Encrypting & Uploading...</span>
-            </div>
-          </div>
-        ) : isUploaded ? (
-          <div className="relative border border-[#A020F0] bg-[#161B2A] rounded-2xl h-40 flex flex-col items-center justify-center overflow-hidden group">
-            <img src={uploadedFiles[id]} alt={label} className="absolute inset-0 w-full h-full object-cover opacity-60" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-            <div className="relative z-10 flex flex-col items-center">
-              <CheckCircle2 className="text-[#00FF99] mb-2" size={32} />
-              <span className="text-white font-semibold">Uploaded</span>
-            </div>
-            <button 
-              onClick={() => handleRemoveFile(id)}
-              className="absolute top-3 right-3 bg-red-500/20 hover:bg-red-500 text-white rounded-full p-1.5 transition-colors z-20"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        ) : (
-          <label 
-            htmlFor={`file-upload-${id}`}
-            className="relative border border-dashed border-gray-600 hover:border-[#A020F0] bg-[#161B2A]/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-300 group hover:shadow-[inset_0_0_20px_rgba(160,32,240,0.15)] h-40 w-full"
-          >
-            <input 
-              id={`file-upload-${id}`}
-              type="file" 
-              accept="image/*"
-              className="hidden" 
-              onChange={(e) => handleFileUpload(e, id)} 
-            />
-            <UploadCloud className="text-gray-500 group-hover:text-[#A020F0] transition-colors" size={32} />
-            <div className="text-center">
-              <p className="text-sm font-semibold text-[#A020F0]">Click to upload</p>
-              <p className="text-[10px] text-gray-500 mt-1">SVG, PNG, JPG (MAX. 5MB)</p>
-            </div>
-          </label>
-        )}
-      </div>
-    );
-  };
+
 
   if (loading) {
     return (
@@ -364,8 +366,8 @@ const Kyc = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FileUploadBox label="Front Side (ID / License) or Passport Photo Page" id="aadharFront" />
-                <FileUploadBox label="Back Side of Document (if applicable)" id="aadharBack" />
+                <FileUploadBox label="Front Side (ID / License) or Passport Photo Page" id="aadharFront" uploadedFiles={uploadedFiles} isUploading={isUploading} handleRemoveFile={handleRemoveFile} handleFileUpload={handleFileUpload} />
+                <FileUploadBox label="Back Side of Document (if applicable)" id="aadharBack" uploadedFiles={uploadedFiles} isUploading={isUploading} handleRemoveFile={handleRemoveFile} handleFileUpload={handleFileUpload} />
               </div>
             </div>
           )}
@@ -392,8 +394,8 @@ const Kyc = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FileUploadBox label="Utility Bill / Bank Statement Page 1" id="panFront" />
-                <FileUploadBox label="Bill / Statement Additional Page (if any) or Selfie with ID" id="panAgreement" />
+                <FileUploadBox label="Utility Bill / Bank Statement Page 1" id="panFront" uploadedFiles={uploadedFiles} isUploading={isUploading} handleRemoveFile={handleRemoveFile} handleFileUpload={handleFileUpload} />
+                <FileUploadBox label="Bill / Statement Additional Page (if any) or Selfie with ID" id="panAgreement" uploadedFiles={uploadedFiles} isUploading={isUploading} handleRemoveFile={handleRemoveFile} handleFileUpload={handleFileUpload} />
               </div>
             </div>
           )}
