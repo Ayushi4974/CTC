@@ -8,7 +8,7 @@ import api from '../api';
 import { useEffect } from 'react';
 
 
-const filters = ['All', 'Deposit', 'Withdrawal', 'Investment', 'Referral', 'Level Income', 'Bonus'];
+const filters = ['All', 'Deposit', 'Withdrawal', 'Investment', 'Level Income', 'Bonus'];
 
 const Transactions = () => {
   const [activeFilter, setActiveFilter] = useState('All');

@@ -111,7 +111,6 @@ const Transactions = () => {
               <option value="deposit">Deposits</option>
               <option value="withdrawal">Withdrawals</option>
               <option value="investment">Investments</option>
-              <option value="referral">MLM Referral</option>
               <option value="bonus">Rank Bonus</option>
               <option value="salary">Salaries</option>
             </select>

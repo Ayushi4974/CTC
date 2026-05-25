@@ -111,7 +111,8 @@ const buyPackage = async (req, res, next) => {
     });
 
     if (user.sponsor) {
-      await distributeDirectReferral(user.sponsor, amount, user.userId, user._id);
+      // Direct referral income is disabled in this project
+      // await distributeDirectReferral(user.sponsor, amount, user.userId, user._id);
       
       // Check Fastrack Bonus for Sponsor
       const sponsor = await User.findById(user.sponsor);

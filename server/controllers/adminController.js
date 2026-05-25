@@ -654,8 +654,9 @@ const assignPackage = async (req, res, next) => {
     });
 
     if (user.sponsor) {
-      const { distributeDirectReferral } = require('../services/referralService');
-      await distributeDirectReferral(user.sponsor, numericAmount, user.userId, user._id);
+      // Direct referral income is disabled in this project
+      // const { distributeDirectReferral } = require('../services/referralService');
+      // await distributeDirectReferral(user.sponsor, numericAmount, user.userId, user._id);
       
       // Check Fastrack Bonus for Sponsor
       const sponsor = await User.findById(user.sponsor);
