@@ -16,7 +16,22 @@ const marginBonusMap = {
 // Run every 12 hours (Monday to Friday) UTC time
 const runMiningCronCycle = async (force = false) => {
   const cronName = 'MINING_CRON_12H';
-  const cycleId = `MINING_${new Date().toISOString().split('T')[0]}_${new Date().getHours()}`;
+
+  const today = new Date();
+  const utcHour = today.getUTCHours();
+  const utcDay = today.getUTCDay();
+
+  // If scheduled execution (not forced), enforce execution window
+  if (!force) {
+    // Only run at 00:00 UTC and 12:00 UTC
+    if (utcHour !== 0 && utcHour !== 12) {
+      return { success: false, reason: 'NOT_SCHEDULED_HOUR' };
+    }
+  }
+
+  // Calculate cycleId based on UTC time to avoid timezone mismatch
+  // e.g. MINING_2026-05-26_0 or MINING_2026-05-26_12
+  const cycleId = `MINING_${today.toISOString().split('T')[0]}_${utcHour}`;
 
   // 1. DUPLICATE & REPLAY PROTECTION (CRON LOCK)
   let state = await CronState.findOne({ cronName });
@@ -38,10 +53,8 @@ const runMiningCronCycle = async (force = false) => {
 
   console.log(`[CRON] Running daily mining cron... Cycle: ${cycleId}`);
   
-  const today = new Date();
-  const day = today.getDay(); // 0 = Sunday, 6 = Saturday
-  if ((day === 0 || day === 6) && !force) {
-    console.log('[CRON] Skipping mining cron distribution on weekend (Saturday/Sunday)');
+  if ((utcDay === 0 || utcDay === 6) && !force) {
+    console.log('[CRON] Skipping mining cron distribution on weekend (Saturday/Sunday UTC)');
     await CronState.updateOne({ cronName }, { $set: { isRunning: false, lastCycleId: cycleId, lastRunAt: new Date() } });
     return { success: false, reason: 'WEEKEND_SKIPPED' };
   }
@@ -185,10 +198,9 @@ const runMiningCronCycle = async (force = false) => {
   }
 };
 
-// Schedule it
-cron.schedule("0 */12 * * 1-5", () => runMiningCronCycle(false), {
-  scheduled: true,
-  timezone: "UTC"
+// Schedule to run every hour at minute 0
+cron.schedule("0 * * * *", () => runMiningCronCycle(false), {
+  scheduled: true
 });
 
 module.exports = { runMiningCronCycle };

@@ -186,7 +186,7 @@ async function runTest() {
     await distributeLevelIncome(userB._id, profitB, userB.userId);
     
     const uA_Final = await User.findById(userA._id);
-    const levelBase = profitB * 0.20; // Package 1 scalar
+    const levelBase = profitB * 0.50; // Package 1 scalar (0.50)
     const levelTotal = levelBase * 0.15; // 15% for Level 1
     const expectedPromo = round6(levelTotal * 0.50);
     

@@ -18,6 +18,18 @@ const connectDB = async () => {
       await SystemSettings.create({ manualWithdrawalApproval: true });
       console.log('SystemSettings created with manualWithdrawalApproval: true');
     }
+
+    // Auto-backfill compoundingBalance for UserPackage if undefined
+    const UserPackage = require('../models/UserPackage');
+    const missingCompoundingPkgs = await UserPackage.find({ compoundingBalance: { $exists: false } });
+    if (missingCompoundingPkgs.length > 0) {
+      console.log(`[DB] Found ${missingCompoundingPkgs.length} packages with missing compoundingBalance. Backfilling...`);
+      for (let p of missingCompoundingPkgs) {
+        p.compoundingBalance = p.amount;
+        await p.save();
+      }
+      console.log('[DB] Compounding balance backfill complete.');
+    }
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);
