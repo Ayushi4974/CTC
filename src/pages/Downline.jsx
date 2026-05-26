@@ -85,27 +85,26 @@ const Downline = () => {
   };
 
   const activeDirectsCount = directTeam.filter(d => d.isActive).length;
-  // Global level income qualification requires personal staking of $1500+ and 5+ active directs
-  const hasGlobalEligibility = (currentUser?.totalInvestment || 0) >= 1500 && activeDirectsCount >= 5;
 
   const dynamicLevelsData = allLevels.map((lvl) => {
     const reqs = LEVEL_REQUIREMENTS[lvl.level - 1] || { staking: 0, directs: 0 };
     const isUnlocked = (currentUser?.totalInvestment || 0) >= reqs.staking && 
-                       activeDirectsCount >= reqs.directs && 
-                       hasGlobalEligibility;
+                       activeDirectsCount >= reqs.directs;
 
     const commEarned = levelIncomeData
       .filter(inc => inc.level === lvl.level)
       .reduce((sum, item) => sum + item.amount, 0);
 
+    const maxReqDirects = reqs.directs || 1;
+
     return {
       level: lvl.level,
       members: lvl.members.length,
-      maxMembers: 10 * lvl.level, // Example logical scaling
+      maxMembers: maxReqDirects, // Scaled dynamically as per level direct referrals requirement
       volume: lvl.members.reduce((acc, curr) => acc + (curr.totalInvestment || 0), 0),
       commPercent: LEVEL_PERCENTAGES[lvl.level - 1] || 0,
       commEarned: parseFloat(commEarned.toFixed(3)), 
-      performance: Math.min((lvl.members.length / (10 * lvl.level)) * 100, 100),
+      performance: Math.min((lvl.members.length / maxReqDirects) * 100, 100),
       isActive: isUnlocked,
       reqDirects: reqs.directs,
       reqVol: reqs.staking,
@@ -324,9 +323,9 @@ const Downline = () => {
           {dynamicLevelsData.map((row) => (
             <React.Fragment key={row.level}>
               <div 
-                onClick={() => row.isActive && toggleRow(row.level)}
+                onClick={() => row.members > 0 && toggleRow(row.level)}
                 className={`grid grid-cols-1 md:grid-cols-6 gap-4 px-6 py-5 border-b border-gray-800/30 items-center transition-colors ${
-                  row.isActive ? 'hover:bg-[#161B2A]/60 bg-[#161B2A]/20 cursor-pointer' : 'hover:bg-[#161B2A]/40'
+                  row.members > 0 ? 'hover:bg-[#161B2A]/60 bg-[#161B2A]/20 cursor-pointer' : 'hover:bg-[#161B2A]/40'
                 }`}
               >
                 {/* Level & Badge */}
@@ -344,7 +343,7 @@ const Downline = () => {
                       <p className={`font-bold text-sm ${row.reward && !row.isActive ? 'text-[#FF00FF]' : 'text-white'}`}>
                         {row.reward ? `${row.reward} ` : `Level ${row.level}`}
                       </p>
-                      {row.isActive && <ChevronRight size={14} className={`text-gray-500 transition-transform ${expandedRow === row.level ? 'rotate-90' : ''}`} />}
+                      {row.members > 0 && <ChevronRight size={14} className={`text-gray-500 transition-transform ${expandedRow === row.level ? 'rotate-90' : ''}`} />}
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-16 h-1 bg-gray-800 rounded-full overflow-hidden">
@@ -370,7 +369,7 @@ const Downline = () => {
                   {row.isActive ? (
                     <p className="text-[10px] text-[#00FF99] flex items-center gap-1 drop-shadow-[0_0_5px_rgba(0,255,153,0.5)]"><TrendingUp size={10} /> Active level</p>
                   ) : (
-                    <p className="text-[10px] text-red-500/80 flex items-center gap-1" title={`Requires $${row.reqVol} Personal Staking & ${row.reqDirects} Direct Referrals, plus Global Eligibility`}>
+                    <p className="text-[10px] text-red-500/80 flex items-center gap-1" title={`Requires $${row.reqVol} Personal Staking & ${row.reqDirects} Direct Referrals`}>
                       <Lock size={10} /> Locked (Need {row.reqDirects} Dir & ${row.reqVol})
                     </p>
                   )}

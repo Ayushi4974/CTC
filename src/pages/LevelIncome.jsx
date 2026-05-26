@@ -21,6 +21,29 @@ const LEVEL_REQUIREMENTS = [
   { staking: 2200, directs: 27 }, { staking: 2400, directs: 28 }, { staking: 2700, directs: 29 }, { staking: 3000, directs: 30 }, { staking: 3000, directs: 30 }
 ];
 
+const getLevelStatus = (levelIndex, userStaking, activeDirects) => {
+  const requirement = LEVEL_REQUIREMENTS[levelIndex] || { staking: 0, directs: 0 };
+
+  const hasStaking = userStaking >= requirement.staking;
+  const hasDirects = activeDirects >= requirement.directs;
+
+  // ✅ Fully qualified
+  if (hasStaking && hasDirects) {
+    return {
+      status: "active",
+      badge: "Active",
+      color: "green"
+    };
+  }
+
+  // 🔒 Requirements missing
+  return {
+    status: "locked",
+    badge: `Locked (${requirement.staking}$ + ${requirement.directs} directs required)`,
+    color: "yellow"
+  };
+};
+
 const stats = [
   { title: 'Total Level Income', value: 1630.714, prefix: '$ ', suffix: '', icon: TrendingUp, color: 'text-[#00FF99]', aura: 'bg-[#00FF99]/30' },
   { title: 'Total Network Members', value: 7, prefix: '', suffix: '', icon: Users, color: 'text-[#00C6FF]', aura: 'bg-[#00C6FF]/20' },
@@ -122,23 +145,18 @@ const LevelIncome = () => {
   const activeDirectsCount = directTeam.filter(d => d.isActive).length;
   const currentNetworkMembers = currentUser?.directTeam || 0;
 
-  // Global level income qualification requires personal staking of $1500+ and 5+ active directs
-  const hasGlobalEligibility = (currentUser?.totalInvestment || 0) >= 1500 && activeDirectsCount >= 5;
-
   const dynamicStats = [
     { title: 'Total Level Income', value: currentLevelIncome, prefix: '$', suffix: '', icon: TrendingUp, color: 'text-[#00FF99]', aura: 'bg-[#00FF99]/30' },
     { title: 'Total Network Members', value: currentNetworkMembers, prefix: '', suffix: '', icon: Users, color: 'text-[#00C6FF]', aura: 'bg-[#00C6FF]/20' },
     { title: 'Active Levels', value: allLevels.filter(lvl => {
-        const reqs = LEVEL_REQUIREMENTS[lvl.level - 1] || { staking: 0, directs: 0 };
-        return (currentUser?.totalInvestment || 0) >= reqs.staking && activeDirectsCount >= reqs.directs && hasGlobalEligibility;
+        return getLevelStatus(lvl.level - 1, currentUser?.totalInvestment || 0, activeDirectsCount).status === "active";
       }).length, prefix: '', suffix: '', icon: Layers, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/20', isProgress: true },
   ];
 
   const dynamicLevelData = allLevels.map((lvl) => {
     const reqs = LEVEL_REQUIREMENTS[lvl.level - 1] || { staking: 0, directs: 0 };
-    const isUnlocked = (currentUser?.totalInvestment || 0) >= reqs.staking && 
-                       activeDirectsCount >= reqs.directs && 
-                       hasGlobalEligibility;
+    const levelStatus = getLevelStatus(lvl.level - 1, currentUser?.totalInvestment || 0, activeDirectsCount);
+    const isUnlocked = levelStatus.status === "active";
 
     const commEarned = levelIncomeData
       .filter(inc => inc.level === lvl.level)
@@ -150,6 +168,8 @@ const LevelIncome = () => {
       income: parseFloat(commEarned.toFixed(3)),
       bonusPercent: LEVEL_PERCENTAGES[lvl.level - 1] || 0,
       isLocked: !isUnlocked,
+      badgeText: levelStatus.badge,
+      badgeColor: levelStatus.color,
       reqDirects: reqs.directs,
       reqVol: reqs.staking,
       users: lvl.members.map(member => {
@@ -308,7 +328,7 @@ const LevelIncome = () => {
                   {data.isLocked ? (
                     <div className="relative group/tooltip flex items-center gap-2 text-[10px] text-gray-500 uppercase tracking-widest font-bold cursor-help">
                       <Lock size={12} className="text-gray-500" />
-                      <span>Unlock Requires {data.reqDirects} Directs & $ {data.reqVol} Vol.</span>
+                      <span>{data.badgeText}</span>
                       <div className="absolute bottom-full right-0 mb-2 w-56 p-3 bg-gray-900 border border-gray-700 text-[10px] text-gray-300 rounded-lg shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-20 text-left normal-case tracking-normal font-medium leading-relaxed">
                         To unlock Level {data.level} bonuses, you must complete {data.reqDirects} active direct referrals and maintain a self-staking/team volume of {data.reqVol} USDT.
                       </div>

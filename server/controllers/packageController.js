@@ -10,12 +10,12 @@ const getAllPackages = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
     let filter = { status: true };
-    
+
     // If user has no sponsor, hide referral-only packages
     if (!user || !user.sponsor) {
       filter.isReferralOnly = { $ne: true };
     }
-    
+
     const packages = await Package.find(filter).sort({ minAmount: 1 });
     res.json(packages);
   } catch (error) {
@@ -26,14 +26,14 @@ const getAllPackages = async (req, res, next) => {
 const buyPackage = async (req, res, next) => {
   try {
     const { packageId, amount, txHash, senderAddress } = req.body;
-    
+
     if (!senderAddress) {
       return res.status(400).json({ message: 'Sender wallet address is required for verification.' });
     }
-    
+
     const pkg = await Package.findById(packageId);
     if (!pkg) return res.status(404).json({ message: 'Package not found' });
-    
+
     if (amount < pkg.minAmount || amount > pkg.maxAmount) {
       return res.status(400).json({ message: 'Invalid amount for this package' });
     }
@@ -54,7 +54,7 @@ const buyPackage = async (req, res, next) => {
     if (user.role === 'user' && (user.totalInvestment + amount) > 10000) {
       return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $10,000.' });
     }
-    
+
     // Multi-Package Rules: Prevent Package Stacking and Handle Upgrades
     const existingActivePkg = await UserPackage.findOne({ user: user._id, status: 'active' });
     if (existingActivePkg) {
@@ -65,9 +65,9 @@ const buyPackage = async (req, res, next) => {
       existingActivePkg.status = 'upgraded';
       await existingActivePkg.save();
     }
-    
+
     const isBVEligible = true; // External deposits count towards BV
-    
+
     const userPackage = await UserPackage.create({
       userId: user.userId,
       user: user._id,
@@ -83,14 +83,14 @@ const buyPackage = async (req, res, next) => {
     user.activePackage = pkg._id;
     user.totalInvestment += amount; // Expands their 4x global cap
     await user.save();
-    
+
     await AuditLog.create({
       action: 'PACKAGE_ACTIVATION',
       userId: user._id,
       packageId: userPackage._id,
       amount: amount,
-      details: { 
-        txHash, 
+      details: {
+        txHash,
         isUpgrade: !!existingActivePkg,
         oldPackageId: existingActivePkg ? existingActivePkg._id : null
       }
@@ -113,7 +113,7 @@ const buyPackage = async (req, res, next) => {
     if (user.sponsor) {
       // Direct referral income is disabled in this project
       // await distributeDirectReferral(user.sponsor, amount, user.userId, user._id);
-      
+
       // Check Fastrack Bonus for Sponsor
       const sponsor = await User.findById(user.sponsor);
       if (sponsor && !sponsor.fastrackQualified && sponsor.activePackage) {
@@ -121,7 +121,7 @@ const buyPackage = async (req, res, next) => {
         if (sponsorPkg) {
           const tenDaysAgo = new Date();
           tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
-          
+
           if (sponsorPkg.createdAt >= tenDaysAgo) {
             // Count directs with same or higher package
             const directsWithQualifyingPkg = await UserPackage.countDocuments({

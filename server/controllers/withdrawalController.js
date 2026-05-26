@@ -2,8 +2,15 @@ const Withdrawal = require('../models/Withdrawal');
 const User = require('../models/User');
 const SystemSettings = require('../models/SystemSettings');
 const AuditLog = require('../models/AuditLog');
+const activeWithdrawals = new Set();
 
 const requestWithdrawal = async (req, res, next) => {
+  const userIdStr = req.user._id.toString();
+  if (activeWithdrawals.has(userIdStr)) {
+    return res.status(400).json({ message: 'A withdrawal request is already in progress for this user.' });
+  }
+  activeWithdrawals.add(userIdStr);
+
   try {
     const { amount, walletAddress, type = 'profit', userPackageId } = req.body;
     const user = await User.findById(req.user._id);
@@ -121,6 +128,8 @@ const requestWithdrawal = async (req, res, next) => {
     res.status(201).json({ message: 'Withdrawal requested successfully', withdrawal });
   } catch (error) {
     next(error);
+  } finally {
+    activeWithdrawals.delete(userIdStr);
   }
 };
 
