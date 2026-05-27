@@ -18,16 +18,10 @@ const runMiningCronCycle = async (force = false) => {
   const cronName = 'MINING_CRON_12H';
 
   const today = new Date();
-  const utcHour = today.getUTCHours();
-  const utcDay = today.getUTCDay();
-
-  // If scheduled execution (not forced), enforce execution window
-  if (!force) {
-    // Only run at 00:00 UTC and 12:00 UTC
-    if (utcHour !== 0 && utcHour !== 12) {
-      return { success: false, reason: 'NOT_SCHEDULED_HOUR' };
-    }
-  }
+  // Round to nearest hour to handle minor clock drift/offset in scheduler execution
+  const roundedTime = new Date(Math.round(today.getTime() / 3600000) * 3600000);
+  const utcHour = roundedTime.getUTCHours();
+  const utcDay = roundedTime.getUTCDay();
 
   // Calculate cycleId based on UTC time to avoid timezone mismatch
   // e.g. MINING_2026-05-26_0 or MINING_2026-05-26_12
@@ -52,7 +46,7 @@ const runMiningCronCycle = async (force = false) => {
   await CronState.updateOne({ cronName }, { $set: { isRunning: true } });
 
   console.log(`[CRON] Running daily mining cron... Cycle: ${cycleId}`);
-  
+
   if ((utcDay === 0 || utcDay === 6) && !force) {
     console.log('[CRON] Skipping mining cron distribution on weekend (Saturday/Sunday UTC)');
     await CronState.updateOne({ cronName }, { $set: { isRunning: false, lastCycleId: cycleId, lastRunAt: new Date() } });
@@ -68,27 +62,33 @@ const runMiningCronCycle = async (force = false) => {
       endDate: { $gt: new Date() }
     });
 
+    console.log(`[CRON] Found ${activePackages.length} active packages to process.`);
+    let idx = 0;
     for (let pkg of activePackages) {
+      idx++;
       const user = await User.findById(pkg.user);
+      if (idx % 10 === 0 || idx === 1 || idx === activePackages.length) {
+        console.log(`[CRON] Processing package ${idx}/${activePackages.length} (ID: ${pkg._id}) for user ${user ? user.userId : 'unknown'}`);
+      }
 
       // STRICT ACTIVE USER VALIDATION
       const isActive = await isStrictlyActiveUser(user, pkg);
       if (!isActive) {
         // Double ensure flags are flipped if they reached cap mathematically but flags aren't updated yet
         if (user && user.totalEarning >= user.totalInvestment * 4 && user.isActive) {
-           user.isActive = false;
-           await user.save();
-           
-           await AuditLog.create({
-             action: 'CAP_COMPLETED',
-             userId: user._id,
-             packageId: pkg._id,
-             details: { reason: '4x cap reached during mining cron pre-check' }
-           });
+          user.isActive = false;
+          await user.save();
+
+          await AuditLog.create({
+            action: 'CAP_COMPLETED',
+            userId: user._id,
+            packageId: pkg._id,
+            details: { reason: '4x cap reached during mining cron pre-check' }
+          });
         }
         if (pkg.totalEarned >= pkg.amount * 4 && pkg.status === 'active') {
-           pkg.status = 'completed';
-           await pkg.save();
+          pkg.status = 'completed';
+          await pkg.save();
         }
         continue;
       }
@@ -111,9 +111,9 @@ const runMiningCronCycle = async (force = false) => {
       // -------------------------------------------------------------
       const pkgRemainingCap = (pkg.amount * 4) - pkg.totalEarned;
       const userRemainingCap = (user.totalInvestment * 4) - user.totalEarning;
-      
+
       const maxAllowedProfit = Math.min(pkgRemainingCap, userRemainingCap);
-      
+
       if (profitAmount > maxAllowedProfit) {
         profitAmount = maxAllowedProfit; // Truncate exactly to the limit
       }
@@ -130,7 +130,7 @@ const runMiningCronCycle = async (force = false) => {
 
       // We use a transaction if possible, otherwise we save sequentially (production robust)
       // Mongoose transactions require Replica Sets. Assuming standard mongo setup without guarantee, we save safely.
-      
+
       await MiningIncome.create({
         userId: user.userId,
         user: user._id,
@@ -147,18 +147,18 @@ const runMiningCronCycle = async (force = false) => {
       user.miningIncome = round6(user.miningIncome + profitAmount);
       user.totalEarning = round6(user.totalEarning + profitAmount); // 100% of profit counts towards the 4x cap!
       user.availableBalance = round6(user.availableBalance + withdrawableAmount); // Only 30% is withdrawable instantly
-      
+
       pkg.totalEarned = round6(pkg.totalEarned + profitAmount);
       pkg.compoundingBalance = round6(baseAmount + reinvestAmount); // Reinvest the 70% back into principal
-      
+
       let capHit = false;
       // Final precision check after adding profit
       if (pkg.totalEarned >= pkg.amount * 4 || user.totalEarning >= user.totalInvestment * 4) {
-         pkg.status = 'completed';
-         user.isActive = false;
-         capHit = true;
+        pkg.status = 'completed';
+        user.isActive = false;
+        capHit = true;
       }
-      
+
       await pkg.save();
       await user.save();
 
@@ -183,10 +183,10 @@ const runMiningCronCycle = async (force = false) => {
       // Since level bonus also increases user totalEarning, it must also be cap-protected
       await distributeLevelIncome(user._id, profitAmount, user.userId);
     }
-    
+
     // Unlock and record success
     await CronState.updateOne(
-      { cronName }, 
+      { cronName },
       { $set: { isRunning: false, lastCycleId: cycleId, lastRunAt: new Date(), errorLog: null } }
     );
     console.log('[CRON] Mining cron finished successfully.');
@@ -197,10 +197,26 @@ const runMiningCronCycle = async (force = false) => {
     return { success: false, error: error.message };
   }
 };
+// ==========================================
+// LOCAL DEVELOPMENT CRON ONLY
+// ==========================================
 
-// Schedule to run every hour at minute 0
-cron.schedule("0 * * * *", () => runMiningCronCycle(false), {
-  scheduled: true
-});
+// if (process.env.NODE_ENV !== 'production') {
+
+//   console.log('[CRON] Local node-cron started');
+
+//   // TESTING EVERY 1 MINUTE
+//   cron.schedule("*/30 * * * * *", async () => {
+//     console.log('[CRON] Local test cron triggered');
+
+//     // await runMiningCronCycle(true);
+//     await runMiningCronCycle(false);
+
+//   }, {
+//     scheduled: true,
+//     timezone: "UTC"
+//   });
+
+// }
 
 module.exports = { runMiningCronCycle };

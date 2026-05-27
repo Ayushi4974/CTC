@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -12,10 +12,10 @@ const path = require('path');
 
 // Connect to database
 connectDB();
-
-// Initialize Cron Jobs
-require('./cron/miningCron');
-require('./cron/salaryCron');
+if (process.env.NODE_ENV !== 'production') {
+  require('./cron/miningCron');
+  require('./cron/salaryCron');
+}
 
 const app = express();
 app.set('trust proxy', 1);
@@ -88,8 +88,8 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5001;
 
-if (process.env.NODE_ENV !== 'production') {
-  server.listen(PORT, () => console.log(`Server started on port ${PORT}`));
-}
+server.listen(PORT, () => {
+  console.log(`Server started on port ${PORT}`);
+});
 
 module.exports = app;
