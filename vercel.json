@@ -2,6 +2,11 @@
   "version": 2,
   "builds": [
     {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    },
+    {
       "src": "server/server.js",
       "use": "@vercel/node"
     },
@@ -18,6 +23,26 @@
     {
       "src": "/api/(.*)",
       "dest": "server/server.js"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "server/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1",
+      "continue": true
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "admin/index.html"
+    },
+    {
+      "src": "/.*",
+      "dest": "index.html"
     }
   ],
   "crons": [
