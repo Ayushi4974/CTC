@@ -45,7 +45,11 @@ const runMiningCronCycle = async (force = false) => {
   // Lock the cron
   await CronState.updateOne({ cronName }, { $set: { isRunning: true } });
 
-  console.log(`[CRON] Running daily mining cron... Cycle: ${cycleId}`);
+  console.log('============================================');
+  console.log('[CRON] ✅ CRON JOB IS RUNNING');
+  console.log(`[CRON] Cycle: ${cycleId}`);
+  console.log(`[CRON] UTC Time: ${new Date().toUTCString()}`);
+  console.log('============================================');
 
   if ((utcDay === 0 || utcDay === 6) && !force) {
     console.log('[CRON] Skipping mining cron distribution on weekend (Saturday/Sunday UTC)');
@@ -189,10 +193,17 @@ const runMiningCronCycle = async (force = false) => {
       { cronName },
       { $set: { isRunning: false, lastCycleId: cycleId, lastRunAt: new Date(), errorLog: null } }
     );
-    console.log('[CRON] Mining cron finished successfully.');
+    console.log('============================================');
+    console.log('[CRON] ✅ CRON JOB FINISHED SUCCESSFULLY');
+    console.log(`[CRON] Cycle: ${cycleId} completed at ${new Date().toUTCString()}`);
+    console.log('============================================');
     return { success: true };
   } catch (error) {
-    console.error('[CRON] Error in mining cron:', error);
+    console.error('============================================');
+    console.error('[CRON] ❌ CRON JOB ERROR — FAILED TO RUN');
+    console.error(`[CRON] Error: ${error.message}`);
+    console.error(`[CRON] Time: ${new Date().toUTCString()}`);
+    console.error('============================================');
     await CronState.updateOne({ cronName }, { $set: { isRunning: false, errorLog: error.message } });
     return { success: false, error: error.message };
   }
