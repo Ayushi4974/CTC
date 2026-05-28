@@ -38,11 +38,6 @@
       "src": "/.*",
       "dest": "index.html"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/mining",
-      "schedule": "0 0,12 * * 1-5"
-    }
   ]
+  
 }
