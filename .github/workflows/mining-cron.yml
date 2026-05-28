@@ -1,8 +1,8 @@
-name: Mining Cron (Direct - Testing)
+name: Mining Cron (Direct)
 
 on:
   schedule:
-    - cron: '* * * * *'
+    - cron: '0 0,12 * * 1-5'
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
           node-version: '20'  # Changed from 18 to 20 (fixes warnings)
       
       - name: Install dependencies
-        run: cd server && npm install
+        run: cd server && npm ci
       
       - name: Run mining cron directly
         env:
@@ -33,7 +33,7 @@ jobs:
           node -e "
           (async () => {
             console.log('============================================');
-            console.log('[TEST] Starting at:', new Date().toISOString());
+            console.log('[CRON] Starting at:', new Date().toISOString());
             console.log('============================================');
             
             const { runMiningCronCycle } = require('./cron/miningCron');
@@ -46,20 +46,20 @@ jobs:
             await mongoose.connect(process.env.MONGODB_URL);
             console.log('[2/4] MongoDB connected');
             
-            console.log('[3/4] Running mining cron (force=true for testing)...');
-            const result = await runMiningCronCycle(true);
+            console.log('[3/4] Running mining cron...');
+            const result = await runMiningCronCycle(false);
             
             console.log('[4/4] Result:', JSON.stringify(result, null, 2));
             
             if (result.success) {
-              console.log('[TEST] ✅ Cron completed successfully');
+              console.log('[CRON] ✅ Cron completed successfully');
               process.exit(0);
             } else {
-              console.log('[TEST] ⚠️ Result:', result.reason);
+              console.log('[CRON] ⚠️ Result:', result.reason);
               process.exit(0);
             }
           })().catch(err => {
-            console.error('[TEST] ❌ Fatal error:', err.message);
+            console.error('[CRON] ❌ Fatal error:', err.message);
             console.error(err.stack);
             process.exit(1);
           });
