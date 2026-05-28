@@ -29,13 +29,14 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NODE_ENV: production
         run: |
+          cd server
           node -e "
           (async () => {
             console.log('============================================');
             console.log('[TEST] Starting at:', new Date().toISOString());
             console.log('============================================');
             
-            const { runMiningCronCycle } = require('./server/cron/miningCron');
+            const { runMiningCronCycle } = require('./cron/miningCron');
             require('dotenv').config();
             
             console.log('[1/4] Loading mongoose...');
