@@ -78,17 +78,25 @@ app.use('/api/withdrawal', require('./routes/withdrawalRoutes'));
 app.use('/api/kyc', require('./routes/kycRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
-// Cron endpoint — called by GitHub Actions every 12 hours
+// Cron endpoint — called by Vercel Cron or GitHub Actions every 12 hours
 app.get('/api/cron/mining', async (req, res) => {
   // Security: only allow requests with valid CRON_SECRET token
+  // Support both Vercel standard (Authorization: Bearer <token>) and legacy custom header (x-cron-token)
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
   const token = req.headers['x-cron-token'];
-  if (!token || token !== process.env.CRON_SECRET) {
+  const expectedBearer = `Bearer ${process.env.CRON_SECRET}`;
+
+  const isAuthorized = 
+    (token && token === process.env.CRON_SECRET) || 
+    (authHeader && authHeader === expectedBearer);
+
+  if (!isAuthorized) {
     console.warn('[CRON] ⛔ Unauthorized cron attempt blocked');
     return res.status(403).json({ success: false, message: 'Unauthorized' });
   }
 
   console.log('============================================');
-  console.log('[CRON] ✅ CRON JOB IS RUNNING (via GitHub Actions)');
+  console.log('[CRON] ✅ CRON JOB IS RUNNING (via Vercel Cron)');
   console.log(`[CRON] Triggered at: ${new Date().toUTCString()}`);
   console.log('============================================');
   try {

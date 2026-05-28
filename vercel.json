@@ -4,7 +4,9 @@
     {
       "src": "package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+      "config": {
+        "distDir": "dist"
+      }
     },
     {
       "src": "server/server.js",
@@ -35,6 +37,12 @@
     {
       "src": "/.*",
       "dest": "index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/mining",
+      "schedule": "0 0,12 * * 1-5"
     }
   ]
 }
