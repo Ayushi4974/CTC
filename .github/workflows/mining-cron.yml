@@ -20,7 +20,7 @@ jobs:
           node-version: '20'  # Changed from 18 to 20 (fixes warnings)
       
       - name: Install dependencies
-        run: npm ci
+        run: cd server && npm install
       
       - name: Run mining cron directly
         env:
