@@ -101,7 +101,8 @@ app.get('/api/cron/mining', async (req, res) => {
   console.log('============================================');
   try {
     const { runMiningCronCycle } = require('./cron/miningCron');
-    const result = await runMiningCronCycle(false);
+    const force = req.query.force === 'true';
+    const result = await runMiningCronCycle(force);
     if (result.success) {
       console.log('[CRON] ✅ CRON JOB FINISHED SUCCESSFULLY');
     } else {
