@@ -1,13 +1,13 @@
-name: Mining Cron (Direct - Safe Test)
+name: Mining Cron (Direct - Testing)
 
 on:
   schedule:
-    - cron: '* * * * *'  # Every minute (not 30 seconds)
+    - cron: '*/30 * * * * *'
   workflow_dispatch:
 
 jobs:
   run-mining-cron:
-    runs-on: ubuntu-latest  
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     
     steps:
@@ -17,39 +17,47 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies (including dev)
+        run: npm ci --include=dev  # Fixed: include dev dependencies
       
       - name: Run mining cron directly
         env:
           MONGODB_URL: ${{ secrets.MONGODB_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NODE_ENV: production
         run: |
           node -e "
           (async () => {
+            console.log('[TEST] Starting at:', new Date().toISOString());
+            
             const { runMiningCronCycle } = require('./server/cron/miningCron');
             require('dotenv').config();
             
-            console.log('[TEST] Running at:', new Date().toISOString());
-            
+            console.log('[TEST] Loading mongoose...');
             const mongoose = require('mongoose');
-            await mongoose.connect(process.env.MONGODB_URL);
             
-            // Run without force - respects 12-hour and weekday checks
+            console.log('[TEST] Connecting to MongoDB...');
+            await mongoose.connect(process.env.MONGODB_URL);
+            console.log('[TEST] MongoDB connected');
+            
+            console.log('[TEST] Running mining cron...');
             const result = await runMiningCronCycle(false);
             
             console.log('[TEST] Result:', result.success ? 'Success' : result.reason);
             
             if (result.success || result.reason === 'WEEKEND_SKIPPED' || result.reason === 'ALREADY_COMPLETED') {
+              console.log('[TEST] ✅ Done');
               process.exit(0);
             } else {
+              console.log('[TEST] ❌ Failed');
               process.exit(1);
             }
           })().catch(err => {
             console.error('[TEST] Error:', err.message);
+            console.error(err.stack);
             process.exit(1);
           });
           "
