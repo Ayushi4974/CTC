@@ -78,6 +78,37 @@ app.use('/api/withdrawal', require('./routes/withdrawalRoutes'));
 app.use('/api/kyc', require('./routes/kycRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
+// Cron endpoint — called by GitHub Actions every 12 hours
+app.get('/api/cron/mining', async (req, res) => {
+  // Security: only allow requests with valid CRON_SECRET token
+  const token = req.headers['x-cron-token'];
+  if (!token || token !== process.env.CRON_SECRET) {
+    console.warn('[CRON] ⛔ Unauthorized cron attempt blocked');
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+
+  console.log('============================================');
+  console.log('[CRON] ✅ CRON JOB IS RUNNING (via GitHub Actions)');
+  console.log(`[CRON] Triggered at: ${new Date().toUTCString()}`);
+  console.log('============================================');
+  try {
+    const { runMiningCronCycle } = require('./cron/miningCron');
+    const result = await runMiningCronCycle(false);
+    if (result.success) {
+      console.log('[CRON] ✅ CRON JOB FINISHED SUCCESSFULLY');
+    } else {
+      console.warn(`[CRON] ⚠️ CRON SKIPPED — Reason: ${result.reason}`);
+    }
+    return res.status(200).json({ success: true, result });
+  } catch (error) {
+    console.error('============================================');
+    console.error('[CRON] ❌ CRON JOB ERROR — FAILED TO RUN');
+    console.error(`[CRON] Error: ${error.message}`);
+    console.error('============================================');
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Root route
 app.get('/', (req, res) => {
   res.send('CTC API is running...');
