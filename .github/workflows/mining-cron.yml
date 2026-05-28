@@ -1,0 +1,24 @@
+name: Mining Cron
+
+on:
+  schedule:
+    - cron: '0 0,12 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  trigger-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Mining API
+        run: |
+          RESPONSE=$(curl -s -o /tmp/response.txt -w "%{http_code}" \
+            -X GET "${{ secrets.PRODUCTION_URL }}/api/cron/mining" \
+            --max-time 120)
+          echo "HTTP Status: $RESPONSE"
+          cat /tmp/response.txt
+          if [ "$RESPONSE" -eq 200 ]; then
+            echo "✅ Mining cron completed successfully"
+          else
+            echo "❌ Mining cron failed with status $RESPONSE"
+            exit 1
+          fi
