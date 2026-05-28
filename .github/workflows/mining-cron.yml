@@ -1,28 +1,55 @@
-name: Mining Cron  
+name: Mining Cron (Direct - Safe Test)
 
 on:
   schedule:
-    - cron: '* * * * *'
+    - cron: '* * * * *'  # Every minute (not 30 seconds)
   workflow_dispatch:
 
 jobs:
-  trigger-cron:
+  run-mining-cron:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
+    
     steps:
-      - name: Call Mining API
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run mining cron directly
+        env:
+          MONGODB_URL: ${{ secrets.MONGODB_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          RESPONSE=$(curl -s -o /tmp/response.txt -w "%{http_code}" \
-            -X GET "${{ secrets.PRODUCTION_URL }}/api/cron/mining?force=true" \
-            -H "x-cron-token: ${{ secrets.CRON_SECRET }}" \
-            --max-time 120)
-
-          echo "HTTP Status: $RESPONSE"
-          cat /tmp/response.txt
-
-          if [ "$RESPONSE" -eq 200 ]; then
-            echo "✅ Mining cron completed successfully"
-          else
-            echo "❌ Mining cron failed with status $RESPONSE"
-            exit 1
-          fi
+          node -e "
+          (async () => {
+            const { runMiningCronCycle } = require('./server/cron/miningCron');
+            require('dotenv').config();
+            
+            console.log('[TEST] Running at:', new Date().toISOString());
+            
+            const mongoose = require('mongoose');
+            await mongoose.connect(process.env.MONGODB_URL);
+            
+            // Run without force - respects 12-hour and weekday checks
+            const result = await runMiningCronCycle(false);
+            
+            console.log('[TEST] Result:', result.success ? 'Success' : result.reason);
+            
+            if (result.success || result.reason === 'WEEKEND_SKIPPED' || result.reason === 'ALREADY_COMPLETED') {
+              process.exit(0);
+            } else {
+              process.exit(1);
+            }
+          })().catch(err => {
+            console.error('[TEST] Error:', err.message);
+            process.exit(1);
+          });
+          "
