@@ -18,19 +18,30 @@ const runMiningCronCycle = async (force = false) => {
   const cronName = 'MINING_CRON_12H';
 
   const today = new Date();
-  // Round to nearest hour to handle minor clock drift/offset in scheduler execution
-  const roundedTime = new Date(Math.round(today.getTime() / 3600000) * 3600000);
-  const utcHour = roundedTime.getUTCHours();
-  const utcDay = roundedTime.getUTCDay();
+  const utcHour = today.getUTCHours();
+  const utcDay = today.getUTCDay();
+
+  const cycleHour = utcHour < 12 ? 0 : 12;
 
   // Calculate cycleId based on UTC time to avoid timezone mismatch
   // e.g. MINING_2026-05-26_0 or MINING_2026-05-26_12
-  const cycleId = `MINING_${today.toISOString().split('T')[0]}_${utcHour}`;
+  const cycleId = `MINING_${today.toISOString().split('T')[0]}_${cycleHour}`;
 
   // 1. DUPLICATE & REPLAY PROTECTION (CRON LOCK)
   let state = await CronState.findOne({ cronName });
   if (!state) {
     state = await CronState.create({ cronName, isRunning: false });
+  }
+
+  // Auto-release stale lock if held for more than 20 minutes (handles crash/timeout scenarios)
+  const LOCK_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
+  if (state.isRunning && state.lockAcquiredAt) {
+    const lockAge = Date.now() - new Date(state.lockAcquiredAt).getTime();
+    if (lockAge > LOCK_TIMEOUT_MS) {
+      console.warn(`[CRON] ⚠️ Stale lock detected (held for ${Math.round(lockAge / 60000)}m). Force-releasing.`);
+      await CronState.updateOne({ cronName }, { $set: { isRunning: false, lockAcquiredAt: null } });
+      state.isRunning = false;
+    }
   }
 
   if (state.isRunning && !force) {
@@ -42,9 +53,10 @@ const runMiningCronCycle = async (force = false) => {
     return { success: false, reason: 'ALREADY_COMPLETED' };
   }
 
-  // Lock the cron
-  await CronState.updateOne({ cronName }, { $set: { isRunning: true } });
+  // Lock the cron and record when the lock was acquired
+  await CronState.updateOne({ cronName }, { $set: { isRunning: true, lockAcquiredAt: new Date() } });
 
+  
   console.log('============================================');
   console.log('[CRON] ✅ CRON JOB IS RUNNING');
   console.log(`[CRON] Cycle: ${cycleId}`);
@@ -53,7 +65,7 @@ const runMiningCronCycle = async (force = false) => {
 
   if ((utcDay === 0 || utcDay === 6) && !force) {
     console.log('[CRON] Skipping mining cron distribution on weekend (Saturday/Sunday UTC)');
-    await CronState.updateOne({ cronName }, { $set: { isRunning: false, lastCycleId: cycleId, lastRunAt: new Date() } });
+    await CronState.updateOne({ cronName }, { $set: { isRunning: false, lockAcquiredAt: null, lastCycleId: cycleId, lastRunAt: new Date() } });
     return { success: false, reason: 'WEEKEND_SKIPPED' };
   }
 
@@ -191,7 +203,7 @@ const runMiningCronCycle = async (force = false) => {
     // Unlock and record success
     await CronState.updateOne(
       { cronName },
-      { $set: { isRunning: false, lastCycleId: cycleId, lastRunAt: new Date(), errorLog: null } }
+      { $set: { isRunning: false, lockAcquiredAt: null, lastCycleId: cycleId, lastRunAt: new Date(), errorLog: null } }
     );
     console.log('============================================');
     console.log('[CRON] ✅ CRON JOB FINISHED SUCCESSFULLY');
@@ -204,7 +216,7 @@ const runMiningCronCycle = async (force = false) => {
     console.error(`[CRON] Error: ${error.message}`);
     console.error(`[CRON] Time: ${new Date().toUTCString()}`);
     console.error('============================================');
-    await CronState.updateOne({ cronName }, { $set: { isRunning: false, errorLog: error.message } });
+    await CronState.updateOne({ cronName }, { $set: { isRunning: false, lockAcquiredAt: null, errorLog: error.message } });
     return { success: false, error: error.message };
   }
 };
