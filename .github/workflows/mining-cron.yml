@@ -2,9 +2,7 @@ name: Mining Cron
 
 on:
   schedule:
-    # - cron: '0 0,12 * * 1-5'
-      - cron: '* * * * *'
-
+    - cron: '* * * * *'
   workflow_dispatch:
 
 jobs:
@@ -15,9 +13,7 @@ jobs:
       - name: Call Mining API
         run: |
           RESPONSE=$(curl -s -o /tmp/response.txt -w "%{http_code}" \
-            # -X GET "${{ secrets.PRODUCTION_URL }}/api/cron/mining" \
             -X GET "${{ secrets.PRODUCTION_URL }}/api/cron/mining?force=true" \
-
             -H "x-cron-token: ${{ secrets.CRON_SECRET }}" \
             --max-time 120)
 
