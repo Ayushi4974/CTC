@@ -269,14 +269,34 @@ const Products = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-16">
         {dbPackages.map((pkgDb, idx) => {
           // Merge db package with UI config
-          const uiConfig = packages.find(p => p.name === pkgDb.name) || packages[idx % packages.length];
+          const uiConfig = packages.find(p => p.name.toLowerCase() === pkgDb.name.toLowerCase()) || packages[idx % packages.length];
+          
+          const isReferral = pkgDb.isReferralOnly || pkgDb.name.toLowerCase().includes('referral');
+          const profitDisplay = isReferral 
+            ? `${pkgDb.dailyProfit}%` 
+            : `${(pkgDb.dailyProfit / 2)}%`;
+          const durationDisplay = isReferral 
+            ? 'daily' 
+            : 'every 12 hours';
+
+          const minAmtStr = pkgDb.minAmount ? pkgDb.minAmount.toLocaleString() : '0';
+          const maxAmtStr = pkgDb.maxAmount ? pkgDb.maxAmount.toLocaleString() : '0';
+          const investmentDisplay = pkgDb.minAmount === pkgDb.maxAmount 
+            ? `$${minAmtStr}` 
+            : `$${minAmtStr} – $${maxAmtStr}`;
+
           const pkg = { 
             ...uiConfig, 
             ...pkgDb,
             minInvestment: pkgDb.minAmount ?? uiConfig?.minInvestment ?? 0,
             maxInvestment: pkgDb.maxAmount ?? uiConfig?.maxInvestment ?? 0,
-            profit: uiConfig?.profit || '0%'
+            profit: profitDisplay,
+            duration: durationDisplay,
+            investment: investmentDisplay
           };
+
+          const isLastItem = idx === dbPackages.length - 1;
+          const isOddCount = dbPackages.length % 2 !== 0;
 
           return (
             <motion.div
@@ -285,11 +305,13 @@ const Products = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
               onClick={() => handleSelectPackage(pkg)}
-              className={`relative rounded-3xl cursor-pointer transition-all duration-300 transform hover:-translate-y-2 group ${pkg.glowClass}`}
+              className={`relative rounded-3xl cursor-pointer transition-all duration-300 transform hover:-translate-y-2 group ${pkg.glowClass}
+                ${isLastItem && isOddCount ? 'md:col-span-2 md:w-[calc(50%-16px)] md:mx-auto' : ''}
+              `}
             >
               {/* Glassmorphism Container */}
               <div className={`h-full bg-gradient-to-br from-[#161B2A]/80 to-[#050505]/90 backdrop-blur-[15px] border border-gray-800/50 rounded-3xl p-6 md:p-8 flex flex-col justify-between overflow-hidden
-              ${selectedPackage?.id === pkg.id ? 'ring-2 ring-[#A020F0]' : ''}
+              ${(selectedPackage?._id === pkg._id) ? 'ring-2 ring-[#A020F0]' : ''}
             `}>
                 {/* Top-Edge Highlight mimicking light source */}
                 <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
@@ -301,7 +323,7 @@ const Products = () => {
                     <div className={`w-14 h-14 rounded-full flex items-center justify-center border ${pkg.borderClass} ${pkg.iconBgClass} ${pkg.iconTextClass} shadow-[inset_0_0_15px_rgba(255,255,255,0.05)]`}>
                       <pkg.icon size={26} />
                     </div>
-                    {selectedPackage?.id === pkg.id && (
+                    {selectedPackage?._id === pkg._id && (
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -340,14 +362,14 @@ const Products = () => {
                 <div className="relative z-10 mt-auto">
                   <button
                     className={`w-full py-4 rounded-xl font-bold text-white transition-all duration-300 flex items-center justify-center gap-2 mb-5
-                    ${pkg.isPremium || selectedPackage?.id === pkg.id
+                    ${pkg.isPremium || selectedPackage?._id === pkg._id
                         ? 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] shadow-[0_0_20px_rgba(160,32,240,0.5)] hover:shadow-[0_0_30px_rgba(255,0,255,0.7)] border-none'
                         : 'bg-transparent border border-gray-600 hover:border-[#A020F0] hover:bg-[#A020F0]/10 hover:shadow-[inset_0_0_15px_rgba(160,32,240,0.3)]'
                       }
                   `}
                   >
-                    {selectedPackage?.id === pkg.id ? 'Selected' : 'Buy Now'}
-                    {selectedPackage?.id !== pkg.id && <ChevronRight size={18} />}
+                    {selectedPackage?._id === pkg._id ? 'Selected' : 'Buy Now'}
+                    {selectedPackage?._id !== pkg._id && <ChevronRight size={18} />}
                   </button>
 
                   {/* Trust & Transparency Indicators */}
@@ -432,7 +454,11 @@ const Products = () => {
                     {amountError ? (
                       <p className="text-xs text-red-500 mt-2 flex items-center gap-1 font-medium"><AlertCircle size={12} /> {amountError}</p>
                     ) : (
-                      <p className="text-xs text-gray-500 mt-2">Allowed Range: ${selectedPackage.minInvestment.toLocaleString()} - ${selectedPackage.maxInvestment.toLocaleString()}</p>
+                      selectedPackage.minInvestment === selectedPackage.maxInvestment ? (
+                        <p className="text-xs text-gray-500 mt-2">Required Investment: ${selectedPackage.minInvestment.toLocaleString()}</p>
+                      ) : (
+                        <p className="text-xs text-gray-500 mt-2">Allowed Range: ${selectedPackage.minInvestment.toLocaleString()} - ${selectedPackage.maxInvestment.toLocaleString()}</p>
+                      )
                     )}
                   </div>
                 </div>
