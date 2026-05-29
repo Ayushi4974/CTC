@@ -113,8 +113,8 @@ const runMiningCronCycle = async (force = false) => {
       let totalDailyPercent = pkg.dailyProfitPercent + currentMarginBonus;
 
       // Auto-Compounding Base: Calculate profit on the GROWING compounded balance
-      let baseAmount = pkg.compoundingBalance || pkg.amount;
-      let profitAmount = (baseAmount * (totalDailyPercent / 100)) / 2; // 2 cycles a day
+let baseAmount = pkg.amount;
+        let profitAmount = (baseAmount * (totalDailyPercent / 100)) / 2; // 2 cycles a day
 
       // Fastrack Bonus (Double profit)
       if (user.fastrackQualified) {
@@ -156,16 +156,16 @@ const runMiningCronCycle = async (force = false) => {
         percentage: user.fastrackQualified ? totalDailyPercent * 2 : totalDailyPercent
       });
 
-      // PARTIAL AUTO-COMPOUNDING: 70% Reinvested, 30% Withdrawable
-      const reinvestAmount = round6(profitAmount * 0.70);
-      const withdrawableAmount = round6(profitAmount - reinvestAmount); // Exact remainder
+      // Send 100% profit to available balance (no reinvestment/compounding split)
+      const reinvestAmount = 0;
+      const withdrawableAmount = profitAmount;
 
       user.miningIncome = round6(user.miningIncome + profitAmount);
       user.totalEarning = round6(user.totalEarning + profitAmount); // 100% of profit counts towards the 4x cap!
-      user.availableBalance = round6(user.availableBalance + withdrawableAmount); // Only 30% is withdrawable instantly
+      user.availableBalance = round6(user.availableBalance + withdrawableAmount); // 100% is withdrawable instantly
 
       pkg.totalEarned = round6(pkg.totalEarned + profitAmount);
-      pkg.compoundingBalance = round6(baseAmount + reinvestAmount); // Reinvest the 70% back into principal
+      pkg.compoundingBalance = round6(baseAmount); // Principal remains the original base amount (original only)
 
       let capHit = false;
       // Final precision check after adding profit

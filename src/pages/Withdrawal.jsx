@@ -64,7 +64,7 @@ const Withdrawal = () => {
     ...activePackages.map(pkg => ({
       id: pkg._id,
       name: `SOS: ${pkg.packageId?.name || 'Package'}`,
-      balance: pkg.compoundingBalance ?? pkg.amount,
+      balance: pkg.amount,
       icon: AlertTriangle,
       color: '#ef4444',
       type: 'principal',
@@ -206,7 +206,7 @@ const Withdrawal = () => {
           { title: 'Copy Trade ROI', value: currentUser?.miningIncome || 0, icon: Cpu, color: 'text-[#00C6FF]', bg: 'bg-[#00C6FF]/10', border: 'border-[#00C6FF]/20' },
           { 
             title: 'Principal Withdrawal', 
-            value: activePackages.reduce((acc, pkg) => acc + (pkg.compoundingBalance ?? pkg.amount), 0), 
+            value: activePackages.reduce((acc, pkg) => acc + pkg.amount, 0), 
             icon: Lock, 
             color: 'text-[#FF00FF]', 
             bg: 'bg-[#FF00FF]/10', 

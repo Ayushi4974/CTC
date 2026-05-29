@@ -54,8 +54,26 @@ const requestWithdrawal = async (req, res, next) => {
       }
     }
 
-    if (amount % 10 !== 0 && process.env.NODE_ENV === 'production') {
-      return res.status(400).json({ message: 'Withdrawal amount must be a multiple of 10' });
+    let targetAmount = amount;
+    let userPkg = null;
+
+    if (type === 'principal') {
+      if (!userPackageId) {
+        return res.status(400).json({ message: 'Package ID required for principal withdrawal' });
+      }
+      const UserPackage = require('../models/UserPackage');
+      userPkg = await UserPackage.findOne({ _id: userPackageId, user: user._id, status: 'active' });
+      
+      if (!userPkg) {
+        return res.status(400).json({ message: 'Active package not found' });
+      }
+      targetAmount = userPkg.amount;
+    }
+
+    if (type === 'profit') {
+      if (targetAmount % 10 !== 0 && process.env.NODE_ENV === 'production') {
+        return res.status(400).json({ message: 'Withdrawal amount must be a multiple of 10' });
+      }
     }
 
     let deductionPercent = 10;
@@ -63,34 +81,19 @@ const requestWithdrawal = async (req, res, next) => {
       deductionPercent = 20;
     }
 
-    const deduction = (amount * deductionPercent) / 100;
-    const finalAmount = amount - deduction;
+    const deduction = (targetAmount * deductionPercent) / 100;
+    const finalAmount = targetAmount - deduction;
 
     if (type === 'profit') {
-      if (user.availableBalance < amount) {
+      if (user.availableBalance < targetAmount) {
         return res.status(400).json({ message: 'Insufficient balance' });
       }
-      user.availableBalance -= amount;
+      user.availableBalance -= targetAmount;
     } else if (type === 'principal') {
-      if (!userPackageId) {
-        return res.status(400).json({ message: 'Package ID required for principal withdrawal' });
-      }
-      const UserPackage = require('../models/UserPackage');
-      const userPkg = await UserPackage.findOne({ _id: userPackageId, user: user._id, status: 'active' });
-      
-      if (!userPkg) {
-        return res.status(400).json({ message: 'Active package not found' });
-      }
-      
       const timeElapsed = Date.now() - new Date(userPkg.createdAt).getTime();
       const hoursElapsed = timeElapsed / (1000 * 60 * 60);
       if (hoursElapsed < 24 && process.env.NODE_ENV === 'production') {
         return res.status(400).json({ message: 'Your initial capital can only be withdrawn after a 24-hour period.' });
-      }
-
-      const maxWithdrawable = userPkg.compoundingBalance ?? userPkg.amount;
-      if (maxWithdrawable < amount) {
-        return res.status(400).json({ message: 'Requested amount exceeds package capital' });
       }
 
       // Mark package as cancelled or reduce capital
@@ -105,7 +108,7 @@ const requestWithdrawal = async (req, res, next) => {
     const withdrawal = await Withdrawal.create({
       userId: user.userId,
       user: user._id,
-      amount,
+      amount: targetAmount,
       deduction,
       finalAmount,
       walletAddress,
@@ -116,13 +119,13 @@ const requestWithdrawal = async (req, res, next) => {
     await AuditLog.create({
       action: 'WITHDRAWAL',
       userId: user._id,
-      amount: amount,
+      amount: targetAmount,
       details: { withdrawalId: withdrawal._id, type, finalAmount, requiresManualApproval: settings.manualWithdrawalApproval }
     });
 
     const io = req.app.get('io');
     if (io) {
-      io.emit('new_withdrawal_request', { user: user.userId, amount });
+      io.emit('new_withdrawal_request', { user: user.userId, amount: targetAmount });
     }
 
     res.status(201).json({ message: 'Withdrawal requested successfully', withdrawal });
