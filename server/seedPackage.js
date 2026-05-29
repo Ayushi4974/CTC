@@ -53,6 +53,10 @@ const packages = [
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/ctc').then(async () => {
   console.log('Connected to MongoDB.');
   
+  // Clear all existing packages first
+  await Package.deleteMany({});
+  console.log('Deleted all existing packages from database.');
+  
   for (const pkgData of packages) {
     const updatedPkg = await Package.findOneAndUpdate(
       { name: pkgData.name },

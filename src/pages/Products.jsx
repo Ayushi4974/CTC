@@ -267,9 +267,22 @@ const Products = () => {
 
       {/* Packages Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-16">
-        {dbPackages.map((pkgDb, idx) => {
-          // Merge db package with UI config
-          const uiConfig = packages.find(p => p.name.toLowerCase() === pkgDb.name.toLowerCase()) || packages[idx % packages.length];
+        {[...dbPackages]
+          .sort((a, b) => {
+            const getOrder = (name) => {
+              const lower = name.toLowerCase();
+              if (lower.includes('package 1')) return 1;
+              if (lower.includes('package 2')) return 2;
+              if (lower.includes('package 3')) return 3;
+              if (lower.includes('package 4')) return 4;
+              if (lower.includes('referral')) return 5;
+              return 99;
+            };
+            return getOrder(a.name) - getOrder(b.name);
+          })
+          .map((pkgDb, idx) => {
+            // Merge db package with UI config
+            const uiConfig = packages.find(p => p.name.toLowerCase() === pkgDb.name.toLowerCase()) || packages[idx % packages.length];
           
           const isReferral = pkgDb.isReferralOnly || pkgDb.name.toLowerCase().includes('referral');
           const profitDisplay = isReferral 
