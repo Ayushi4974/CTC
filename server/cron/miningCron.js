@@ -113,8 +113,8 @@ const runMiningCronCycle = async (force = false) => {
       let totalDailyPercent = pkg.dailyProfitPercent + currentMarginBonus;
 
       // Auto-Compounding Base: Calculate profit on the GROWING compounded balance
-let baseAmount = pkg.amount;
-        let profitAmount = (baseAmount * (totalDailyPercent / 100)) / 2; // 2 cycles a day
+      let baseAmount = pkg.compoundingBalance || pkg.amount;
+      let profitAmount = (baseAmount * (totalDailyPercent / 100)) / 2; // 2 cycles a day
 
       // Fastrack Bonus (Double profit)
       if (user.fastrackQualified) {
@@ -165,7 +165,7 @@ let baseAmount = pkg.amount;
       user.availableBalance = round6(user.availableBalance + withdrawableAmount); // 100% is withdrawable instantly
 
       pkg.totalEarned = round6(pkg.totalEarned + profitAmount);
-      pkg.compoundingBalance = round6(baseAmount); // Principal remains the original base amount (original only)
+      pkg.compoundingBalance = round6(baseAmount + profitAmount); // Compounding: Add profit to the principal balance
 
       let capHit = false;
       // Final precision check after adding profit
