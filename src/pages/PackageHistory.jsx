@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Calendar, DollarSign, Clock, ShieldCheck, ExternalLink } from 'lucide-react';
+import { Package, Calendar, DollarSign, ShieldCheck, ExternalLink } from 'lucide-react';
 import api from '../api';
 
 const PackageHistory = () => {
@@ -117,10 +117,7 @@ const PackageHistory = () => {
                     <span className="text-gray-500 flex items-center gap-1"><Calendar size={12}/> Start Date</span>
                     <span className="text-gray-300">{new Date(pkg.startDate).toLocaleDateString()}</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500 flex items-center gap-1"><Clock size={12}/> Expiry Date</span>
-                    <span className="text-gray-300">{new Date(pkg.endDate).toLocaleDateString()}</span>
-                  </div>
+
                 </div>
 
                 <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden mt-2">
