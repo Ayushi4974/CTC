@@ -132,7 +132,7 @@ const MiningHistory = () => {
                   </td>
                   <td className="p-3 md:p-5 text-sm font-medium text-gray-300 hidden sm:table-cell">
                     <div className="flex items-center gap-1">
-                      {record.percentage.toFixed(2)} <Percent size={10} className="text-gray-500" />
+                      {(record.percentage / 2).toFixed(2)} <Percent size={10} className="text-gray-500" />
                     </div>
                   </td>
                   <td className="p-3 md:p-5">
