@@ -8,12 +8,22 @@ const { distributeDirectReferral } = require('../services/referralService');
 
 const getAllPackages = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id || req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    
     let filter = { status: true };
 
-    // If user has no sponsor, hide referral-only packages
-    if (!user || !user.sponsor) {
-      filter.isReferralOnly = { $ne: true };
+    if (user.pins === 0) {
+      // 0-Pin users can ONLY see/purchase Zero Pin packages
+      filter.isZeroPin = true;
+    } else {
+      // Normal users can ONLY see/purchase non-Zero Pin packages
+      filter.isZeroPin = { $ne: true };
+      
+      // If user has no sponsor, hide referral-only packages
+      if (!user.sponsor) {
+        filter.isReferralOnly = { $ne: true };
+      }
     }
 
     const packages = await Package.find(filter).sort({ minAmount: 1 });
@@ -50,6 +60,18 @@ const buyPackage = async (req, res, next) => {
     }
 
     const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Zero-pin restriction checks
+    if (user.pins === 0) {
+      if (!pkg.isZeroPin) {
+        return res.status(400).json({ message: 'Only the standard $100-$500 Package is available for 0-Pin users.' });
+      }
+    } else {
+      if (pkg.isZeroPin) {
+        return res.status(400).json({ message: 'This package is only available for 0-Pin users.' });
+      }
+    }
 
     if (user.role === 'user' && (user.totalInvestment + amount) > 10000) {
       return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $10,000.' });
@@ -67,6 +89,7 @@ const buyPackage = async (req, res, next) => {
     }
 
     const isBVEligible = true; // External deposits count towards BV
+    const durationDays = pkg.validity;
 
     const userPackage = await UserPackage.create({
       userId: user.userId,
@@ -75,11 +98,17 @@ const buyPackage = async (req, res, next) => {
       amount,
       compoundingBalance: amount,
       dailyProfitPercent: pkg.dailyProfit,
-      endDate: new Date(Date.now() + pkg.validity * 24 * 60 * 60 * 1000),
-      isBVEligible
+      endDate: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000),
+      isBVEligible,
+      isStaked: false,
+      stakingDuration: 0,
+      isZeroPin: pkg.isZeroPin,
+      stakingEnabled: false,
+      stakingPeriod: 0,
+      autoCompounding: false
     });
 
-    user.isActive = true;
+    // Note: user.isActive is NOT set to true here. Admin must manually activate the user ID.
     user.activePackage = pkg._id;
     user.totalInvestment += amount; // Expands their 4x global cap
     await user.save();
@@ -123,9 +152,9 @@ const buyPackage = async (req, res, next) => {
           tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
           if (sponsorPkg.createdAt >= tenDaysAgo) {
-            // Count directs with same or higher package
+            // Count directs with same or higher package (excluding 0-pin users)
             const directsWithQualifyingPkg = await UserPackage.countDocuments({
-              user: { $in: await User.find({ sponsor: sponsor._id }).distinct('_id') },
+              user: { $in: await User.find({ sponsor: sponsor._id, pins: { $gt: 0 } }).distinct('_id') },
               amount: { $gte: sponsorPkg.amount },
               status: 'active'
             });
@@ -160,4 +189,59 @@ const getUserPackages = async (req, res, next) => {
   }
 };
 
-module.exports = { getAllPackages, buyPackage, getUserPackages };
+const startStaking = async (req, res, next) => {
+  try {
+    const { userPackageId, period } = req.body;
+
+    if (!userPackageId || !period) {
+      return res.status(400).json({ message: 'Package ID and Staking Period are required.' });
+    }
+
+    const periodNum = Number(period);
+    if (![30, 90, 180, 360].includes(periodNum)) {
+      return res.status(400).json({ message: 'Invalid staking duration. Must be 30, 90, 180, or 360 days.' });
+    }
+
+    const userPkg = await UserPackage.findOne({ _id: userPackageId, user: req.user._id });
+    if (!userPkg) {
+      return res.status(404).json({ message: 'Active package not found.' });
+    }
+
+    if (userPkg.status !== 'active') {
+      return res.status(400).json({ message: 'Staking can only be enabled on active packages.' });
+    }
+
+    if (userPkg.stakingEnabled) {
+      return res.status(400).json({ message: 'Staking is already enabled on this package.' });
+    }
+
+    userPkg.stakingEnabled = true;
+    userPkg.stakingPeriod = periodNum;
+    userPkg.stakingStartDate = new Date();
+    userPkg.stakingEndDate = new Date(Date.now() + periodNum * 24 * 60 * 60 * 1000);
+    userPkg.autoCompounding = true;
+    
+    // Maintain backward compatibility with old fields
+    userPkg.isStaked = true;
+    userPkg.stakingDuration = periodNum;
+
+    await userPkg.save();
+
+    await AuditLog.create({
+      action: 'STAKING_ACTIVATION',
+      userId: req.user._id,
+      packageId: userPkg._id,
+      amount: userPkg.amount,
+      details: { period: periodNum, stakingEndDate: userPkg.stakingEndDate }
+    });
+
+    res.status(200).json({ 
+      message: `Staking enabled successfully for ${periodNum} days.`, 
+      userPackage: userPkg 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getAllPackages, buyPackage, getUserPackages, startStaking };

@@ -67,6 +67,12 @@ const requestWithdrawal = async (req, res, next) => {
       if (!userPkg) {
         return res.status(400).json({ message: 'Active package not found' });
       }
+
+      const isStakingActive = userPkg.stakingEnabled || (userPkg.isStaked && (!userPkg.stakingEndDate || new Date(userPkg.stakingEndDate) > new Date()));
+      if (isStakingActive) {
+        return res.status(400).json({ message: 'This package is currently staked and locked for withdrawals.' });
+      }
+
       targetAmount = userPkg.amount;
     }
 

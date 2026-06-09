@@ -60,16 +60,20 @@ const Withdrawal = () => {
   }, [connectedWallet]);
 
   const dynamicSources = [
-    { id: 'balance', name: 'Available Balance', balance: currentUser?.availableBalance || 0, icon: TrendingUp, color: '#00C6FF', type: 'profit' },
-    ...activePackages.map(pkg => ({
-      id: pkg._id,
-      name: `SOS: ${pkg.packageId?.name || 'Package'}`,
-      balance: pkg.amount,
-      icon: AlertTriangle,
-      color: '#ef4444',
-      type: 'principal',
-      userPackageId: pkg._id
-    }))
+    { id: 'balance', name: 'Available Balance', balance: currentUser?.availableBalance || 0, icon: TrendingUp, color: '#00C6FF', type: 'profit', locked: false },
+    ...activePackages.map(pkg => {
+      const isStakingActive = pkg.stakingEnabled || (pkg.isStaked && (!pkg.stakingEndDate || new Date(pkg.stakingEndDate) > new Date()));
+      return {
+        id: pkg._id,
+        name: `SOS: ${pkg.packageId?.name || 'Package'}${isStakingActive ? ' (LOCKED)' : ''}`,
+        balance: pkg.amount,
+        icon: isStakingActive ? Lock : AlertTriangle,
+        color: isStakingActive ? '#6b7280' : '#ef4444',
+        type: 'principal',
+        userPackageId: pkg._id,
+        locked: isStakingActive
+      };
+    })
   ];
 
   useEffect(() => {
@@ -293,22 +297,44 @@ const Withdrawal = () => {
                   {dynamicSources.slice(1).map((source) => {
                     const isSelected = selectedSource?.id === source.id;
                     const Icon = source.icon;
+                    const isLocked = source.locked;
                     return (
                       <button
                         key={source.id}
-                        onClick={() => setSelectedSource(source)}
+                        onClick={() => !isLocked && setSelectedSource(source)}
+                        disabled={isLocked}
                         className={`relative flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-300 overflow-hidden ${
-                          isSelected 
-                            ? 'bg-[#161B2A] border border-[#A020F0]/50 shadow-[0_0_20px_rgba(160,32,240,0.3)] scale-[1.02]' 
-                            : 'bg-[#161B2A]/50 border border-gray-800 hover:border-gray-600 hover:bg-[#161B2A]'
+                          isLocked
+                            ? 'bg-[#161B2A]/20 border border-gray-900 cursor-not-allowed opacity-50'
+                            : isSelected 
+                              ? 'bg-[#161B2A] border border-[#A020F0]/50 shadow-[0_0_20px_rgba(160,32,240,0.3)] scale-[1.02]' 
+                              : 'bg-[#161B2A]/50 border border-gray-800 hover:border-gray-600 hover:bg-[#161B2A]'
                         }`}
                       >
                         {isSelected && <div className="absolute inset-0 bg-gradient-to-br from-[#A020F0]/10 to-[#FF00FF]/10 z-0 pointer-events-none"></div>}
-                        <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors ${isSelected ? 'bg-[#A020F0]/20 text-[#FF00FF] shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]' : 'bg-gray-800 text-gray-400'}`}>
+                        <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors ${
+                          isLocked 
+                            ? 'bg-red-500/10 text-red-500/60' 
+                            : isSelected 
+                              ? 'bg-[#A020F0]/20 text-[#FF00FF] shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]' 
+                              : 'bg-gray-800 text-gray-400'
+                        }`}>
                           <Icon size={18} />
                         </div>
-                        <span className={`relative z-10 text-[10px] font-bold text-center tracking-wider uppercase mb-1 truncate w-full ${isSelected ? 'text-white' : 'text-gray-400'}`}>{source.name}</span>
-                        <span className={`relative z-10 text-sm font-black tracking-tight ${isSelected ? 'text-[#00C6FF] drop-shadow-[0_0_8px_rgba(0,198,255,0.4)]' : 'text-gray-500'}`}>${Number(source.balance || 0).toFixed(3)}</span>
+                        <span className={`relative z-10 text-[10px] font-bold text-center tracking-wider uppercase mb-1 truncate w-full ${
+                          isLocked 
+                            ? 'text-gray-600' 
+                            : isSelected 
+                              ? 'text-white' 
+                              : 'text-gray-400'
+                        }`}>{source.name}</span>
+                        <span className={`relative z-10 text-sm font-black tracking-tight ${
+                          isLocked 
+                            ? 'text-gray-600' 
+                            : isSelected 
+                              ? 'text-[#00C6FF] drop-shadow-[0_0_8px_rgba(0,198,255,0.4)]' 
+                              : 'text-gray-500'
+                        }`}>${Number(source.balance || 0).toFixed(3)}</span>
                       </button>
                     );
                   })}

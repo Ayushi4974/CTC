@@ -270,7 +270,8 @@ const updateTreasurySettings = async (req, res, next) => {
     const allowedFields = [
       'maintenanceMode', 'payoutPause', 'withdrawalFreeze', 'treasuryProtectionMode',
       'globalRoiMultiplier', 'minWithdrawalAmount', 'maxDailyWithdrawalAmount',
-      'withdrawalCooldownHours', 'manualWithdrawalApproval', 'treasuryReserves', 'emergencyThreshold'
+      'withdrawalCooldownHours', 'manualWithdrawalApproval', 'treasuryReserves', 
+      'emergencyThreshold', 'announcementImage', 'announcementImages', 'announcementContent'
     ];
     
     allowedFields.forEach(field => {
@@ -527,7 +528,8 @@ const updateUser = async (req, res, next) => {
       levelIncome,
       promotionalIncome,
       sponsorId,
-      rank
+      rank,
+      pins
     } = req.body;
 
     const user = await User.findById(id);
@@ -542,6 +544,7 @@ const updateUser = async (req, res, next) => {
     if (levelIncome !== undefined) user.levelIncome = Number(levelIncome);
     if (promotionalIncome !== undefined) user.promotionalIncome = Number(promotionalIncome);
     if (rank !== undefined) user.rank = rank;
+    if (pins !== undefined) user.pins = Number(pins);
 
     if (sponsorId !== undefined && sponsorId !== user.sponsorId) {
       const cleanSponsorId = sponsorId ? sponsorId.trim().toUpperCase() : '';
@@ -574,7 +577,7 @@ const updateUser = async (req, res, next) => {
 
 const assignPackage = async (req, res, next) => {
   try {
-    const { userId, packageId, amount } = req.body;
+    const { userId, packageId, amount, stakingDuration } = req.body;
 
     if (!userId || !packageId || !amount) {
       return res.status(400).json({ message: 'User ID, Package, and Amount are required.' });
@@ -602,6 +605,11 @@ const assignPackage = async (req, res, next) => {
       return res.status(400).json({ message: `Amount must be between $${pkg.minAmount} and $${pkg.maxAmount} for this package.` });
     }
 
+    const stakingDurationNum = Number(stakingDuration || 0);
+    if (![0, 30, 90, 180, 360].includes(stakingDurationNum)) {
+      return res.status(400).json({ message: 'Invalid staking duration. Must be 30, 90, 180, or 360 days.' });
+    }
+
     // Multi-Package Rules: Prevent Package Stacking and Handle Upgrades
     const existingActivePkg = await UserPackage.findOne({ user: user._id, status: 'active' });
     if (existingActivePkg) {
@@ -613,6 +621,9 @@ const assignPackage = async (req, res, next) => {
       await existingActivePkg.save();
     }
 
+    const isStaked = stakingDurationNum > 0;
+    const durationDays = isStaked ? stakingDurationNum : pkg.validity;
+
     const userPackage = await UserPackage.create({
       userId: user.userId,
       user: user._id,
@@ -620,11 +631,19 @@ const assignPackage = async (req, res, next) => {
       amount: numericAmount,
       compoundingBalance: numericAmount,
       dailyProfitPercent: pkg.dailyProfit,
-      endDate: new Date(Date.now() + pkg.validity * 24 * 60 * 60 * 1000),
-      isBVEligible: true
+      endDate: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000),
+      isBVEligible: true,
+      isStaked,
+      stakingDuration: stakingDurationNum,
+      isZeroPin: pkg.isZeroPin,
+      stakingEnabled: isStaked,
+      stakingPeriod: stakingDurationNum,
+      stakingStartDate: isStaked ? new Date() : undefined,
+      stakingEndDate: isStaked ? new Date(Date.now() + stakingDurationNum * 24 * 60 * 60 * 1000) : undefined,
+      autoCompounding: isStaked
     });
 
-    user.isActive = true;
+    // Note: user.isActive is NOT set to true here. Admin must manually activate the user ID.
     user.activePackage = pkg._id;
     user.totalInvestment += numericAmount; // Expands their 4x global cap
     await user.save();
@@ -667,9 +686,9 @@ const assignPackage = async (req, res, next) => {
           tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
           
           if (sponsorPkg.createdAt >= tenDaysAgo) {
-            // Count directs with same or qualifying package
+            // Count directs with same or qualifying package (excluding 0-pin users)
             const directsWithQualifyingPkg = await UserPackage.countDocuments({
-              user: { $in: await User.find({ sponsor: sponsor._id }).distinct('_id') },
+              user: { $in: await User.find({ sponsor: sponsor._id, pins: { $gt: 0 } }).distinct('_id') },
               amount: { $gte: sponsorPkg.amount },
               status: 'active'
             });
@@ -689,7 +708,62 @@ const assignPackage = async (req, res, next) => {
   }
 };
 
+const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const userToDelete = await User.findById(id);
+    if (!userToDelete) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (userToDelete.role === 'admin') {
+      return res.status(400).json({ message: 'Admin accounts cannot be deleted.' });
+    }
+
+    const userIdStr = userToDelete.userId;
+
+    // 1. Update direct referrals' sponsor pointers to bypass this user
+    const parentSponsor = userToDelete.sponsor || null;
+    const parentSponsorId = userToDelete.sponsorId || '';
+    
+    await User.updateMany(
+      { sponsor: userToDelete._id },
+      { $set: { sponsor: parentSponsor, sponsorId: parentSponsorId } }
+    );
+
+    // 2. Cascade delete all associated records
+    const LevelIncome = require('../models/LevelIncome');
+    const Reward = require('../models/Reward');
+
+    await UserPackage.deleteMany({ user: userToDelete._id });
+    await Transaction.deleteMany({ user: userToDelete._id });
+    await MiningIncome.deleteMany({ user: userToDelete._id });
+    await LevelIncome.deleteMany({ $or: [{ user: userToDelete._id }, { fromUser: userToDelete._id }] });
+    await ReferralIncome.deleteMany({ $or: [{ user: userToDelete._id }, { fromUser: userToDelete._id }] });
+    await Withdrawal.deleteMany({ user: userToDelete._id });
+    await KYC.deleteMany({ user: userToDelete._id });
+    await Reward.deleteMany({ user: userToDelete._id });
+    await AuditLog.deleteMany({ userId: userToDelete._id });
+
+    // 3. Delete the User itself
+    await User.deleteOne({ _id: userToDelete._id });
+
+    // 4. Log the admin action
+    await AuditLog.create({
+      action: 'ADMIN_ACTION',
+      adminId: req.user._id,
+      details: { reason: 'User Deleted by Admin', targetUserId: userIdStr, targetUserObjId: id }
+    });
+
+    res.json({ message: `User ${userIdStr} and all associated records have been successfully deleted.` });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
+  deleteUser,
   adminLogin,
   getDashboardStats,
   getAllUsers,

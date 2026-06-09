@@ -10,14 +10,29 @@ import {
   Users, 
   BarChart2, 
   Briefcase,
-  UserCheck
+  UserCheck,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProfile } from '../redux/slices/authSlice';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import api from '../api';
+
+const getImageUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  if (apiUrl) {
+    const serverUrl = apiUrl.replace(/\/api$/, '');
+    return `${serverUrl}${cleanPath}`;
+  }
+  return cleanPath;
+};
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -43,6 +58,49 @@ const Dashboard = () => {
   const [miningProgress, setMiningProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState('');
   const [activePackages, setActivePackages] = useState([]);
+  const [announcementImages, setAnnouncementImages] = useState([]);
+  const [announcementContent, setAnnouncementContent] = useState('');
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
+  const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+
+  useEffect(() => {
+    const checkAnnouncement = async () => {
+      try {
+        const res = await api.get('/user/announcement');
+        if (res.data) {
+          const images = res.data.announcementImages && res.data.announcementImages.length > 0
+            ? res.data.announcementImages
+            : (res.data.announcementImage ? [res.data.announcementImage] : []);
+          const content = res.data.announcementContent || '';
+          if (images.length > 0 || content) {
+            const announcementKey = `${images.join(',')}||${content}`;
+            const lastSeen = localStorage.getItem('last_seen_announcement');
+            if (lastSeen !== announcementKey) {
+              setAnnouncementImages(images);
+              setAnnouncementContent(content);
+              setShowAnnouncement(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching announcement:', err);
+      }
+    };
+    checkAnnouncement();
+  }, []);
+
+  const handleCloseAnnouncement = () => {
+    const announcementKey = `${announcementImages.join(',')}||${announcementContent}`;
+    localStorage.setItem('last_seen_announcement', announcementKey);
+    setShowAnnouncement(false);
+  };
+
+  const handleCarouselScroll = (e) => {
+    const width = e.target.offsetWidth;
+    const scrollLeft = e.target.scrollLeft;
+    const index = Math.round(scrollLeft / width);
+    setActiveCarouselIndex(index);
+  };
 
   useEffect(() => {
     const fetchPackages = async () => {
@@ -139,6 +197,9 @@ const Dashboard = () => {
               <div className={`inline-flex items-center gap-2 px-3 py-1 border rounded-full text-xs font-medium mb-6 ${isActive ? 'bg-[#00FF99]/10 border-[#00FF99]/30 text-[#00FF99]' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
                 <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-[#00FF99] shadow-[0_0_8px_rgba(0,255,153,0.8)]' : 'bg-red-500 shadow-[0_0_8px_rgba(255,0,0,0.8)]'}`}></div>
                 {isActive ? 'ACTIVE' : 'INACTIVE'}
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 border border-[#A020F0]/30 bg-[#A020F0]/10 text-[#FF00FF] rounded-full text-xs font-medium mb-6 ml-2">
+                <span>Pins: {currentUser?.pins ?? 0}</span>
               </div>
               
               <p className="text-gray-400 text-sm md:text-base max-w-md">
@@ -360,6 +421,7 @@ const Dashboard = () => {
             
             <div className="space-y-3 mb-6">
               {[
+                { title: 'My Pins', value: (currentUser?.pins ?? 0).toString(), icon: ShieldCheck, color: 'text-[#FF00FF]' },
                 { title: 'Direct Team', value: directTeam.toString(), icon: Briefcase, color: 'text-[#A020F0]' },
                 { title: 'Sponsor', value: sponsor, icon: ShieldCheck, color: 'text-[#FF00FF]' },
                 { title: 'Referral Income', value: `$${referralIncome.toFixed(2)}`, icon: Users, color: 'text-[#A020F0]' },
@@ -383,6 +445,134 @@ const Dashboard = () => {
         </div>
 
       </div>
+
+      {/* Announcement Popup Modal */}
+      <AnimatePresence>
+        {showAnnouncement && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleCloseAnnouncement}
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="bg-[#0B0F1A] border border-gray-800/80 rounded-3xl overflow-hidden max-w-lg w-full shadow-[0_0_50px_rgba(160,32,240,0.35)] relative z-10"
+            >
+              {/* Header/Close bar */}
+              <div className="flex justify-between items-center px-6 py-4 border-b border-gray-800/50">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#A020F0] animate-pulse"></div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Important Announcement</span>
+                </div>
+                <button
+                  onClick={handleCloseAnnouncement}
+                  className="text-gray-400 hover:text-white bg-gray-805 hover:bg-gray-800 p-1.5 rounded-xl transition-all border border-gray-700/30"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Announcement Body Content */}
+              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto hide-scrollbar bg-[#05000a]">
+                {announcementImages.length > 0 && (
+                  <div className="relative group/carousel">
+                    {/* Carousel Scroll Container */}
+                    <div
+                      id="announcement-carousel"
+                      onScroll={handleCarouselScroll}
+                      className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-4 w-full rounded-2xl"
+                      style={{ scrollSnapType: 'x mandatory' }}
+                    >
+                      {announcementImages.map((imgUrl, idx) => (
+                        <div
+                          key={idx}
+                          className="snap-center shrink-0 w-full flex items-center justify-center bg-[#05000a] min-h-[200px]"
+                        >
+                          <img
+                            src={getImageUrl(imgUrl)}
+                            alt={`Announcement ${idx + 1}`}
+                            className="w-full max-h-[50vh] object-contain rounded-2xl border border-gray-800/60 shadow-inner"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://placehold.co/600x400/161B2A/A020F0?text=Announcement+Image';
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Navigation Arrows */}
+                    {announcementImages.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => {
+                            const container = document.getElementById('announcement-carousel');
+                            if (container) {
+                              container.scrollBy({ left: -container.offsetWidth, behavior: 'smooth' });
+                            }
+                          }}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 text-white p-2 rounded-full border border-gray-800/40 hover:scale-105 transition-all z-10 cursor-pointer"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const container = document.getElementById('announcement-carousel');
+                            if (container) {
+                              container.scrollBy({ left: container.offsetWidth, behavior: 'smooth' });
+                            }
+                          }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 text-white p-2 rounded-full border border-gray-800/40 hover:scale-105 transition-all z-10 cursor-pointer"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </>
+                    )}
+
+                    {/* Indicator Dots */}
+                    {announcementImages.length > 1 && (
+                      <div className="flex justify-center gap-1.5 mt-3">
+                        {announcementImages.map((_, idx) => (
+                          <div
+                            key={idx}
+                            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                              activeCarouselIndex === idx ? 'bg-[#A020F0] w-4' : 'bg-gray-750'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {announcementContent && (
+                  <div className="bg-[#161B2A]/40 border border-gray-800/40 rounded-2xl p-5 text-gray-300 text-sm leading-relaxed whitespace-pre-wrap select-text">
+                    {announcementContent}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer actions */}
+              <div className="px-6 py-4 border-t border-gray-800/50 flex justify-end bg-[#0B0F1A]">
+                <button
+                  onClick={handleCloseAnnouncement}
+                  className="w-full sm:w-auto bg-gradient-to-r from-[#A020F0] to-[#6A0DAD] hover:from-[#B026FF] text-white px-6 py-2.5 rounded-xl text-sm font-bold tracking-wide uppercase transition-all shadow-[0_0_15px_rgba(160,32,240,0.2)]"
+                >
+                  Acknowledge & Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       
     </div>
   );

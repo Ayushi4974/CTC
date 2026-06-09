@@ -111,4 +111,18 @@ const changePassword = async (req, res, next) => {
   }
 };
 
-module.exports = { getUserProfile, getTeam, getMiningHistory, getLevelIncomeHistory, updateUserProfile, changePassword };
+const getAnnouncement = async (req, res, next) => {
+  try {
+    const SystemSettings = require('../models/SystemSettings');
+    const settings = await SystemSettings.findOne();
+    res.json({ 
+      announcementImage: settings ? settings.announcementImage : '',
+      announcementImages: settings ? (settings.announcementImages || []) : [],
+      announcementContent: settings ? settings.announcementContent : ''
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getUserProfile, getTeam, getMiningHistory, getLevelIncomeHistory, updateUserProfile, changePassword, getAnnouncement };

@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Play, RefreshCw } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
 
 const Cron = () => {
   const [crons, setCrons] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [triggering, setTriggering] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchCrons = async () => {
@@ -22,41 +19,10 @@ const Cron = () => {
       }
     };
     fetchCrons();
-  }, [refreshKey]);
-
-  const handleManualTrigger = async () => {
-    if (!window.confirm('WARNING: Force running the cron cycle bypasses weekend constraints and locks. Proceed only for manual overrides.')) return;
-    setTriggering(true);
-    try {
-      const res = await api.post('/admin/cron/trigger');
-      toast.success(res.data.message || 'Mining cron manually executed successfully!');
-      setRefreshKey((prev) => prev + 1);
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to manually trigger mining cron');
-    } finally {
-      setTriggering(false);
-    }
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
-      {/* Search Header */}
-      <div className="flex justify-between items-center bg-[#0B0F1A] border border-gray-800 p-6 rounded-3xl">
-        <div>
-          <h2 className="text-xl font-bold text-white">Cron Schedule Monitor</h2>
-          <p className="text-xs text-gray-500 mt-1">Audit active cycles, concurrency locks, and trigger manual overrides</p>
-        </div>
-        <button
-          onClick={handleManualTrigger}
-          disabled={triggering}
-          className="flex items-center gap-2 bg-gradient-to-r from-[#A020F0] to-[#6A0DAD] hover:from-[#B026FF] text-white px-4 py-2.5 rounded-xl text-sm font-bold tracking-wide uppercase transition-all shadow-[0_0_15px_rgba(160,32,240,0.3)] disabled:opacity-50"
-        >
-          {triggering ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} />}
-          <span>{triggering ? 'Executing...' : 'Force Trigger Cron'}</span>
-        </button>
-      </div>
-
       {/* Crons List grid */}
       {loading ? (
         <div className="flex items-center justify-center h-[30vh]">

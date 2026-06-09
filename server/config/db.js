@@ -26,16 +26,24 @@ const connectDB = async () => {
       console.log('SystemSettings created with manualWithdrawalApproval: true');
     }
 
-    // Auto-backfill compoundingBalance for UserPackage if undefined
+    // Auto-backfill compoundingBalance for UserPackage if undefined, and ensure isStaked/stakingDuration are populated
     const UserPackage = require('../models/UserPackage');
-    const missingCompoundingPkgs = await UserPackage.find({ compoundingBalance: { $exists: false } });
+    const missingCompoundingPkgs = await UserPackage.find({
+      $or: [
+        { compoundingBalance: { $exists: false } },
+        { isStaked: { $exists: false } },
+        { stakingDuration: { $exists: false } }
+      ]
+    });
     if (missingCompoundingPkgs.length > 0) {
-      console.log(`[DB] Found ${missingCompoundingPkgs.length} packages with missing compoundingBalance. Backfilling...`);
+      console.log(`[DB] Found ${missingCompoundingPkgs.length} packages with missing compoundingBalance/isStaked/stakingDuration. Backfilling...`);
       for (let p of missingCompoundingPkgs) {
-        p.compoundingBalance = p.amount;
+        if (p.compoundingBalance === undefined) p.compoundingBalance = p.amount;
+        if (p.isStaked === undefined) p.isStaked = false;
+        if (p.stakingDuration === undefined) p.stakingDuration = 0;
         await p.save();
       }
-      console.log('[DB] Compounding balance backfill complete.');
+      console.log('[DB] Compounding balance and staking fields backfill complete.');
     }
   } catch (error) {
     console.error(`Error: ${error.message}`);

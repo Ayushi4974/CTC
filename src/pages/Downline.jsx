@@ -56,19 +56,35 @@ const Downline = () => {
   const [levelIncomeData, setLevelIncomeData] = useState([]);
   const [copied, setCopied] = useState(false);
   const [expandedRow, setExpandedRow] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(10 * 24 * 3600 - 45000); // ~9 days remaining
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [hasActivePackage, setHasActivePackage] = useState(false);
 
   useEffect(() => {
     dispatch(fetchProfile());
     const fetchData = async () => {
       try {
-        const [teamRes, incomeRes] = await Promise.all([
+        const [teamRes, incomeRes, packagesRes] = await Promise.all([
           api.get('/user/team'),
-          api.get('/user/level-income')
+          api.get('/user/level-income'),
+          api.get('/package/my-packages')
         ]);
         setDirectTeam(teamRes.data.directTeam || []);
         setAllLevels(teamRes.data.allLevels || []);
         setLevelIncomeData(incomeRes.data || []);
+
+        const activePkg = (packagesRes.data || []).find(pkg => pkg.status === 'active');
+        if (activePkg) {
+          setHasActivePackage(true);
+          const start = new Date(activePkg.startDate || activePkg.createdAt);
+          const deadline = new Date(start.getTime() + 10 * 24 * 60 * 60 * 1000);
+          const now = new Date();
+          const diffMs = deadline.getTime() - now.getTime();
+          const diffSec = Math.max(0, Math.floor(diffMs / 1000));
+          setTimeLeft(diffSec);
+        } else {
+          setHasActivePackage(false);
+          setTimeLeft(0);
+        }
       } catch (err) {
         console.error('Failed to fetch team data', err);
       }
@@ -84,7 +100,7 @@ const Downline = () => {
     overallBusiness: currentUser?.totalInvestment || 0,
   };
 
-  const activeDirectsCount = directTeam.filter(d => d.isActive).length;
+  const activeDirectsCount = directTeam.filter(d => d.isActive && (d.pins === undefined || d.pins > 0)).length;
 
   const dynamicLevelsData = allLevels.map((lvl) => {
     const reqs = LEVEL_REQUIREMENTS[lvl.level - 1] || { staking: 0, directs: 0 };
@@ -111,7 +127,8 @@ const Downline = () => {
       partners: lvl.members.map(member => ({
         name: member.fullName,
         id: member.userId,
-        vol: member.totalInvestment || 0
+        vol: member.totalInvestment || 0,
+        pins: member.pins ?? 1 // If undefined (older users), default to 1 (normal)
       }))
     };
   });
@@ -122,7 +139,12 @@ const Downline = () => {
   const activeLevelsCount = dynamicLevelsData.filter(l => l.isActive).length;
 
   useEffect(() => {
-    const timer = setInterval(() => setTimeLeft(prev => prev > 0 ? prev - 1 : 0), 1000);
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev === null) return null;
+        return prev > 0 ? prev - 1 : 0;
+      });
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -178,7 +200,19 @@ const Downline = () => {
           </div>
           <div>
             <p className="text-[10px] text-orange-400 font-bold uppercase tracking-widest mb-0.5">Fastrack Bonus</p>
-            <p className="text-sm font-bold text-white tabular-nums tracking-wide">{formatTime(timeLeft)}</p>
+            {currentUser?.fastrackQualified ? (
+              <p className="text-sm font-bold text-green-400 tracking-wide flex items-center gap-1">
+                <ShieldCheck size={14} className="text-green-400" /> Active
+              </p>
+            ) : timeLeft === null ? (
+              <p className="text-sm font-bold text-gray-400 tracking-wide">Loading...</p>
+            ) : !hasActivePackage ? (
+              <p className="text-sm font-bold text-gray-500 tracking-wide">No Active Package</p>
+            ) : timeLeft > 0 ? (
+              <p className="text-sm font-bold text-white tabular-nums tracking-wide">{formatTime(timeLeft)}</p>
+            ) : (
+              <p className="text-sm font-bold text-red-500 tracking-wide">Expired</p>
+            )}
           </div>
         </motion.div>
       </div>
@@ -409,7 +443,7 @@ const Downline = () => {
                               </div>
                               <div>
                                 <p className="text-sm font-bold text-white leading-tight">{partner.name}</p>
-                                <p className="text-[10px] text-gray-500">{partner.id}</p>
+                                <p className="text-[10px] text-gray-500">{partner.id} • {partner.pins} Pins</p>
                               </div>
                             </div>
                             <div className="text-right">

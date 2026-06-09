@@ -1,19 +1,26 @@
 const mongoose = require('mongoose');
 
 const auditLogSchema = new mongoose.Schema({
-  action: { 
-    type: String, 
+  action: {
+    type: String,
     required: true,
     enum: [
-      'ROI_GENERATION', 
-      'LEVEL_INCOME', 
-      'WITHDRAWAL', 
-      'PACKAGE_ACTIVATION', 
-      'CAP_COMPLETED', 
-      'TREASURY_MODE_CHANGE', 
-      'ADMIN_ACTION', 
+      'ROI_GENERATION',
+      'LEVEL_INCOME',
+      'WITHDRAWAL',
+      'PACKAGE_ACTIVATION',
+      'CAP_COMPLETED',
+      'TREASURY_MODE_CHANGE',
+      'ADMIN_ACTION',
       'PAYOUT_FAILURE',
-      'EMERGENCY_ALERT'
+      'EMERGENCY_ALERT',
+      'STAKING_RELEASE',
+      'STAKING_COMPLETED',
+      'STAKING_ACTIVATION',
+      'BLOCK_USER',
+      'UNBLOCK_USER',
+      'ADMIN_UPDATE_USER',
+      'PACKAGE_EXPIRED'
     ]
   },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

@@ -4,6 +4,16 @@ const Package = require('./models/Package');
 
 const packages = [
   {
+    name: 'Package',
+    minAmount: 100,
+    maxAmount: 500,
+    dailyProfit: 0.5, // 0.25% every 12 hours => 0.5% daily
+    validity: 36500, // Lifetime
+    isReferralOnly: false,
+    isZeroPin: true,
+    status: true
+  },
+  {
     name: 'Package 1',
     minAmount: 100,
     maxAmount: 1000,

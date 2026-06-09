@@ -11,7 +11,7 @@ const PackageHistory = () => {
   const [packageFilter, setPackageFilter] = useState('all');
   const [packages, setPackages] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [assignForm, setAssignForm] = useState({ userId: '', packageId: '', amount: '' });
+  const [assignForm, setAssignForm] = useState({ userId: '', packageId: '', amount: '', stakingDuration: 0 });
   const [assigning, setAssigning] = useState(false);
   const [users, setUsers] = useState([]);
 
@@ -65,11 +65,12 @@ const PackageHistory = () => {
       const res = await api.post('/admin/package/assign', {
         userId: assignForm.userId,
         packageId: assignForm.packageId,
-        amount: Number(assignForm.amount)
+        amount: Number(assignForm.amount),
+        stakingDuration: Number(assignForm.stakingDuration || 0)
       });
       toast.success(res.data.message || 'Package manually assigned successfully!');
       setShowAssignModal(false);
-      setAssignForm({ userId: '', packageId: '', amount: '' });
+      setAssignForm({ userId: '', packageId: '', amount: '', stakingDuration: 0 });
       fetchPurchases();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to assign package manually.');
@@ -338,7 +339,16 @@ const PackageHistory = () => {
                           )}
                         </td>
                         <td className="py-4.5 px-6 font-semibold">
-                          <span className="text-white text-sm">{p.packageId?.name || 'SOS Capital Tier'}</span>
+                          <div className="text-white text-sm">{p.packageId?.name || 'SOS Capital Tier'}</div>
+                          {p.isStaked ? (
+                            <span className="inline-flex mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#00C6FF]/10 text-[#00C6FF] border border-[#00C6FF]/20 uppercase tracking-wider">
+                              Staked ({p.stakingDuration}d)
+                            </span>
+                          ) : p.packageId && (
+                            <span className="inline-flex mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-gray-800 text-gray-400 border border-gray-700 uppercase tracking-wider">
+                              Standard
+                            </span>
+                          )}
                         </td>
                         <td className="py-4.5 px-6 font-mono font-extrabold text-sm text-white">
                           ${Number(p.amount || 0).toFixed(2)}
@@ -518,25 +528,43 @@ const PackageHistory = () => {
               {assignForm.packageId && (() => {
                 const pkg = packages.find(p => p._id === assignForm.packageId);
                 return (
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">Investment Amount ($)</label>
-                      {pkg && (
-                        <span className="text-[10px] text-[#00C6FF] font-semibold">
-                          Range: ${pkg.minAmount} - ${pkg.maxAmount}
-                        </span>
-                      )}
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">Investment Amount ($)</label>
+                        {pkg && (
+                          <span className="text-[10px] text-[#00C6FF] font-semibold">
+                            Range: ${pkg.minAmount} - ${pkg.maxAmount}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="number"
+                        placeholder="e.g. 500"
+                        min={pkg ? pkg.minAmount : undefined}
+                        max={pkg ? pkg.maxAmount : undefined}
+                        value={assignForm.amount}
+                        onChange={(e) => setAssignForm({ ...assignForm, amount: e.target.value })}
+                        className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono font-bold"
+                        required
+                      />
                     </div>
-                    <input
-                      type="number"
-                      placeholder="e.g. 500"
-                      min={pkg ? pkg.minAmount : undefined}
-                      max={pkg ? pkg.maxAmount : undefined}
-                      value={assignForm.amount}
-                      onChange={(e) => setAssignForm({ ...assignForm, amount: e.target.value })}
-                      className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono font-bold"
-                      required
-                    />
+
+                    <div>
+                      <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1.5">Staking Duration (Auto-Compounding)</label>
+                      <select
+                        value={assignForm.stakingDuration}
+                        onChange={(e) => setAssignForm({ ...assignForm, stakingDuration: Number(e.target.value) })}
+                        className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                        required
+                      >
+                        <option value={0}>No Staking (Daily Available Payouts)</option>
+                        <option value={30}>30 Days Stake (Auto-Compound, Locked)</option>
+                        <option value={90}>90 Days Stake (Auto-Compound, Locked)</option>
+                        <option value={180}>180 Days Stake (Auto-Compound, Locked)</option>
+                        <option value={360}>360 Days Stake (Auto-Compound, Locked)</option>
+                      </select>
+                    </div>
                   </div>
                 );
               })()}

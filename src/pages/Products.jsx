@@ -204,7 +204,7 @@ const Products = () => {
           packageId: selectedPackage._id || selectedPackage.id,
           amount: Number(investmentAmount),
           txHash: tx.hash,
-          senderAddress: userAddress // Security requirement: matching sender
+          senderAddress: userAddress, // Security requirement: matching sender
         });
 
         toast.success(response.data.message || 'Package Activated Successfully!');
@@ -271,8 +271,9 @@ const Products = () => {
           .sort((a, b) => {
             const getOrder = (name) => {
               const lower = name.toLowerCase();
-              if (lower.includes('package 1')) return 1;
-              if (lower.includes('package 2')) return 2;
+              if (lower === 'package') return 0;
+              if (lower.includes('package 1') || lower.includes('100 package')) return 1;
+              if (lower.includes('package 2') || lower.includes('500 package')) return 2;
               if (lower.includes('package 3')) return 3;
               if (lower.includes('package 4')) return 4;
               if (lower.includes('referral')) return 5;
@@ -282,7 +283,23 @@ const Products = () => {
           })
           .map((pkgDb, idx) => {
             // Merge db package with UI config
-            const uiConfig = packages.find(p => p.name.toLowerCase() === pkgDb.name.toLowerCase()) || packages[idx % packages.length];
+            let uiConfig = packages.find(p => p.name.toLowerCase() === pkgDb.name.toLowerCase());
+            if (!uiConfig) {
+              if (pkgDb.name.toLowerCase() === 'package') {
+                uiConfig = {
+                  name: 'Package',
+                  icon: TrendingUp,
+                  glowClass: 'shadow-[0_0_20px_rgba(0,198,255,0.2)] hover:shadow-[0_0_30px_rgba(0,198,255,0.4)]',
+                  borderClass: 'border-[#00C6FF]/30',
+                  iconBgClass: 'bg-[#00C6FF]/10',
+                  iconTextClass: 'text-[#00C6FF]',
+                  isPremium: false,
+                  description: 'Investment package for 0-Pin members.'
+                };
+              } else {
+                uiConfig = packages[idx % packages.length];
+              }
+            }
           
           const isReferral = pkgDb.isReferralOnly || pkgDb.name.toLowerCase().includes('referral');
           const profitDisplay = isReferral 
@@ -476,7 +493,7 @@ const Products = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 mb-8">
+                <div className="grid grid-cols-1 gap-6 mb-6">
                   {/* TxHash Input */}
                   <div>
                     <label className="block text-sm font-medium text-gray-400 mb-2">Transaction Hash (Optional if using MetaMask)</label>
@@ -487,8 +504,10 @@ const Products = () => {
                       placeholder="0x..."
                       className="w-full bg-[#161B2A]/80 border border-gray-700 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-[#00C6FF] focus:shadow-[0_0_15px_rgba(0,198,255,0.3)] transition-all"
                     />
-                    <p className="text-xs text-gray-500 mt-2">Enter manually if you paid outside of this browser session.</p>
                   </div>
+                </div>
+                <div className="grid grid-cols-1 mb-8">
+                  <p className="text-xs text-gray-500">Enter transaction hash manually if you paid outside of this browser session.</p>
                 </div>
 
 

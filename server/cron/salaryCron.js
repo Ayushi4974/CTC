@@ -4,7 +4,7 @@ const Transaction = require('../models/Transaction');
 
 const getTeamCount = async (userId) => {
   let count = 0;
-  const directs = await User.find({ sponsor: userId, isActive: true });
+  const directs = await User.find({ sponsor: userId, isActive: true, pins: { $gt: 0 } });
   for (let dir of directs) {
     count += 1 + await getTeamCount(dir._id);
   }
@@ -12,7 +12,7 @@ const getTeamCount = async (userId) => {
 };
 
 const getLegCounts = async (userId) => {
-  const directs = await User.find({ sponsor: userId, isActive: true });
+  const directs = await User.find({ sponsor: userId, isActive: true, pins: { $gt: 0 } });
   const legCounts = [];
   for (let dir of directs) {
     const legCount = 1 + await getTeamCount(dir._id);

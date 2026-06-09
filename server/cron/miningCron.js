@@ -30,7 +30,11 @@ const runMiningCronCycle = async (force = false) => {
   // 1. DUPLICATE & REPLAY PROTECTION (CRON LOCK)
   let state = await CronState.findOne({ cronName });
   if (!state) {
-    state = await CronState.create({ cronName, isRunning: false });
+    try {
+      state = await CronState.create({ cronName, isRunning: false });
+    } catch (err) {
+      state = await CronState.findOne({ cronName });
+    }
   }
 
   // Auto-release stale lock if held for more than 20 minutes (handles crash/timeout scenarios)
@@ -44,17 +48,27 @@ const runMiningCronCycle = async (force = false) => {
     }
   }
 
-  if (state.isRunning && !force) {
+  if (state.isRunning) {
     console.log(`[CRON] ${cronName} is currently locked/running. Skipping.`);
     return { success: false, reason: 'LOCKED' };
   }
+
   if (state.lastCycleId === cycleId && !force) {
     console.log(`[CRON] ${cronName} already completed cycle ${cycleId}. Skipping.`);
     return { success: false, reason: 'ALREADY_COMPLETED' };
   }
 
-  // Lock the cron and record when the lock was acquired
-  await CronState.updateOne({ cronName }, { $set: { isRunning: true, lockAcquiredAt: new Date() } });
+  // Acquire the lock atomically.
+  const acquiredLock = await CronState.findOneAndUpdate(
+    { cronName, isRunning: false },
+    { $set: { isRunning: true, lockAcquiredAt: new Date() } },
+    { returnDocument: 'after' }
+  );
+
+  if (!acquiredLock) {
+    console.log(`[CRON] ${cronName} could not acquire lock (already running). Skipping.`);
+    return { success: false, reason: 'LOCKED' };
+  }
 
   
   console.log('============================================');
@@ -73,6 +87,72 @@ const runMiningCronCycle = async (force = false) => {
   const round6 = (num) => Math.round(num * 1000000) / 1000000;
 
   try {
+    // Release and complete expired packages
+    const activeExpiredPackages = await UserPackage.find({
+      status: 'active',
+      endDate: { $lte: new Date() }
+    });
+
+    // Capped staked packages that reached cap early (status: completed) but their duration is now completed
+    const completedStakedPackages = await UserPackage.find({
+      status: 'completed',
+      isStaked: true,
+      isStakingReleased: { $ne: true },
+      $or: [
+        { stakingEndDate: { $lte: new Date() } },
+        { stakingEndDate: { $exists: false }, endDate: { $lte: new Date() } }
+      ]
+    });
+
+    const expiredPackages = [...activeExpiredPackages, ...completedStakedPackages];
+
+    if (expiredPackages.length > 0) {
+      console.log(`[CRON] Found ${expiredPackages.length} expired packages to process (${activeExpiredPackages.length} active, ${completedStakedPackages.length} completed/capped).`);
+      const Transaction = require('../models/Transaction');
+      for (let expiredPkg of expiredPackages) {
+        const u = await User.findById(expiredPkg.user);
+        if (u) {
+          expiredPkg.status = 'completed';
+          if (expiredPkg.isStaked) {
+            // Release compoundingBalance to availableBalance
+            u.availableBalance = round6(u.availableBalance + expiredPkg.compoundingBalance);
+            await u.save();
+
+            await Transaction.create({
+              userId: u.userId,
+              user: u._id,
+              type: 'release',
+              amount: expiredPkg.compoundingBalance,
+              status: 'success'
+            });
+
+            await AuditLog.create({
+              action: 'STAKING_RELEASE',
+              userId: u._id,
+              packageId: expiredPkg._id,
+              amount: expiredPkg.compoundingBalance,
+              details: { reason: 'Staking duration completed', duration: expiredPkg.stakingDuration }
+            });
+            console.log(`[CRON] Released staked package ${expiredPkg._id} of ${expiredPkg.compoundingBalance} to user ${u.userId}`);
+            
+            // Mark as staking released
+            expiredPkg.isStakingReleased = true;
+          } else {
+            // Normal package completes without refunding principal (since user got payouts)
+            await AuditLog.create({
+              action: 'PACKAGE_EXPIRED',
+              userId: u._id,
+              packageId: expiredPkg._id,
+              amount: expiredPkg.amount,
+              details: { reason: 'Validity duration completed' }
+            });
+            console.log(`[CRON] Standard package ${expiredPkg._id} expired for user ${u.userId}`);
+          }
+          await expiredPkg.save();
+        }
+      }
+    }
+
     const activePackages = await UserPackage.find({
       status: 'active',
       endDate: { $gt: new Date() }
@@ -83,26 +163,46 @@ const runMiningCronCycle = async (force = false) => {
     for (let pkg of activePackages) {
       idx++;
       const user = await User.findById(pkg.user);
+      if (!user) continue;
+
       if (idx % 10 === 0 || idx === 1 || idx === activePackages.length) {
-        console.log(`[CRON] Processing package ${idx}/${activePackages.length} (ID: ${pkg._id}) for user ${user ? user.userId : 'unknown'}`);
+        console.log(`[CRON] Processing package ${idx}/${activePackages.length} (ID: ${pkg._id}) for user ${user.userId}`);
+      }
+
+      // Check if staking duration has completed for active package
+      if (pkg.stakingEnabled && pkg.stakingEndDate && pkg.stakingEndDate <= new Date()) {
+        pkg.stakingEnabled = false;
+        pkg.autoCompounding = false;
+        pkg.isStaked = false; // Turn off isStaked so it doesn't try to release at package expiration
+        await pkg.save();
+        
+        await AuditLog.create({
+          action: 'STAKING_COMPLETED',
+          userId: user._id,
+          packageId: pkg._id,
+          amount: pkg.compoundingBalance,
+          details: { reason: 'Staking duration completed', period: pkg.stakingPeriod }
+        });
+        console.log(`[CRON] Staking completed for active package ${pkg._id} of user ${user.userId}. Compounding turned OFF.`);
       }
 
       // STRICT ACTIVE USER VALIDATION
       const isActive = await isStrictlyActiveUser(user, pkg);
+      const maxCapMultiplier = pkg.isZeroPin ? 1 : 4;
       if (!isActive) {
         // Double ensure flags are flipped if they reached cap mathematically but flags aren't updated yet
-        if (user && user.totalEarning >= user.totalInvestment * 4 && user.isActive) {
+        if (user && user.totalEarning >= user.totalInvestment * maxCapMultiplier && user.isActive) {
           user.isActive = false;
           await user.save();
-
+ 
           await AuditLog.create({
             action: 'CAP_COMPLETED',
             userId: user._id,
             packageId: pkg._id,
-            details: { reason: '4x cap reached during mining cron pre-check' }
+            details: { reason: `${maxCapMultiplier}x cap reached during mining cron pre-check` }
           });
         }
-        if (pkg.totalEarned >= pkg.amount * 4 && pkg.status === 'active') {
+        if (pkg.totalEarned >= pkg.amount * maxCapMultiplier && pkg.status === 'active') {
           pkg.status = 'completed';
           await pkg.save();
         }
@@ -125,15 +225,15 @@ const runMiningCronCycle = async (force = false) => {
       // PRECISION OVERSHOOT PROTECTION
       // Calculate exact remaining capacity across BOTH package and user
       // -------------------------------------------------------------
-      const pkgRemainingCap = (pkg.amount * 4) - pkg.totalEarned;
-      const userRemainingCap = (user.totalInvestment * 4) - user.totalEarning;
-
+      const pkgRemainingCap = (pkg.amount * maxCapMultiplier) - pkg.totalEarned;
+      const userRemainingCap = (user.totalInvestment * maxCapMultiplier) - user.totalEarning;
+ 
       const maxAllowedProfit = Math.min(pkgRemainingCap, userRemainingCap);
-
+ 
       if (profitAmount > maxAllowedProfit) {
         profitAmount = maxAllowedProfit; // Truncate exactly to the limit
       }
-
+ 
       if (profitAmount <= 0) {
         pkg.status = 'completed';
         user.isActive = false; // By definition if capacity is 0, they are inactive
@@ -141,12 +241,12 @@ const runMiningCronCycle = async (force = false) => {
         await user.save();
         continue;
       }
-
+ 
       profitAmount = round6(profitAmount);
-
+ 
       // We use a transaction if possible, otherwise we save sequentially (production robust)
       // Mongoose transactions require Replica Sets. Assuming standard mongo setup without guarantee, we save safely.
-
+ 
       await MiningIncome.create({
         userId: user.userId,
         user: user._id,
@@ -155,29 +255,41 @@ const runMiningCronCycle = async (force = false) => {
         amount: profitAmount,
         percentage: user.fastrackQualified ? totalDailyPercent * 2 : totalDailyPercent
       });
+ 
+      // Determine if staking is active for compounding decision
+      const isStakingActive = pkg.stakingEnabled || (pkg.isStaked && !pkg.stakingEndDate);
 
-      // Send 100% profit to available balance (no reinvestment/compounding split)
-      const reinvestAmount = 0;
-      const withdrawableAmount = profitAmount;
-
+      // If package is staked, it auto-compounds. 
+      // This means profit is added to compoundingBalance, but withdrawableAmount is 0 (locked until end).
+      // If package is standard, it does not compound. Profit goes to availableBalance, compoundingBalance remains equal to pkg.amount.
+      const withdrawableAmount = isStakingActive ? 0 : profitAmount;
+ 
       user.miningIncome = round6(user.miningIncome + profitAmount);
-      user.totalEarning = round6(user.totalEarning + profitAmount); // 100% of profit counts towards the 4x cap!
-      user.availableBalance = round6(user.availableBalance + withdrawableAmount); // 100% is withdrawable instantly
-
+      user.totalEarning = round6(user.totalEarning + profitAmount); // 100% of profit counts towards the cap!
+      
+      if (withdrawableAmount > 0) {
+        user.availableBalance = round6(user.availableBalance + withdrawableAmount); // 100% is withdrawable instantly
+      }
+ 
       pkg.totalEarned = round6(pkg.totalEarned + profitAmount);
-      pkg.compoundingBalance = round6(baseAmount + profitAmount); // Compounding: Add profit to the principal balance
-
+ 
+      if (isStakingActive) {
+        pkg.compoundingBalance = round6(baseAmount + profitAmount); // Compounding: Add profit to the principal balance
+      } else {
+        pkg.compoundingBalance = Math.max(pkg.amount, pkg.compoundingBalance || pkg.amount); // Preserve compounded balance, prevent downward reset
+      }
+ 
       let capHit = false;
       // Final precision check after adding profit
-      if (pkg.totalEarned >= pkg.amount * 4 || user.totalEarning >= user.totalInvestment * 4) {
+      if (pkg.totalEarned >= pkg.amount * maxCapMultiplier || user.totalEarning >= user.totalInvestment * maxCapMultiplier) {
         pkg.status = 'completed';
         user.isActive = false;
         capHit = true;
       }
-
+ 
       await pkg.save();
       await user.save();
-
+ 
       // AUDIT LOG
       await AuditLog.create({
         action: 'ROI_GENERATION',
@@ -191,13 +303,15 @@ const runMiningCronCycle = async (force = false) => {
           action: 'CAP_COMPLETED',
           userId: user._id,
           packageId: pkg._id,
-          details: { cycleId, reason: '4x cap reached EXACTLY during ROI generation' }
+          details: { cycleId, reason: `${maxCapMultiplier}x cap reached EXACTLY during ROI generation` }
         });
       }
-
+ 
       // Level Bonus Distribution based on Profit amount
       // Since level bonus also increases user totalEarning, it must also be cap-protected
-      await distributeLevelIncome(user._id, profitAmount, user.userId);
+      if (user.pins && user.pins > 0) {
+        await distributeLevelIncome(user._id, profitAmount, user.userId);
+      }
     }
 
     // Unlock and record success

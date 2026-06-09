@@ -26,10 +26,8 @@ const AdminLayout = () => {
     { name: 'Withdrawals', path: '/withdrawals', icon: CreditCard },
     { name: 'KYC Verification', path: '/kyc', icon: UserCheck },
     { name: 'Referral & Level', path: '/referrals', icon: Network },
-    { name: 'Mining & ROI', path: '/mining', icon: Cpu },
     { name: 'System Settings', path: '/settings', icon: Settings },
     { name: 'Cron Monitoring', path: '/cron', icon: Terminal },
-    { name: 'Fraud & Risk', path: '/fraud', icon: ShieldAlert },
     { name: 'Transactions Audit', path: '/transactions', icon: History },
   ];
 

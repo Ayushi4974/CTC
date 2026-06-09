@@ -20,6 +20,9 @@ const systemSettingsSchema = new mongoose.Schema({
   // Treasury Health
   treasuryReserves: { type: Number, default: 0 }, // Total USDT in hot/cold wallets
   emergencyThreshold: { type: Number, default: 10000 }, // Trigger emergency mode below this
+  announcementImage: { type: String, default: '' },
+  announcementImages: { type: [String], default: [] },
+  announcementContent: { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('SystemSettings', systemSettingsSchema);

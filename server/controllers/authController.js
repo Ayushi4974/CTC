@@ -46,6 +46,7 @@ const registerUser = async (req, res, next) => {
       password: hashedPassword,
       sponsorId: searchSponsorId,
       sponsor: sponsor,
+      level: sponsorUser ? (sponsorUser.level || 0) + 1 : 0,
     });
 
     if (user) {

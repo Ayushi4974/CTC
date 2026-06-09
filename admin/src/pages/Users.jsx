@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, ShieldAlert, ShieldCheck, Mail, Phone, Calendar, ArrowRight, Copy } from 'lucide-react';
+import { Search, Eye, ShieldAlert, ShieldCheck, Mail, Phone, Calendar, ArrowRight, Copy, Trash2 } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
 
@@ -28,7 +28,8 @@ const Users = () => {
     levelIncome: 0,
     promotionalIncome: 0,
     sponsorId: '',
-    rank: ''
+    rank: '',
+    pins: 1
   });
 
   const fetchUsers = async () => {
@@ -84,7 +85,8 @@ const Users = () => {
       levelIncome: user.levelIncome || 0,
       promotionalIncome: user.promotionalIncome || 0,
       sponsorId: user.sponsorId || '',
-      rank: user.rank || 'L1'
+      rank: user.rank || 'L1',
+      pins: user.pins !== undefined ? user.pins : 1
     });
   };
 
@@ -120,6 +122,27 @@ const Users = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update user active status');
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    if (!user) return;
+    const confirmDelete = window.confirm(
+      `Are you sure you want to permanently delete user ${user.userId} (${user.fullName})?\n\n` +
+      `WARNING: This will cascade delete their packages, transaction logs, mining records, KYC details, and all MLM incomes. Direct referrals of this user will bypass them and link directly to their sponsor. This action CANNOT be undone.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const res = await api.delete(`/admin/user/${user._id}`);
+      toast.success(res.data.message || 'User deleted successfully');
+      fetchUsers();
+      if (selectedUser && selectedUser._id === user._id) {
+        setSelectedUser(null);
+        setIsEditing(false);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete user');
     }
   };
 
@@ -194,7 +217,7 @@ const Users = () => {
                   <tr key={user._id} className="hover:bg-[#161B2A]/20 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-white">{user.fullName}</div>
-                      <div className="text-xs text-gray-500 flex items-center gap-1.5">
+                      <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
                         <span>{user.email}</span>
                         <button
                           onClick={() => handleCopy(user.email, 'Email')}
@@ -203,6 +226,7 @@ const Users = () => {
                         >
                           <Copy size={10} />
                         </button>
+                        <span className="text-[10px] bg-[#A020F0]/10 text-[#FF00FF] px-1.5 py-0.5 rounded border border-[#A020F0]/20 font-bold ml-1">{user.pins ?? 1} Pins</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 font-mono font-semibold text-emerald-400">
@@ -247,6 +271,13 @@ const Users = () => {
                         title={user.isBlocked ? 'Unblock User' : 'Block User'}
                       >
                         {user.isBlocked ? <ShieldCheck size={15} /> : <ShieldAlert size={15} />}
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteUser(user)}
+                        className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg transition-colors border border-red-500/20"
+                        title="Delete User"
+                      >
+                        <Trash2 size={15} />
                       </button>
                     </td>
                   </tr>
@@ -356,13 +387,22 @@ const Users = () => {
               </div>
               <div className="flex items-center gap-2">
                 {!isEditing && (
-                  <button 
-                    type="button"
-                    onClick={handleImpersonate}
-                    className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg transition-colors text-xs font-bold shadow-md"
-                  >
-                    View user dashboard without Login
-                  </button>
+                  <>
+                    <button 
+                      type="button"
+                      onClick={handleImpersonate}
+                      className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg transition-colors text-xs font-bold shadow-md"
+                    >
+                      View user dashboard without Login
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => handleDeleteUser(selectedUser)}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-xs font-bold shadow-md"
+                    >
+                      Delete User
+                    </button>
+                  </>
                 )}
                 {!isEditing ? (
                   <button 
@@ -473,7 +513,7 @@ const Users = () => {
 
                   <div className="space-y-3">
                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Network & MLM Hierarchy</h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Sponsor ID</label>
                         <input
@@ -501,6 +541,17 @@ const Users = () => {
                           <option value="L8">L8</option>
                           <option value="L9">L9</option>
                           <option value="L10">L10</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Pins</label>
+                        <select
+                          value={editForm.pins}
+                          onChange={(e) => setEditForm({ ...editForm, pins: Number(e.target.value) })}
+                          className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono"
+                        >
+                          <option value={1}>1</option>
+                          <option value={0}>0</option>
                         </select>
                       </div>
                     </div>
@@ -596,6 +647,10 @@ const Users = () => {
                       <div>
                         <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Downline Team</span>
                         <span className="text-sm font-semibold text-white">{selectedUser.totalTeam || 0} users</span>
+                      </div>
+                      <div className="col-span-2 border-t border-gray-800 pt-3 mt-1">
+                        <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">Pins Count</span>
+                        <span className="text-sm font-bold text-[#00C6FF]">{selectedUser.pins ?? 1} Pins</span>
                       </div>
                     </div>
                   </div>

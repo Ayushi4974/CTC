@@ -3,6 +3,9 @@ const ReferralIncome = require('../models/ReferralIncome');
 
 const distributeDirectReferral = async (sponsorId, packageAmount, fromUserId, fromUserObjId) => {
   try {
+    const fromUser = await User.findById(fromUserObjId);
+    if (!fromUser || fromUser.pins === 0) return;
+
     const sponsor = await User.findById(sponsorId);
     if (!sponsor || !sponsor.isActive) return;
 

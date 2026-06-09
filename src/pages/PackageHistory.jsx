@@ -1,11 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Package, Calendar, DollarSign, ShieldCheck, ExternalLink } from 'lucide-react';
+import { toast } from 'react-toastify';
 import api from '../api';
 
 const PackageHistory = () => {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPeriods, setSelectedPeriods] = useState({});
+  const [stakingLoading, setStakingLoading] = useState({});
+
+  const handleSelectPeriod = (pkgId, period) => {
+    setSelectedPeriods(prev => ({ ...prev, [pkgId]: period }));
+  };
+
+  const handleStartStaking = async (pkgId) => {
+    const period = selectedPeriods[pkgId];
+    if (!period) {
+      toast.error('Please select a staking duration first.');
+      return;
+    }
+    try {
+      setStakingLoading(prev => ({ ...prev, [pkgId]: true }));
+      const res = await api.post('/package/start-staking', { userPackageId: pkgId, period });
+      toast.success(res.data.message || 'Staking activated successfully!');
+      // Refetch packages
+      const refreshed = await api.get('/package/my-packages');
+      setPackages(refreshed.data);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to activate staking.');
+    } finally {
+      setStakingLoading(prev => ({ ...prev, [pkgId]: false }));
+    }
+  };
 
   useEffect(() => {
     const fetchPackages = async () => {
@@ -112,6 +140,77 @@ const PackageHistory = () => {
                   </div>
                 </div>
 
+                {pkg.status === 'active' && (
+                  (pkg.stakingEnabled || pkg.isStaked) ? (
+                    <div className="bg-[#161B2A]/50 p-4 rounded-2xl border border-cyan-500/20 shadow-[0_0_15px_rgba(0,198,255,0.05)] mt-2">
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="text-[10px] text-[#00C6FF] uppercase font-bold tracking-wider">Auto-Compounding Staking</p>
+                        <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase">Active</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-1.5 text-xs">
+                        <span className="text-gray-400">Duration:</span>
+                        <span className="font-bold text-white">{pkg.stakingPeriod || pkg.stakingDuration} Days (Locked)</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-1.5 text-xs">
+                        <span className="text-gray-400">Compound Bal:</span>
+                        <span className="font-extrabold text-[#00C6FF]">${Number(pkg.compoundingBalance || pkg.amount).toFixed(2)}</span>
+                      </div>
+                      {pkg.stakingStartDate && (
+                        <div className="flex justify-between items-center mb-1.5 text-xs">
+                          <span className="text-gray-400">Start Date:</span>
+                          <span className="font-medium text-gray-300">{new Date(pkg.stakingStartDate).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                      {pkg.stakingEndDate && (
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-gray-400">End Date:</span>
+                          <span className="font-medium text-gray-300">{new Date(pkg.stakingEndDate).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-[#161B2A]/30 p-4 rounded-2xl border border-gray-800 mt-2 flex flex-col gap-3">
+                      <div className="flex justify-between items-center">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Auto-Compounding Staking</p>
+                        <span className="px-2 py-0.5 rounded bg-gray-800 text-gray-400 text-[9px] font-bold uppercase">Disabled</span>
+                      </div>
+                      
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] text-gray-500 font-bold uppercase">Select Staking Duration</label>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {[30, 90, 180, 360].map((d) => (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => handleSelectPeriod(pkg._id, d)}
+                              className={`py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                selectedPeriods[pkg._id] === d
+                                  ? 'bg-gradient-to-r from-[#00C6FF] to-[#A020F0] text-white shadow-md'
+                                  : 'bg-[#161B2A] text-gray-400 hover:text-white border border-gray-800/80 hover:border-gray-700'
+                              }`}
+                            >
+                              {d}d
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleStartStaking(pkg._id)}
+                        disabled={!selectedPeriods[pkg._id] || stakingLoading[pkg._id]}
+                        className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                          !selectedPeriods[pkg._id] || stakingLoading[pkg._id]
+                            ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed border border-gray-800'
+                            : 'bg-gradient-to-r from-[#00C6FF] to-[#A020F0] text-white shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-0.5'
+                        }`}
+                      >
+                        {stakingLoading[pkg._id] ? 'Activating...' : 'Enable Staking'}
+                      </button>
+                    </div>
+                  )
+                )}
+
                 <div className="flex flex-col gap-2 mt-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-500 flex items-center gap-1"><Calendar size={12}/> Start Date</span>
@@ -120,13 +219,21 @@ const PackageHistory = () => {
 
                 </div>
 
-                <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden mt-2">
-                  <div 
-                    className="h-full bg-gradient-to-r from-[#00C6FF] to-[#A020F0]" 
-                    style={{ width: `${Math.min((pkg.totalEarned / (pkg.amount * 4)) * 100, 100)}%` }}
-                  ></div>
-                </div>
-                <p className="text-[10px] text-gray-500 text-center font-medium">Earnings Cap: 4x (${pkg.amount * 4} Max)</p>
+                {(() => {
+                  const isZeroPin = pkg.isZeroPin || pkg.packageId?.isZeroPin;
+                  const multiplier = isZeroPin ? 1 : 4;
+                  return (
+                    <>
+                      <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden mt-2">
+                        <div 
+                          className="h-full bg-gradient-to-r from-[#00C6FF] to-[#A020F0]" 
+                          style={{ width: `${Math.min((pkg.totalEarned / (pkg.amount * multiplier)) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-[10px] text-gray-500 text-center font-medium">Earnings Cap: {multiplier}x (${pkg.amount * multiplier} Max)</p>
+                    </>
+                  );
+                })()}
               </div>
             </motion.div>
           ))}

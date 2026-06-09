@@ -46,7 +46,7 @@ const userSchema = new mongoose.Schema(
     },
     level: {
       type: Number,
-      default: 1,
+      default: 0,
     },
     rank: {
       type: String,
@@ -117,6 +117,10 @@ const userSchema = new mongoose.Schema(
     isBlocked: {
       type: Boolean,
       default: false,
+    },
+    pins: {
+      type: Number,
+      default: 1,
     },
     deviceFingerprint: {
       type: String

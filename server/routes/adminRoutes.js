@@ -20,11 +20,13 @@ const {
   triggerMiningCron,
   getAllTransactions,
   updateUser,
+  deleteUser,
   impersonateUser,
   assignPackage
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 const router = express.Router();
 
 // Public Admin Login (admin-only, separate from user login)
@@ -32,7 +34,9 @@ router.post('/login', adminLogin);
 
 router.route('/dashboard').get(protect, admin, getDashboardStats);
 router.route('/users').get(protect, admin, getAllUsers);
-router.route('/user/:id').put(protect, admin, updateUser);
+router.route('/user/:id')
+  .put(protect, admin, updateUser)
+  .delete(protect, admin, deleteUser);
 router.route('/user/:id/block').put(protect, admin, toggleBlockUser);
 router.route('/user/:id/impersonate').post(protect, admin, impersonateUser);
 router.route('/package/assign').post(protect, admin, assignPackage);
@@ -56,6 +60,24 @@ router.route('/package/:id').put(protect, admin, updatePackage);
 // Treasury Routes
 router.route('/treasury/stats').get(protect, admin, getTreasuryStats);
 router.route('/treasury/settings').put(protect, admin, updateTreasurySettings);
+router.post('/upload-announcement', protect, admin, upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    const getFileUrl = (file) => {
+      if (!file) return null;
+      if (file.path && file.path.startsWith('http')) return file.path;
+      if (file.filename) return `/uploads/${file.filename}`;
+      if (file.path) return file.path;
+      return null;
+    };
+    const fileUrl = getFileUrl(req.file);
+    res.json({ imageUrl: fileUrl });
+  } catch (error) {
+    res.status(500).json({ message: 'Upload failed', error: error.message });
+  }
+});
 
 // Cron Control Routes
 router.route('/cron/status').get(protect, admin, getCronStatus);

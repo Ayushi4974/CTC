@@ -21,19 +21,22 @@ const LEVEL_REQUIREMENTS = [
 ];
 
 const getPackageScalar = async (userId) => {
-  const activePkg = await UserPackage.findOne({ user: userId, status: 'active' }).populate('packageId');
-  if (!activePkg || !activePkg.packageId) return 0;
-  const pkgName = activePkg.packageId.name.toLowerCase();
-  if (pkgName.includes('package 1')) return 0.50;
-  if (pkgName.includes('package 2')) return 0.40;
-  if (pkgName.includes('package 3')) return 0.30;
-  if (pkgName.includes('package 4')) return 0.20;
-  return 0.50; // default
+  // const activePkg = await UserPackage.findOne({ user: userId, status: 'active' }).populate('packageId');
+  // if (!activePkg || !activePkg.packageId) return 0;
+  // const pkgName = activePkg.packageId.name.toLowerCase();
+  // if (pkgName.includes('package 1')) return 0.50;
+  // if (pkgName.includes('package 2')) return 0.40;
+  // if (pkgName.includes('package 3')) return 0.30;
+  // if (pkgName.includes('package 4')) return 0.20;
+  // return 0.50; // default
+  return 1.0; // 100% profit distributed on levels (scalar disabled)
 };
 
 const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
   try {
     let currentUser = await User.findById(userId);
+    if (!currentUser || currentUser.pins === 0) return;
+    
     let currentLevel = 1;
     const baseAmount = profitAmount * await getPackageScalar(userId);
 
@@ -44,8 +47,8 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
       const isSponsorStrictlyActive = await isStrictlyActiveUser(sponsorUser);
       if (sponsorUser && isSponsorStrictlyActive) {
         // Qualification check: INACTIVE DOWNLINE RULE
-        // If downline becomes inactive, their volume does not count, and they are excluded from the directs count.
-        const directsCount = await User.countDocuments({ sponsor: sponsorUser._id, isActive: true });
+        // If downline becomes inactive, their volume does not count, and they are excluded from the directs count. Exclude 0-pin users.
+        const directsCount = await User.countDocuments({ sponsor: sponsorUser._id, isActive: true, pins: { $gt: 0 } });
         const reqs = LEVEL_REQUIREMENTS[currentLevel - 1];
 
         // Level Activation Logic
@@ -57,10 +60,11 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
             if (sponsorUser.totalInvestment < 1000) isLevelActive = false;
           } else if (currentLevel >= 21 && currentLevel <= 29) {
             if (sponsorUser.totalInvestment < 1500) isLevelActive = false; // Leadership requirement
-          } else if (currentLevel === 30) {
-            // Level 30 Unique Fastrack/Leadership requirement
-            if (!sponsorUser.fastrackQualified) isLevelActive = false;
           }
+          // else if (currentLevel === 30) {
+          //   // Level 30 Unique Fastrack/Leadership requirement
+          //   if (!sponsorUser.fastrackQualified) isLevelActive = false;
+          // }
         }
 
         // PRECISION OVERSHOOT PROTECTION FOR LEVEL INCOME
@@ -85,10 +89,8 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
             capHit = true;
           }
 
-          // 1st label 50% and 2nd Label 50% eligible criteria
-          // Distributing 50% to available balance (withdrawable) and 50% to another metric (e.g. promotional/reinvestment)
-          const payoutAmount = totalIncome * 0.50;
-          const reservedAmount = totalIncome * 0.50;
+          // Distribute 100% of Level Income to available balance (no 50/50 split)
+          const payoutAmount = totalIncome;
 
           await LevelIncome.create({
             userId: sponsorUser.userId,
@@ -104,10 +106,8 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
           sponsorUser.levelIncome += totalIncome;
           sponsorUser.totalEarning += totalIncome;
 
-          // Apply the 50/50 split rule
+          // Add full level income to availableBalance
           sponsorUser.availableBalance += payoutAmount;
-          // The other 50% is reserved/reinvested, here we track it as promotionalIncome or simply keep it in totalEarning without adding to availableBalance
-          sponsorUser.promotionalIncome += reservedAmount;
 
           if (capHit || sponsorUser.totalEarning >= sponsorUser.totalInvestment * 4) {
             sponsorUser.isActive = false;

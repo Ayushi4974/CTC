@@ -75,10 +75,9 @@ const PromotionalBonusHistory = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const [profileRes, txRes, levelRes] = await Promise.all([
+        const [profileRes, txRes] = await Promise.all([
           api.get('/user/profile'),
-          api.get('/transaction/history'),
-          api.get('/user/level-income')
+          api.get('/transaction/history')
         ]);
         
         const user = profileRes.data;
@@ -153,18 +152,7 @@ const PromotionalBonusHistory = () => {
           };
         });
 
-        // The dashboard promotional balance includes the 50% split from level income
-        // We map level income to match the transaction shape for the UI
-        const levelData = levelRes.data.map(li => ({
-          _id: li._id,
-          type: 'level_split',
-          amount: li.amount * 0.50, // 50% reserved split
-          status: li.status === 'credited' ? 'Approved' : li.status || 'Approved',
-          createdAt: li.createdAt,
-          level: li.level
-        }));
-
-        const combined = [...processedPromoData, ...virtualRankBonuses, ...levelData].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const combined = [...processedPromoData, ...virtualRankBonuses].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setBonuses(combined);
       } catch (error) {
         console.error('Error fetching promotion history:', error);

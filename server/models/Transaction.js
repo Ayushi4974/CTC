@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const transactionSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  type: { type: String, enum: ['deposit', 'withdrawal', 'bonus', 'salary'], required: true },
+  type: { type: String, enum: ['deposit', 'withdrawal', 'bonus', 'salary', 'release'], required: true },
   amount: { type: Number, required: true },
   txHash: { type: String },
   blockchain: { type: String, default: 'BEP20' },
