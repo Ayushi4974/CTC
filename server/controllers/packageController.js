@@ -113,7 +113,8 @@ const buyPackage = async (req, res, next) => {
     user.totalInvestment += amount; // Expands their 4x global cap
     await user.save();
 
-    await AuditLog.create({
+    await AuditLog.create({                                                                         
+      
       action: 'PACKAGE_ACTIVATION',
       userId: user._id,
       packageId: userPackage._id,

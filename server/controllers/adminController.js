@@ -605,6 +605,17 @@ const assignPackage = async (req, res, next) => {
       return res.status(400).json({ message: `Amount must be between $${pkg.minAmount} and $${pkg.maxAmount} for this package.` });
     }
 
+    // Zero-pin restriction checks
+    if (user.pins === 0) {
+      if (!pkg.isZeroPin) {
+        return res.status(400).json({ message: 'Only the standard $100-$500 Zero Pin Package is available for 0-Pin users.' });
+      }
+    } else {
+      if (pkg.isZeroPin) {
+        return res.status(400).json({ message: 'This package is only available for 0-Pin users.' });
+      }
+    }
+
     const stakingDurationNum = Number(stakingDuration || 0);
     if (![0, 30, 90, 180, 360].includes(stakingDurationNum)) {
       return res.status(400).json({ message: 'Invalid staking duration. Must be 30, 90, 180, or 360 days.' });

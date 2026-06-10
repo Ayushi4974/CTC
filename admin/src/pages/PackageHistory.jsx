@@ -519,7 +519,7 @@ const PackageHistory = () => {
                   <option value="">-- Choose Package --</option>
                   {packages.map(p => (
                     <option key={p._id} value={p._id}>
-                      {p.name} (${p.minAmount} - ${p.maxAmount}) [{p.dailyProfit}% Daily]
+                      {p.name} {p.isZeroPin ? '(Zero Pin) ' : ''}(${p.minAmount} - ${p.maxAmount}) [{p.dailyProfit}% Daily]
                     </option>
                   ))}
                 </select>
