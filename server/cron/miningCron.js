@@ -209,8 +209,8 @@ const runMiningCronCycle = async (force = false) => {
         continue;
       }
 
-      let currentMarginBonus = marginBonusMap[user.rank] || 0;
-      let totalDailyPercent = pkg.dailyProfitPercent + currentMarginBonus;
+      // let currentMarginBonus = marginBonusMap[user.rank] || 0;
+      let totalDailyPercent = pkg.dailyProfitPercent; // + currentMarginBonus; // Temporarily commented out rank margin bonus
 
       // Auto-Compounding Base: Calculate profit on the GROWING compounded balance
       let baseAmount = pkg.compoundingBalance || pkg.amount;

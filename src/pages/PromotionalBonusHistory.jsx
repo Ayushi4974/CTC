@@ -212,7 +212,7 @@ const PromotionalBonusHistory = () => {
                   <th className="px-6 py-4">Position / Level</th>
                   <th className="px-6 py-4">Team</th>
                   <th className="px-6 py-4">Salary Upto</th>
-                  <th className="px-6 py-4">Margin Bonus</th>
+                  {/* <th className="px-6 py-4">Margin Bonus</th> */}
                   <th className="px-6 py-4">Bonus</th>
                 </tr>
               </thead>
@@ -222,7 +222,7 @@ const PromotionalBonusHistory = () => {
                     <td className="px-6 py-3.5 text-white font-bold">{rule.level}</td>
                     <td className="px-6 py-3.5 text-gray-400 font-mono">{rule.team}</td>
                     <td className="px-6 py-3.5 text-[#A020F0] font-bold">{rule.salary}</td>
-                    <td className="px-6 py-3.5 text-[#00C6FF] font-bold">{rule.margin}</td>
+                    {/* <td className="px-6 py-3.5 text-[#00C6FF] font-bold">{rule.margin}</td> */}
                     <td className="px-6 py-3.5 text-emerald-400 font-bold">{rule.bonus}</td>
                   </tr>
                 ))}

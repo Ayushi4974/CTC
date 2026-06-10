@@ -443,7 +443,7 @@ const Downline = () => {
                               </div>
                               <div>
                                 <p className="text-sm font-bold text-white leading-tight">{partner.name}</p>
-                                <p className="text-[10px] text-gray-500">{partner.id} • {partner.pins} Pins</p>
+                                <p className="text-[10px] text-gray-500">{partner.id}</p>
                               </div>
                             </div>
                             <div className="text-right">

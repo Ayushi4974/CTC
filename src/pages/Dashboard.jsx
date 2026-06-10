@@ -198,9 +198,11 @@ const Dashboard = () => {
                 <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-[#00FF99] shadow-[0_0_8px_rgba(0,255,153,0.8)]' : 'bg-red-500 shadow-[0_0_8px_rgba(255,0,0,0.8)]'}`}></div>
                 {isActive ? 'ACTIVE' : 'INACTIVE'}
               </div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 border border-[#A020F0]/30 bg-[#A020F0]/10 text-[#FF00FF] rounded-full text-xs font-medium mb-6 ml-2">
-                <span>Pins: {currentUser?.pins ?? 0}</span>
-              </div>
+              {currentUser?.pins === 0 && (
+                <div className="inline-flex items-center gap-2 px-3 py-1 border border-red-500/30 bg-red-500/10 text-red-500 rounded-full text-xs font-medium mb-6 ml-2">
+                  <span>0 Pin</span>
+                </div>
+              )}
               
               <p className="text-gray-400 text-sm md:text-base max-w-md">
                 Your portfolio performance and network growth at a glance.
@@ -421,7 +423,7 @@ const Dashboard = () => {
             
             <div className="space-y-3 mb-6">
               {[
-                { title: 'My Pins', value: (currentUser?.pins ?? 0).toString(), icon: ShieldCheck, color: 'text-[#FF00FF]' },
+                ...(currentUser?.pins === 0 ? [{ title: 'My Pins', value: '0', icon: ShieldCheck, color: 'text-red-500' }] : []),
                 { title: 'Direct Team', value: directTeam.toString(), icon: Briefcase, color: 'text-[#A020F0]' },
                 { title: 'Sponsor', value: sponsor, icon: ShieldCheck, color: 'text-[#FF00FF]' },
                 { title: 'Referral Income', value: `$${referralIncome.toFixed(2)}`, icon: Users, color: 'text-[#A020F0]' },
