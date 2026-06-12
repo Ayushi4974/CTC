@@ -22,7 +22,10 @@ const {
   updateUser,
   deleteUser,
   impersonateUser,
-  assignPackage
+  assignPackage,
+  getAllManualBuys,
+  approveManualBuy,
+  rejectManualBuy
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
@@ -85,5 +88,10 @@ router.route('/cron/trigger').post(protect, admin, triggerMiningCron);
 
 // Transaction History Routes
 router.route('/transactions').get(protect, admin, getAllTransactions);
+
+// Manual Buy Routes
+router.route('/manual-buys').get(protect, admin, getAllManualBuys);
+router.route('/manual-buys/:id/approve').put(protect, admin, approveManualBuy);
+router.route('/manual-buys/:id/reject').put(protect, admin, rejectManualBuy);
 
 module.exports = router;

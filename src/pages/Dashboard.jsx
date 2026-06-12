@@ -38,6 +38,14 @@ const Dashboard = () => {
   const dispatch = useDispatch();
   const { user, profile, walletAddress } = useSelector((state) => state.auth);
 
+  const [miningProgress, setMiningProgress] = useState(0);
+  const [timeLeft, setTimeLeft] = useState('');
+  const [activePackages, setActivePackages] = useState([]);
+  const [announcementImages, setAnnouncementImages] = useState([]);
+  const [announcementContent, setAnnouncementContent] = useState('');
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
+  const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+
   useEffect(() => {
     dispatch(fetchProfile());
   }, [dispatch]);
@@ -51,17 +59,11 @@ const Dashboard = () => {
   const directTeam = currentUser?.directTeam || 0;
   const sponsor = currentUser?.sponsorId || 'None';
   const isActive = currentUser?.isActive || false;
-  const activePackageName = currentUser?.activePackage?.name || 'None';
+  const activePackageName = activePackages.length > 0 
+    ? activePackages.map(p => p.packageId?.name || 'Standard Package').join(', ')
+    : (currentUser?.activePackage?.name || 'None');
   const promotionalIncome = currentUser?.promotionalIncome || 0;
   const fastrackQualified = currentUser?.fastrackQualified ? 'Active' : 'Inactive';
-  
-  const [miningProgress, setMiningProgress] = useState(0);
-  const [timeLeft, setTimeLeft] = useState('');
-  const [activePackages, setActivePackages] = useState([]);
-  const [announcementImages, setAnnouncementImages] = useState([]);
-  const [announcementContent, setAnnouncementContent] = useState('');
-  const [showAnnouncement, setShowAnnouncement] = useState(false);
-  const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
 
   useEffect(() => {
     const checkAnnouncement = async () => {

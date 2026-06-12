@@ -23,6 +23,7 @@ const AdminLayout = () => {
     { name: 'User Management', path: '/users', icon: Users },
     { name: 'Package Control', path: '/packages', icon: Box },
     { name: 'Package History', path: '/package-history', icon: Layers },
+    { name: 'Manual Buy Requests', path: '/manual-buys', icon: Clock },
     { name: 'Withdrawals', path: '/withdrawals', icon: CreditCard },
     { name: 'KYC Verification', path: '/kyc', icon: UserCheck },
     { name: 'Referral & Level', path: '/referrals', icon: Network },

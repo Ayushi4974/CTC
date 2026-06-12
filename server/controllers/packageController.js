@@ -3,6 +3,7 @@ const UserPackage = require('../models/UserPackage');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const AuditLog = require('../models/AuditLog');
+const ManualPackageBuy = require('../models/ManualPackageBuy');
 const { verifyTransaction } = require('../services/blockchainService');
 const { distributeDirectReferral } = require('../services/referralService');
 
@@ -77,16 +78,7 @@ const buyPackage = async (req, res, next) => {
       return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $10,000.' });
     }
 
-    // Multi-Package Rules: Prevent Package Stacking and Handle Upgrades
-    const existingActivePkg = await UserPackage.findOne({ user: user._id, status: 'active' });
-    if (existingActivePkg) {
-      if (amount <= existingActivePkg.amount) {
-        return res.status(400).json({ message: 'Upgrades must be of a higher value than your current active package.' });
-      }
-      // Upgrade logic: Mark old as upgraded, ROI generation will stop for it
-      existingActivePkg.status = 'upgraded';
-      await existingActivePkg.save();
-    }
+    // No upgrades: multiple packages can be active simultaneously
 
     const isBVEligible = true; // External deposits count towards BV
     const durationDays = pkg.validity;
@@ -121,8 +113,7 @@ const buyPackage = async (req, res, next) => {
       amount: amount,
       details: {
         txHash,
-        isUpgrade: !!existingActivePkg,
-        oldPackageId: existingActivePkg ? existingActivePkg._id : null
+        isUpgrade: false
       }
     });
 
@@ -146,7 +137,7 @@ const buyPackage = async (req, res, next) => {
 
       // Check Fastrack Bonus for Sponsor
       const sponsor = await User.findById(user.sponsor);
-      if (sponsor && !sponsor.fastrackQualified && sponsor.activePackage) {
+      if (sponsor && !sponsor.fastrackQualified) {
         const sponsorPkg = await UserPackage.findOne({ user: sponsor._id, status: 'active' }).sort({ createdAt: -1 });
         if (sponsorPkg) {
           const tenDaysAgo = new Date();
@@ -184,7 +175,32 @@ const buyPackage = async (req, res, next) => {
 const getUserPackages = async (req, res, next) => {
   try {
     const packages = await UserPackage.find({ user: req.user._id }).populate('packageId');
-    res.json(packages);
+    
+    // Fetch pending and rejected manual buys
+    const manualBuys = await ManualPackageBuy.find({ user: req.user._id, status: { $ne: 'approved' } }).populate('packageId');
+    
+    // Format manual buys to match user package shape
+    const formattedManual = manualBuys.map(mb => ({
+      _id: mb._id,
+      userId: mb.userId,
+      user: mb.user,
+      packageId: mb.packageId,
+      amount: mb.amount,
+      compoundingBalance: mb.amount,
+      dailyProfitPercent: mb.packageId?.dailyProfit || 0,
+      totalEarned: 0,
+      startDate: mb.createdAt,
+      status: mb.status === 'pending' ? 'pending' : 'rejected',
+      isManual: true,
+      networkType: mb.networkType,
+      txHash: mb.txHash,
+      rejectionReason: mb.rejectionReason
+    }));
+
+    // Sort combined packages by creation date descending
+    const combined = [...packages, ...formattedManual].sort((a, b) => new Date(b.startDate || b.createdAt) - new Date(a.startDate || a.createdAt));
+
+    res.json(combined);
   } catch (error) {
     next(error);
   }
@@ -245,4 +261,78 @@ const startStaking = async (req, res, next) => {
   }
 };
 
-module.exports = { getAllPackages, buyPackage, getUserPackages, startStaking };
+const buyPackageManual = async (req, res, next) => {
+  try {
+    const { packageId, amount, txHash, networkType, senderAddress } = req.body;
+
+    if (!packageId || !amount || !txHash || !networkType) {
+      return res.status(400).json({ message: 'Package ID, amount, transaction hash, and network type are required.' });
+    }
+
+    if (!['Bep20', 'TRC 20'].includes(networkType)) {
+      return res.status(400).json({ message: 'Invalid network type. Must be Bep20 or TRC 20.' });
+    }
+
+    const pkg = await Package.findById(packageId);
+    if (!pkg) return res.status(404).json({ message: 'Package not found' });
+
+    const numericAmount = Number(amount);
+    if (numericAmount < pkg.minAmount || numericAmount > pkg.maxAmount) {
+      return res.status(400).json({ message: 'Invalid amount for this package' });
+    }
+
+    // Check for duplicate transaction hash in Transactions
+    const existingTx = await Transaction.findOne({ txHash });
+    if (existingTx) {
+      return res.status(400).json({ message: 'This transaction hash has already been used. Duplicate transactions are not allowed.' });
+    }
+
+    // Check for duplicate transaction hash in pending/approved ManualPackageBuy requests
+    const existingManual = await ManualPackageBuy.findOne({ txHash, status: { $ne: 'rejected' } });
+    if (existingManual) {
+      return res.status(400).json({ message: 'A manual buy request with this transaction hash already exists.' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Zero-pin restriction checks
+    if (user.pins === 0) {
+      if (!pkg.isZeroPin) {
+        return res.status(400).json({ message: 'Only the standard $100-$500 Package is available for 0-Pin users.' });
+      }
+    } else {
+      if (pkg.isZeroPin) {
+        return res.status(400).json({ message: 'This package is only available for 0-Pin users.' });
+      }
+    }
+
+    if (user.role === 'user' && (user.totalInvestment + numericAmount) > 10000) {
+      return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $10,000.' });
+    }
+
+    // No upgrades: multiple packages can be active simultaneously
+
+    // Create Manual Package Buy Request
+    const manualRequest = await ManualPackageBuy.create({
+      userId: user.userId,
+      user: user._id,
+      packageId: pkg._id,
+      amount: numericAmount,
+      networkType,
+      txHash,
+      senderAddress: senderAddress || '',
+      status: 'pending'
+    });
+
+    res.status(200).json({
+      message: 'Your manual package purchase request has been submitted successfully and is pending admin approval.',
+      manualRequest
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getAllPackages, buyPackage, buyPackageManual, getUserPackages, startStaking };
+

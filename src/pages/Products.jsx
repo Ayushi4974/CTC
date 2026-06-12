@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, ShieldCheck, Zap, Star, ChevronRight, CheckCircle2, Lock, Clock, Activity, X, AlertCircle } from 'lucide-react';
+import { TrendingUp, ShieldCheck, Zap, Star, ChevronRight, CheckCircle2, Lock, Clock, Activity, X, AlertCircle, CreditCard, Copy, Check } from 'lucide-react';
 import { ethers } from 'ethers';
 import api from '../api';
 import { toast } from 'react-toastify';
@@ -97,6 +97,9 @@ const Products = () => {
   const [dbPackages, setDbPackages] = useState([]);
   const [txHash, setTxHash] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('metamask'); // 'metamask' or 'manual'
+  const [networkType, setNetworkType] = useState('Bep20'); // 'Bep20' or 'TRC 20'
+  const [senderAddress, setSenderAddress] = useState('');
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -216,6 +219,35 @@ const Products = () => {
     } catch (error) {
       console.error(error);
       const errorMsg = error.reason || error.message || "Payment failed. Please try again.";
+      toast.error(errorMsg);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const submitManualPurchase = async () => {
+    if (!txHash) {
+      toast.error('Transaction Hash is required for manual purchase verification.');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      const response = await api.post('/package/manual-buy', {
+        packageId: selectedPackage._id || selectedPackage.id,
+        amount: Number(investmentAmount),
+        txHash,
+        networkType,
+        senderAddress,
+      });
+
+      toast.success(response.data.message || 'Manual purchase request submitted successfully!');
+      setSelectedPackage(null);
+      setTxHash('');
+      setSenderAddress('');
+    } catch (error) {
+      console.error(error);
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to submit request. Please try again.';
       toast.error(errorMsg);
     } finally {
       setIsProcessing(false);
@@ -438,7 +470,7 @@ const Products = () => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-3xl bg-[#0B0F1A] border border-[#A020F0]/50 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(160,32,240,0.2)] relative overflow-hidden z-10"
+              className="w-full max-w-3xl bg-[#0B0F1A] border border-[#A020F0]/50 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(160,32,240,0.2)] relative overflow-y-auto max-h-[90vh] z-10"
             >
               {/* Decorative Blur Orbs */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF00FF]/15 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
@@ -456,6 +488,35 @@ const Products = () => {
                 <h3 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
                   <Zap className="text-[#FF00FF]" /> Complete Purchase: {selectedPackage.name}
                 </h3>
+
+                {/* Payment Method Selector */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-400 mb-3">Payment Method</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('metamask')}
+                      className={`py-3 px-4 rounded-xl font-bold border transition-all text-sm flex items-center justify-center gap-2 ${
+                        paymentMethod === 'metamask'
+                          ? 'bg-[#A020F0]/10 border-[#A020F0] text-[#FF00FF] shadow-[0_0_15px_rgba(160,32,240,0.15)]'
+                          : 'bg-[#161B2A]/50 border-gray-800 text-gray-400 hover:border-gray-700 hover:text-gray-200'
+                      }`}
+                    >
+                      <Zap size={16} /> Pay via MetaMask
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('manual')}
+                      className={`py-3 px-4 rounded-xl font-bold border transition-all text-sm flex items-center justify-center gap-2 ${
+                        paymentMethod === 'manual'
+                          ? 'bg-[#A020F0]/10 border-[#A020F0] text-[#FF00FF] shadow-[0_0_15px_rgba(160,32,240,0.15)]'
+                          : 'bg-[#161B2A]/50 border-gray-800 text-gray-400 hover:border-gray-700 hover:text-gray-200'
+                      }`}
+                    >
+                      <CreditCard size={16} /> Manual Deposit
+                    </button>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   {/* Selected Package Display */}
@@ -493,42 +554,158 @@ const Products = () => {
                   </div>
                 </div>
 
+                {/* Manual Payment Fields */}
+                {paymentMethod === 'manual' && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-6 mb-6"
+                  >
+                    {/* Network Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-2">Select Network</label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setNetworkType('Bep20')}
+                          className={`py-2 px-3 rounded-lg font-semibold border transition-all text-xs flex items-center justify-center gap-1.5 ${
+                            networkType === 'Bep20'
+                              ? 'bg-amber-500/10 border-amber-500/50 text-amber-500'
+                              : 'bg-[#161B2A]/80 border-gray-700 text-gray-400 hover:border-gray-600'
+                          }`}
+                        >
+                          BEP20 (Binance Smart Chain)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNetworkType('TRC 20')}
+                          className={`py-2 px-3 rounded-lg font-semibold border transition-all text-xs flex items-center justify-center gap-1.5 ${
+                            networkType === 'TRC 20'
+                              ? 'bg-red-500/10 border-red-500/50 text-red-500'
+                              : 'bg-[#161B2A]/80 border-gray-700 text-gray-400 hover:border-gray-600'
+                          }`}
+                        >
+                          TRC20 (TRON Network)
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Deposit Address Box */}
+                    <div className="bg-[#161B2A]/80 border border-gray-700 rounded-xl p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-semibold text-gray-400">USDT Deposit Address ({networkType})</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const addr = networkType === 'Bep20' 
+                              ? '0x8e4143b46eb1e1a6cbd71b5d57da95b985219f0b' 
+                              : 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5';
+                            navigator.clipboard.writeText(addr);
+                            toast.success('Address copied to clipboard!');
+                          }}
+                          className="text-xs text-[#FF00FF] hover:underline flex items-center gap-1 font-bold"
+                        >
+                          <Copy size={12} /> Copy Address
+                        </button>
+                      </div>
+                      <div className="text-sm font-mono text-white select-all break-all bg-[#0B0F1A] border border-gray-800 p-2.5 rounded-lg text-center mb-4">
+                        {networkType === 'Bep20' 
+                          ? '0x8e4143b46eb1e1a6cbd71b5d57da95b985219f0b' 
+                          : 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5'}
+                      </div>
+                      
+                      {/* QR Code Container */}
+                      <div className="flex flex-col items-center justify-center bg-[#070A12] border border-gray-800 rounded-lg p-4 mb-3">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2.5">Scan to Pay</span>
+                        <div className="bg-white p-2.5 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.05)]">
+                          <img 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${
+                              networkType === 'Bep20' 
+                                ? '0x8e4143b46eb1e1a6cbd71b5d57da95b985219f0b' 
+                                : 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5'
+                            }`} 
+                            alt="Payment QR Code" 
+                            className="w-[130px] h-[130px]"
+                          />
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-gray-500">
+                        ⚠️ Send only USDT ({networkType}) to this address. Sending other tokens or using the wrong network may result in permanent loss.
+                      </p>
+                    </div>
+
+                    {/* Sender Wallet Address */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-2">Sender Wallet Address (Optional)</label>
+                      <input
+                        type="text"
+                        value={senderAddress}
+                        onChange={(e) => setSenderAddress(e.target.value)}
+                        placeholder="Your wallet address from which payment is sent"
+                        className="w-full bg-[#161B2A]/80 border border-gray-700 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.3)] transition-all"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+
                 <div className="grid grid-cols-1 gap-6 mb-6">
                   {/* TxHash Input */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Transaction Hash (Optional if using MetaMask)</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">
+                      Transaction Hash {paymentMethod === 'manual' ? '(Required)' : '(Optional if using MetaMask)'}
+                    </label>
                     <input
                       type="text"
                       value={txHash}
                       onChange={(e) => setTxHash(e.target.value)}
-                      placeholder="0x..."
-                      className="w-full bg-[#161B2A]/80 border border-gray-700 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-[#00C6FF] focus:shadow-[0_0_15px_rgba(0,198,255,0.3)] transition-all"
+                      placeholder="0x... or TRON transaction ID"
+                      className="w-full bg-[#161B2A]/80 border border-gray-700 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-[#A020F0] focus:shadow-[0_0_15px_rgba(160,32,240,0.3)] transition-all"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 mb-8">
-                  <p className="text-xs text-gray-500">Enter transaction hash manually if you paid outside of this browser session.</p>
+                  <p className="text-xs text-gray-500">
+                    {paymentMethod === 'manual'
+                      ? 'Enter the transaction hash/id of your USDT transfer to submit for verification.'
+                      : 'Enter transaction hash manually if you paid outside of this browser session.'}
+                  </p>
                 </div>
-
-
 
                 <div className="flex justify-end gap-4">
                   <button
-                    onClick={() => setSelectedPackage(null)}
+                    onClick={() => {
+                      setSelectedPackage(null);
+                      setTxHash('');
+                      setSenderAddress('');
+                    }}
                     className="px-6 py-4 rounded-xl font-bold text-gray-400 hover:text-white transition-colors"
                   >
                     Cancel
                   </button>
-                  <button
-                    disabled={!!amountError || !investmentAmount || isProcessing}
-                    onClick={connectWalletAndPay}
-                    className={`px-10 py-4 rounded-xl font-bold transition-all text-lg flex items-center gap-2 ${amountError || !investmentAmount || isProcessing
-                      ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
-                      : 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_20px_rgba(160,32,240,0.4)] hover:shadow-[0_0_40px_rgba(255,0,255,0.6)] hover:-translate-y-0.5'
-                      }`}
-                  >
-                    {isProcessing ? 'Processing...' : 'Pay via MetaMask'} <ChevronRight />
-                  </button>
+                  {paymentMethod === 'metamask' ? (
+                    <button
+                      disabled={!!amountError || !investmentAmount || isProcessing}
+                      onClick={connectWalletAndPay}
+                      className={`px-10 py-4 rounded-xl font-bold transition-all text-lg flex items-center gap-2 ${amountError || !investmentAmount || isProcessing
+                        ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
+                        : 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_20px_rgba(160,32,240,0.4)] hover:shadow-[0_0_40px_rgba(255,0,255,0.6)] hover:-translate-y-0.5'
+                        }`}
+                    >
+                      {isProcessing ? 'Processing...' : 'Pay via MetaMask'} <ChevronRight />
+                    </button>
+                  ) : (
+                    <button
+                      disabled={!!amountError || !investmentAmount || !txHash || isProcessing}
+                      onClick={submitManualPurchase}
+                      className={`px-10 py-4 rounded-xl font-bold transition-all text-lg flex items-center gap-2 ${amountError || !investmentAmount || !txHash || isProcessing
+                        ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
+                        : 'bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white shadow-[0_0_20px_rgba(160,32,240,0.4)] hover:shadow-[0_0_40px_rgba(255,0,255,0.6)] hover:-translate-y-0.5'
+                        }`}
+                    >
+                      {isProcessing ? 'Submitting...' : 'Submit Manual Purchase'} <ChevronRight />
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

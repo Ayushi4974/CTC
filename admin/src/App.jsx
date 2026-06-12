@@ -13,6 +13,7 @@ import Cron from './pages/Cron';
 import Fraud from './pages/Fraud';
 import Transactions from './pages/Transactions';
 import PackageHistory from './pages/PackageHistory';
+import ManualBuys from './pages/ManualBuys';
 import Login from './pages/Login';
 
 const ProtectedRoute = ({ children }) => {
@@ -34,6 +35,7 @@ function App() {
           <Route path="users" element={<Users />} />
           <Route path="packages" element={<Packages />} />
           <Route path="package-history" element={<PackageHistory />} />
+          <Route path="manual-buys" element={<ManualBuys />} />
           <Route path="withdrawals" element={<Withdrawals />} />
           <Route path="kyc" element={<Kyc />} />
           <Route path="referrals" element={<Referrals />} />

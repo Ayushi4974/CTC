@@ -6,6 +6,7 @@ const KYC = require('../models/KYC');
 const SystemSettings = require('../models/SystemSettings');
 const AuditLog = require('../models/AuditLog');
 const UserPackage = require('../models/UserPackage');
+const ManualPackageBuy = require('../models/ManualPackageBuy');
 const CronState = require('../models/CronState');
 const ReferralIncome = require('../models/ReferralIncome');
 const MiningIncome = require('../models/MiningIncome');
@@ -621,16 +622,7 @@ const assignPackage = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid staking duration. Must be 30, 90, 180, or 360 days.' });
     }
 
-    // Multi-Package Rules: Prevent Package Stacking and Handle Upgrades
-    const existingActivePkg = await UserPackage.findOne({ user: user._id, status: 'active' });
-    if (existingActivePkg) {
-      if (numericAmount <= existingActivePkg.amount) {
-        return res.status(400).json({ message: 'Upgrades must be of a higher value than your current active package.' });
-      }
-      // Upgrade logic: Mark old as upgraded, ROI generation will stop for it
-      existingActivePkg.status = 'upgraded';
-      await existingActivePkg.save();
-    }
+    // No upgrades: multiple packages can be active simultaneously
 
     const isStaked = stakingDurationNum > 0;
     const durationDays = isStaked ? stakingDurationNum : pkg.validity;
@@ -668,8 +660,7 @@ const assignPackage = async (req, res, next) => {
       details: {
         isManualAssignment: true,
         targetUser: user.userId,
-        isUpgrade: !!existingActivePkg,
-        oldPackageId: existingActivePkg ? existingActivePkg._id : null
+        isUpgrade: false
       }
     });
 
@@ -690,7 +681,7 @@ const assignPackage = async (req, res, next) => {
       
       // Check Fastrack Bonus for Sponsor
       const sponsor = await User.findById(user.sponsor);
-      if (sponsor && !sponsor.fastrackQualified && sponsor.activePackage) {
+      if (sponsor && !sponsor.fastrackQualified) {
         const sponsorPkg = await UserPackage.findOne({ user: sponsor._id, status: 'active' }).sort({ createdAt: -1 });
         if (sponsorPkg) {
           const tenDaysAgo = new Date();
@@ -773,6 +764,169 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
+const getAllManualBuys = async (req, res, next) => {
+  try {
+    const requests = await ManualPackageBuy.find()
+      .populate('user', 'email fullName userId')
+      .populate('packageId')
+      .sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const approveManualBuy = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const manualRequest = await ManualPackageBuy.findById(id);
+    if (!manualRequest) {
+      return res.status(404).json({ message: 'Manual package buy request not found.' });
+    }
+
+    if (manualRequest.status !== 'pending') {
+      return res.status(400).json({ message: `This request is already ${manualRequest.status}.` });
+    }
+
+    const user = await User.findById(manualRequest.user);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const pkg = await Package.findById(manualRequest.packageId);
+    if (!pkg) {
+      return res.status(404).json({ message: 'Package not found.' });
+    }
+
+    const amount = manualRequest.amount;
+    const txHash = manualRequest.txHash;
+    const senderAddress = manualRequest.senderAddress;
+    const networkType = manualRequest.networkType;
+
+    // No upgrades: multiple packages can be active simultaneously
+
+    const durationDays = pkg.validity;
+    const userPackage = await UserPackage.create({
+      userId: user.userId,
+      user: user._id,
+      packageId: pkg._id,
+      amount,
+      compoundingBalance: amount,
+      dailyProfitPercent: pkg.dailyProfit,
+      endDate: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000),
+      isBVEligible: true,
+      isStaked: false,
+      stakingDuration: 0,
+      isZeroPin: pkg.isZeroPin,
+      stakingEnabled: false,
+      stakingPeriod: 0,
+      autoCompounding: false
+    });
+
+    user.activePackage = pkg._id;
+    user.totalInvestment += amount; // Expands their 4x global cap
+    await user.save();
+
+    await AuditLog.create({
+      action: 'PACKAGE_ACTIVATION',
+      userId: user._id,
+      adminId: req.user._id,
+      packageId: userPackage._id,
+      amount,
+      details: {
+        txHash,
+        networkType,
+        isManualBuyApproval: true,
+        isUpgrade: false
+      }
+    });
+
+    await Transaction.create({
+      userId: user.userId,
+      user: user._id,
+      type: 'deposit',
+      amount,
+      txHash,
+      walletAddress: senderAddress || 'System Manual Approve',
+      status: 'success',
+      description: `Manual package buy approved by Admin (Network: ${networkType})`
+    });
+
+    // Check Fastrack Bonus for Sponsor
+    if (user.sponsor) {
+      const sponsor = await User.findById(user.sponsor);
+      if (sponsor && !sponsor.fastrackQualified) {
+        const sponsorPkg = await UserPackage.findOne({ user: sponsor._id, status: 'active' }).sort({ createdAt: -1 });
+        if (sponsorPkg) {
+          const tenDaysAgo = new Date();
+          tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+
+          if (sponsorPkg.createdAt >= tenDaysAgo) {
+            // Count directs with same or higher package (excluding 0-pin users)
+            const directsWithQualifyingPkg = await UserPackage.countDocuments({
+              user: { $in: await User.find({ sponsor: sponsor._id, pins: { $gt: 0 } }).distinct('_id') },
+              amount: { $gte: sponsorPkg.amount },
+              status: 'active'
+            });
+
+            if (directsWithQualifyingPkg >= 5) {
+              sponsor.fastrackQualified = true;
+              await sponsor.save();
+            }
+          }
+        }
+      }
+    }
+
+    // Update ManualPackageBuy request status
+    manualRequest.status = 'approved';
+    manualRequest.approvedBy = req.user._id;
+    manualRequest.approvedAt = new Date();
+    await manualRequest.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('new_deposit', { user: user.userId, amount });
+      io.to(user._id.toString()).emit('notification', `Manual purchase of package ${pkg.name} has been approved.`);
+    }
+
+    res.json({ message: 'Manual package buy request approved and activated successfully.', manualRequest });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const rejectManualBuy = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { rejectionReason } = req.body;
+
+    const manualRequest = await ManualPackageBuy.findById(id);
+    if (!manualRequest) {
+      return res.status(404).json({ message: 'Manual package buy request not found.' });
+    }
+
+    if (manualRequest.status !== 'pending') {
+      return res.status(400).json({ message: `This request is already ${manualRequest.status}.` });
+    }
+
+    manualRequest.status = 'rejected';
+    manualRequest.rejectedBy = req.user._id;
+    manualRequest.rejectedAt = new Date();
+    manualRequest.rejectionReason = rejectionReason || 'Payment details incorrect or unverified.';
+    await manualRequest.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(manualRequest.user.toString()).emit('notification', `Manual purchase request of amount $${manualRequest.amount} was rejected: ${manualRequest.rejectionReason}`);
+    }
+
+    res.json({ message: 'Manual package buy request rejected successfully.', manualRequest });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   deleteUser,
   adminLogin,
@@ -796,5 +950,8 @@ module.exports = {
   getAllTransactions,
   updateUser,
   impersonateUser,
-  assignPackage
+  assignPackage,
+  getAllManualBuys,
+  approveManualBuy,
+  rejectManualBuy
 };

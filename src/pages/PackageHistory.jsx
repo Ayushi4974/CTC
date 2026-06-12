@@ -112,7 +112,15 @@ const PackageHistory = () => {
             >
               <div className="absolute top-0 right-0 p-4">
                 <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                  pkg.status === 'active' ? 'bg-[#00FF99]/10 text-[#00FF99] border border-[#00FF99]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'
+                  pkg.status === 'active' 
+                    ? 'bg-[#00FF99]/10 text-[#00FF99] border border-[#00FF99]/20' 
+                    : pkg.status === 'upgraded'
+                    ? 'bg-[#A020F0]/10 text-[#A020F0] border border-[#A020F0]/20'
+                    : pkg.status === 'completed'
+                    ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+                    : pkg.status === 'pending'
+                    ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                    : 'bg-red-500/10 text-red-500 border border-red-500/20'
                 }`}>
                   {pkg.status}
                 </span>
@@ -140,7 +148,7 @@ const PackageHistory = () => {
                   </div>
                 </div>
 
-                {pkg.status === 'active' && (
+                {!pkg.isManual ? (
                   (pkg.stakingEnabled || pkg.isStaked) ? (
                     <div className="bg-[#161B2A]/50 p-4 rounded-2xl border border-cyan-500/20 shadow-[0_0_15px_rgba(0,198,255,0.05)] mt-2">
                       <div className="flex justify-between items-center mb-2">
@@ -168,7 +176,7 @@ const PackageHistory = () => {
                         </div>
                       )}
                     </div>
-                  ) : (
+                  ) : pkg.status === 'active' ? (
                     <div className="bg-[#161B2A]/30 p-4 rounded-2xl border border-gray-800 mt-2 flex flex-col gap-3">
                       <div className="flex justify-between items-center">
                         <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Auto-Compounding Staking</p>
@@ -208,7 +216,31 @@ const PackageHistory = () => {
                         {stakingLoading[pkg._id] ? 'Activating...' : 'Enable Staking'}
                       </button>
                     </div>
+                  ) : (
+                    <div className="bg-[#161B2A]/30 p-4 rounded-2xl border border-gray-800 mt-2 flex justify-between items-center text-xs">
+                      <span className="text-gray-400 uppercase text-[9px] font-bold tracking-wider">Auto-Compounding Staking</span>
+                      <span className="px-2 py-0.5 rounded bg-gray-800 text-gray-400 text-[9px] font-bold uppercase">Not Activated</span>
+                    </div>
                   )
+                ) : (
+                  <div className="bg-[#161B2A]/30 p-4 rounded-2xl border border-gray-800 mt-2 flex flex-col gap-2.5 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-450 font-bold uppercase text-[9px] tracking-wider">Manual Payment Info</span>
+                      <span className="px-2 py-0.5 rounded bg-gray-800 text-gray-400 text-[9px] font-bold uppercase">{pkg.networkType}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 mt-1">
+                      <span className="text-[10px] text-gray-500 uppercase font-bold">Transaction Hash</span>
+                      <span className="font-mono text-gray-300 select-all break-all bg-[#0B0F1A] border border-gray-800 p-1.5 rounded-lg leading-relaxed text-[11px]">
+                        {pkg.txHash}
+                      </span>
+                    </div>
+                    {pkg.status === 'rejected' && (
+                      <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-2.5 mt-2 space-y-1">
+                        <span className="text-red-400 font-semibold text-[10px] block">REJECTION REASON:</span>
+                        <p className="text-gray-400 italic text-[11px]">"{pkg.rejectionReason || 'Details incorrect or not matching deposit wallet.'}"</p>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 <div className="flex flex-col gap-2 mt-2">
@@ -219,7 +251,7 @@ const PackageHistory = () => {
 
                 </div>
 
-                {(() => {
+                {!pkg.isManual && (() => {
                   const isZeroPin = pkg.isZeroPin || pkg.packageId?.isZeroPin;
                   const multiplier = isZeroPin ? 1 : 4;
                   return (
