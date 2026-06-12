@@ -87,6 +87,22 @@ const packages = [
     iconBgClass: 'bg-orange-500/10',
     iconTextClass: 'text-orange-500',
     isPremium: false,
+  },
+  {
+    id: 6,
+    name: 'Land Security Package',
+    investment: '$5,000 – $50,000',
+    minInvestment: 5000,
+    maxInvestment: 50000,
+    profit: '0.25%',
+    duration: 'every 12 hours',
+    description: 'Special premium package designed for higher capital growth with stable returns.',
+    icon: ShieldCheck,
+    glowClass: 'shadow-[0_0_30px_rgba(251,191,36,0.3)] hover:shadow-[0_0_50px_rgba(251,191,36,0.5)] animate-pulse-slow',
+    borderClass: 'border-amber-500/40',
+    iconBgClass: 'bg-amber-500/10',
+    iconTextClass: 'text-amber-500',
+    isPremium: true,
   }
 ];
 
@@ -308,7 +324,8 @@ const Products = () => {
               if (lower.includes('package 2') || lower.includes('500 package')) return 2;
               if (lower.includes('package 3')) return 3;
               if (lower.includes('package 4')) return 4;
-              if (lower.includes('referral')) return 5;
+              if (lower.includes('land security')) return 5;
+              if (lower.includes('referral')) return 6;
               return 99;
             };
             return getOrder(a.name) - getOrder(b.name);

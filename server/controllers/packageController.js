@@ -74,8 +74,8 @@ const buyPackage = async (req, res, next) => {
       }
     }
 
-    if (user.role === 'user' && (user.totalInvestment + amount) > 10000) {
-      return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $10,000.' });
+    if (user.role === 'user' && (user.totalInvestment + amount) > 60000) {
+      return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $60,000.' });
     }
 
     // No upgrades: multiple packages can be active simultaneously
@@ -307,8 +307,8 @@ const buyPackageManual = async (req, res, next) => {
       }
     }
 
-    if (user.role === 'user' && (user.totalInvestment + numericAmount) > 10000) {
-      return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $10,000.' });
+    if (user.role === 'user' && (user.totalInvestment + numericAmount) > 60000) {
+      return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $60,000.' });
     }
 
     // No upgrades: multiple packages can be active simultaneously

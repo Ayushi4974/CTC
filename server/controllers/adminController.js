@@ -544,7 +544,10 @@ const updateUser = async (req, res, next) => {
     if (referralIncome !== undefined) user.referralIncome = Number(referralIncome);
     if (levelIncome !== undefined) user.levelIncome = Number(levelIncome);
     if (promotionalIncome !== undefined) user.promotionalIncome = Number(promotionalIncome);
-    if (rank !== undefined) user.rank = rank;
+    if (rank !== undefined) {
+      user.rank = rank;
+      user.isRankManuallySet = (rank !== 'None');
+    }
     if (pins !== undefined) user.pins = Number(pins);
 
     if (sponsorId !== undefined && sponsorId !== user.sponsorId) {

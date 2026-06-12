@@ -52,6 +52,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: 'None',
     },
+    isRankManuallySet: {
+      type: Boolean,
+      default: false,
+    },
     claimedRankBonuses: {
       type: [String],
       default: [],

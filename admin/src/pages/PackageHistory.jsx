@@ -19,10 +19,13 @@ const PackageHistory = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   // Reset page when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, packageFilter]);
+  }, [searchTerm, statusFilter, packageFilter, startDate, endDate]);
 
   const fetchPurchases = async () => {
     try {
@@ -119,7 +122,25 @@ const PackageHistory = () => {
 
     const matchesPackage = packageFilter === 'all' || p.packageId?._id === packageFilter;
 
-    return matchesSearch && matchesStatus && matchesPackage;
+    let matchesDate = true;
+    const pDate = p.startDate || p.createdAt;
+    if (pDate) {
+      const purchaseDate = new Date(pDate);
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (purchaseDate < start) matchesDate = false;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (purchaseDate > end) matchesDate = false;
+      }
+    } else if (startDate || endDate) {
+      matchesDate = false;
+    }
+
+    return matchesSearch && matchesStatus && matchesPackage && matchesDate;
   });
 
   // Pagination calculation
@@ -139,16 +160,16 @@ const PackageHistory = () => {
   );
 
   // Statistics calculation
-  const totalStaked = purchases
+  const totalStaked = filteredPurchases
     .filter(p => p.status === 'active')
     .reduce((sum, p) => sum + (p.amount || 0), 0);
 
-  const totalROI = purchases
+  const totalROI = filteredPurchases
     .reduce((sum, p) => sum + (p.totalEarned || 0), 0);
 
-  const activeCount = purchases.filter(p => p.status === 'active').length;
+  const activeCount = filteredPurchases.filter(p => p.status === 'active').length;
 
-  const uniqueUsersCount = new Set(purchases.map(p => p.userId)).size;
+  const uniqueUsersCount = new Set(filteredPurchases.map(p => p.userId)).size;
 
   return (
     <div className="space-y-6">
@@ -262,6 +283,37 @@ const PackageHistory = () => {
                   {status === 'no_package' ? 'No Purchase' : status}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Purchase Date Range</span>
+            <div className="flex items-center gap-2 bg-[#161B2A]/50 border border-gray-800 rounded-xl px-3 py-1.5 text-xs text-gray-400 h-[38px]">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-transparent border-none text-white focus:outline-none text-xs w-28 cursor-pointer"
+              />
+              <span className="text-gray-600">to</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-transparent border-none text-white focus:outline-none text-xs w-28 cursor-pointer"
+              />
+              {(startDate || endDate) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                  }}
+                  className="text-[#FF00FF] hover:underline ml-1 font-bold text-xs"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
 

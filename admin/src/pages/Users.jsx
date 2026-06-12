@@ -13,10 +13,13 @@ const Users = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Reset page when search changes
+  // Reset page when search or date filters change
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, startDate, endDate]);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     fullName: '',
@@ -159,11 +162,31 @@ const Users = () => {
     }
   };
 
-  const filteredUsers = users.filter(user => 
-    (user.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.userId || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter(user => {
+    const matchesSearch =
+      (user.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.userId || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+    let matchesDate = true;
+    if (user.createdAt) {
+      const userDate = new Date(user.createdAt);
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (userDate < start) matchesDate = false;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (userDate > end) matchesDate = false;
+      }
+    } else if (startDate || endDate) {
+      matchesDate = false;
+    }
+
+    return matchesSearch && matchesDate;
+  });
 
   // Pagination calculation
   const totalItems = filteredUsers.length;
@@ -175,20 +198,52 @@ const Users = () => {
   return (
     <div className="space-y-6">
       {/* Search Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0B0F1A] border border-gray-800 p-6 rounded-3xl">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-[#0B0F1A] border border-gray-800 p-6 rounded-3xl">
         <div>
           <h2 className="text-xl font-bold text-white">Registered Users ({filteredUsers.length})</h2>
           <p className="text-xs text-gray-500 mt-1">Audit profile settings, balances, and block statuses</p>
         </div>
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-          <input
-            type="text"
-            placeholder="Search by ID, name, email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0]"
-          />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          {/* Date range filters */}
+          <div className="flex items-center gap-2 bg-[#161B2A]/50 border border-gray-800 rounded-xl px-3 py-1.5 text-xs text-gray-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Reg Date:</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="bg-transparent border-none text-white focus:outline-none text-xs w-28 cursor-pointer"
+            />
+            <span className="text-gray-600">to</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="bg-transparent border-none text-white focus:outline-none text-xs w-28 cursor-pointer"
+            />
+            {(startDate || endDate) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="text-[#FF00FF] hover:underline ml-1 font-bold text-xs"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+            <input
+              type="text"
+              placeholder="Search by ID, name, email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0]"
+            />
+          </div>
         </div>
       </div>
 

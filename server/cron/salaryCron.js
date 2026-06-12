@@ -47,43 +47,46 @@ cron.schedule("0 0 15,28 * *", async () => {
       }
 
       // Evaluate Rank
-      const legCounts = await getLegCounts(user._id);
-      const totalTeam = legCounts.reduce((acc, leg) => acc + leg.count, 0);
+      let newRank = user.rank || 'None';
+      if (!user.isRankManuallySet) {
+        const legCounts = await getLegCounts(user._id);
+        const totalTeam = legCounts.reduce((acc, leg) => acc + leg.count, 0);
 
-      let strongLegCount = 0;
-      let otherLegsCount = 0;
-      if (legCounts.length > 0) {
-        const sortedLegs = legCounts.sort((a, b) => b.count - a.count);
-        strongLegCount = sortedLegs[0].count;
-        otherLegsCount = totalTeam - strongLegCount;
+        let strongLegCount = 0;
+        let otherLegsCount = 0;
+        if (legCounts.length > 0) {
+          const sortedLegs = legCounts.sort((a, b) => b.count - a.count);
+          strongLegCount = sortedLegs[0].count;
+          otherLegsCount = totalTeam - strongLegCount;
+        }
+
+        // Determine rank based on conditions
+        // L1: 5 Directs
+        newRank = 'None';
+        if (legCounts.length >= 5) newRank = 'L1';
+
+        const countDirectsWithRank = (rankPrefix) => legCounts.filter(leg => leg.rank.startsWith(rankPrefix) || leg.rank === rankPrefix).length;
+
+        const checkRank = (requiredDirectRank, requiredDirects, requiredTeam) => {
+          const requiredStrong = requiredTeam * 0.30;
+          const requiredOther = requiredTeam * 0.70;
+          const hasDirects = countDirectsWithRank(requiredDirectRank) >= requiredDirects;
+          const hasTeam = strongLegCount >= requiredStrong && otherLegsCount >= requiredOther && totalTeam >= requiredTeam;
+          return hasDirects && hasTeam;
+        };
+
+        if (checkRank('L1', 2, 25)) newRank = 'L2';
+        if (checkRank('L1', 3, 125)) newRank = 'L3';
+        if (checkRank('L1', 4, 500)) newRank = 'L4';
+        if (checkRank('L1', 5, 1000)) newRank = 'L5';
+        if (checkRank('L1', 6, 2000)) newRank = 'L6';
+        if (checkRank('L1', 7, 5000)) newRank = 'L7';
+        if (checkRank('L7', 3, 20000)) newRank = 'L8';
+        if (checkRank('L7', 4, 50000)) newRank = 'L9';
+        if (checkRank('L8', 3, 100000)) newRank = 'L10';
+        if (checkRank('L8', 4, 200000)) newRank = 'L11';
+        if (checkRank('L9', 5, 300000)) newRank = 'L12';
       }
-
-      // Determine rank based on conditions
-      // L1: 5 Directs
-      let newRank = 'None';
-      if (legCounts.length >= 5) newRank = 'L1';
-
-      const countDirectsWithRank = (rankPrefix) => legCounts.filter(leg => leg.rank.startsWith(rankPrefix) || leg.rank === rankPrefix).length;
-
-      const checkRank = (requiredDirectRank, requiredDirects, requiredTeam) => {
-        const requiredStrong = requiredTeam * 0.30;
-        const requiredOther = requiredTeam * 0.70;
-        const hasDirects = countDirectsWithRank(requiredDirectRank) >= requiredDirects;
-        const hasTeam = strongLegCount >= requiredStrong && otherLegsCount >= requiredOther && totalTeam >= requiredTeam;
-        return hasDirects && hasTeam;
-      };
-
-      if (checkRank('L1', 2, 25)) newRank = 'L2';
-      if (checkRank('L1', 3, 125)) newRank = 'L3';
-      if (checkRank('L1', 4, 500)) newRank = 'L4';
-      if (checkRank('L1', 5, 1000)) newRank = 'L5';
-      if (checkRank('L1', 6, 2000)) newRank = 'L6';
-      if (checkRank('L1', 7, 5000)) newRank = 'L7';
-      if (checkRank('L7', 3, 20000)) newRank = 'L8';
-      if (checkRank('L7', 4, 50000)) newRank = 'L9';
-      if (checkRank('L8', 3, 100000)) newRank = 'L10';
-      if (checkRank('L8', 4, 200000)) newRank = 'L11';
-      if (checkRank('L9', 5, 300000)) newRank = 'L12';
 
       const oldRank = user.rank || 'None';
       
