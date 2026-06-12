@@ -55,8 +55,8 @@ const getDashboardStats = async (req, res, next) => {
     const totalUsers = await User.countDocuments();
     const activeUsers = await User.countDocuments({ isActive: true });
     
-    const deposits = await Transaction.aggregate([
-      { $match: { type: 'deposit', status: 'success' } },
+    const deposits = await UserPackage.aggregate([
+      { $match: { status: 'active' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
     
