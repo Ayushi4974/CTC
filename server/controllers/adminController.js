@@ -530,7 +530,8 @@ const updateUser = async (req, res, next) => {
       promotionalIncome,
       sponsorId,
       rank,
-      pins
+      pins,
+      manualLevelQualified
     } = req.body;
 
     const user = await User.findById(id);
@@ -549,6 +550,7 @@ const updateUser = async (req, res, next) => {
       user.isRankManuallySet = (rank !== 'None');
     }
     if (pins !== undefined) user.pins = Number(pins);
+    if (manualLevelQualified !== undefined) user.manualLevelQualified = Number(manualLevelQualified);
 
     if (sponsorId !== undefined && sponsorId !== user.sponsorId) {
       const cleanSponsorId = sponsorId ? sponsorId.trim().toUpperCase() : '';

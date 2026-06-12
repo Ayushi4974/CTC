@@ -32,7 +32,8 @@ const Users = () => {
     promotionalIncome: 0,
     sponsorId: '',
     rank: '',
-    pins: 1
+    pins: 1,
+    manualLevelQualified: 0
   });
 
   const fetchUsers = async () => {
@@ -89,7 +90,8 @@ const Users = () => {
       promotionalIncome: user.promotionalIncome || 0,
       sponsorId: user.sponsorId || '',
       rank: user.rank || 'L1',
-      pins: user.pins !== undefined ? user.pins : 1
+      pins: user.pins !== undefined ? user.pins : 1,
+      manualLevelQualified: user.manualLevelQualified || 0
     });
   };
 
@@ -568,7 +570,7 @@ const Users = () => {
 
                   <div className="space-y-3">
                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Network & MLM Hierarchy</h4>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Sponsor ID</label>
                         <input
@@ -607,6 +609,19 @@ const Users = () => {
                         >
                           <option value={1}>1</option>
                           <option value={0}>0</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Manual Level Override</label>
+                        <select
+                          value={editForm.manualLevelQualified}
+                          onChange={(e) => setEditForm({ ...editForm, manualLevelQualified: Number(e.target.value) })}
+                          className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono"
+                        >
+                          <option value={0}>None</option>
+                          {Array.from({ length: 30 }, (_, i) => i + 1).map(lvl => (
+                            <option key={lvl} value={lvl}>Level {lvl}</option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -703,9 +718,15 @@ const Users = () => {
                         <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Downline Team</span>
                         <span className="text-sm font-semibold text-white">{selectedUser.totalTeam || 0} users</span>
                       </div>
-                      <div className="col-span-2 border-t border-gray-800 pt-3 mt-1">
+                      <div className="border-t border-gray-800 pt-3 mt-1">
                         <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">Pins Count</span>
                         <span className="text-sm font-bold text-[#00C6FF]">{selectedUser.pins ?? 1} Pins</span>
+                      </div>
+                      <div className="border-t border-gray-800 pt-3 mt-1">
+                        <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">Manual Level Override</span>
+                        <span className="text-sm font-bold text-[#FF00FF]">
+                          {selectedUser.manualLevelQualified ? `Level ${selectedUser.manualLevelQualified}` : 'None'}
+                        </span>
                       </div>
                     </div>
                   </div>

@@ -128,6 +128,10 @@ const userSchema = new mongoose.Schema(
     },
     deviceFingerprint: {
       type: String
+    },
+    manualLevelQualified: {
+      type: Number,
+      default: 0,
     }
   },
   {

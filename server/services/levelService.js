@@ -53,7 +53,9 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
 
         // Level Activation Logic
         let isLevelActive = false;
-        if (sponsorUser.totalInvestment >= reqs.staking && directsCount >= reqs.directs) {
+        if (sponsorUser.manualLevelQualified && currentLevel <= sponsorUser.manualLevelQualified) {
+          isLevelActive = true;
+        } else if (sponsorUser.totalInvestment >= reqs.staking && directsCount >= reqs.directs) {
           isLevelActive = true;
           // Advanced Leadership Phases
           if (currentLevel >= 11 && currentLevel <= 20) {
