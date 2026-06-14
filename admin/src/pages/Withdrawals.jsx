@@ -391,7 +391,11 @@ const Withdrawals = () => {
                         Reject & Refund
                       </button>
                       <button
-                        onClick={() => setSelectedWithdrawalForApproval(w)}
+                        onClick={() => {
+                          if (window.confirm('Do you want to approve this withdrawal request?')) {
+                            executeMockPayout(w);
+                          }
+                        }}
                         className="flex items-center justify-center gap-1.5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold tracking-wider uppercase rounded-xl transition-all shadow-[0_4px_15px_rgba(16,185,129,0.2)]"
                       >
                         <Check size={14} />
