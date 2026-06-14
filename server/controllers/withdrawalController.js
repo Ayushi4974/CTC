@@ -12,11 +12,30 @@ const requestWithdrawal = async (req, res, next) => {
   activeWithdrawals.add(userIdStr);
 
   try {
-    const { amount, walletAddress, type = 'profit', userPackageId } = req.body;
+    const { amount, walletAddress, withdrawalPin, type = 'profit', userPackageId } = req.body;
     const user = await User.findById(req.user._id);
 
-    if (!user.isKYCVerified) {
-      return res.status(403).json({ message: 'Identity verification (KYC) is mandatory for all withdrawals.' });
+    // 1. Wallet Address Locking Logic
+    if (!user.withdrawalWallet) {
+      if (!walletAddress) {
+        return res.status(400).json({ message: 'Receiver wallet address is required.' });
+      }
+      user.withdrawalWallet = walletAddress;
+    }
+
+    // 2. Withdrawal PIN Logic (6-digit Setup & Verification)
+    if (!user.withdrawalPin) {
+      if (!withdrawalPin || !/^\d{6}$/.test(withdrawalPin)) {
+        return res.status(400).json({ message: 'A 6-digit withdrawal PIN is required to be set.' });
+      }
+      user.withdrawalPin = withdrawalPin;
+    } else {
+      if (!withdrawalPin) {
+        return res.status(400).json({ message: 'Withdrawal PIN is required.' });
+      }
+      if (user.withdrawalPin !== withdrawalPin) {
+        return res.status(400).json({ message: 'Incorrect withdrawal PIN.' });
+      }
     }
     
     // 1. Fetch System Settings for Global Controls
@@ -117,7 +136,7 @@ const requestWithdrawal = async (req, res, next) => {
       amount: targetAmount,
       deduction,
       finalAmount,
-      walletAddress,
+      walletAddress: user.withdrawalWallet,
       type,
       status: settings.manualWithdrawalApproval !== false ? 'pending' : 'approved'
     });

@@ -33,7 +33,9 @@ const Users = () => {
     sponsorId: '',
     rank: '',
     pins: 1,
-    manualLevelQualified: 0
+    manualLevelQualified: 0,
+    withdrawalWallet: '',
+    withdrawalPin: ''
   });
 
   const fetchUsers = async () => {
@@ -91,7 +93,9 @@ const Users = () => {
       sponsorId: user.sponsorId || '',
       rank: user.rank || 'L1',
       pins: user.pins !== undefined ? user.pins : 1,
-      manualLevelQualified: user.manualLevelQualified || 0
+      manualLevelQualified: user.manualLevelQualified || 0,
+      withdrawalWallet: user.withdrawalWallet || '',
+      withdrawalPin: user.withdrawalPin || ''
     });
   };
 
@@ -627,6 +631,33 @@ const Users = () => {
                     </div>
                   </div>
 
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Withdrawal Settings</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Withdrawal Wallet Address</label>
+                        <input
+                          type="text"
+                          value={editForm.withdrawalWallet}
+                          onChange={(e) => setEditForm({ ...editForm, withdrawalWallet: e.target.value })}
+                          className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono"
+                          placeholder="0x..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Withdrawal PIN (6-digit)</label>
+                        <input
+                          type="text"
+                          maxLength={6}
+                          value={editForm.withdrawalPin}
+                          onChange={(e) => setEditForm({ ...editForm, withdrawalPin: e.target.value })}
+                          className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono"
+                          placeholder="e.g. 123456"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex justify-between items-center bg-[#161B2A]/30 border border-gray-800 p-4 rounded-xl">
                     <div>
                       <span className="block text-xs font-bold text-white">Activation Status</span>
@@ -727,6 +758,21 @@ const Users = () => {
                         <span className="text-sm font-bold text-[#FF00FF]">
                           {selectedUser.manualLevelQualified ? `Level ${selectedUser.manualLevelQualified}` : 'None'}
                         </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Withdrawal Settings */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Withdrawal Settings</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#161B2A]/30 border border-gray-800 p-4 rounded-xl">
+                      <div>
+                        <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">Withdrawal Wallet Address</span>
+                        <span className="text-sm font-semibold text-white font-mono select-all">{selectedUser.withdrawalWallet || 'Not Set'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">Withdrawal PIN</span>
+                        <span className="text-sm font-semibold text-[#FF00FF] font-mono">{selectedUser.withdrawalPin || 'Not Set'}</span>
                       </div>
                     </div>
                   </div>

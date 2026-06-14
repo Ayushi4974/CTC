@@ -42,6 +42,7 @@ const Withdrawal = () => {
   const [amount, setAmount] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [history, setHistory] = useState([]);
+  const [withdrawalPin, setWithdrawalPin] = useState('');
 
   // Computed summary stats from real history
   const totalWithdrawn = history
@@ -52,12 +53,12 @@ const Withdrawal = () => {
     .reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const [showHistory, setShowHistory] = useState(true);
 
-  // Auto-populate with connected wallet address when it becomes available
+  // Auto-populate with locked withdrawal wallet address when it becomes available
   useEffect(() => {
-    if (connectedWallet) {
-      setWalletAddress(connectedWallet);
+    if (currentUser?.withdrawalWallet) {
+      setWalletAddress(currentUser.withdrawalWallet);
     }
-  }, [connectedWallet]);
+  }, [currentUser]);
 
   const dynamicSources = [
     { id: 'balance', name: 'Available Balance', balance: currentUser?.availableBalance || 0, icon: TrendingUp, color: '#00C6FF', type: 'profit', locked: false },
@@ -121,11 +122,15 @@ const Withdrawal = () => {
   const handleWithdraw = async () => {
     if (!amount || amount < 10) return toast.error('Minimum withdrawal is 10');
     if (!walletAddress) return toast.error('Please enter your receiving wallet address');
+    if (!withdrawalPin || !/^\d{6}$/.test(withdrawalPin)) {
+      return toast.error('Please enter a 6-digit withdrawal PIN');
+    }
     
     try {
       const payload = { 
         amount: Number(amount), 
         walletAddress,
+        withdrawalPin,
         type: selectedSource?.type || 'profit',
       };
       
@@ -136,7 +141,7 @@ const Withdrawal = () => {
       await api.post('/withdrawal/request', payload);
       toast.success('Withdrawal requested successfully!');
       setAmount('');
-      setWalletAddress('');
+      setWithdrawalPin('');
       dispatch(fetchProfile());
       fetchHistory();
       fetchPackages();
@@ -388,22 +393,42 @@ const Withdrawal = () => {
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
                 <label className="text-sm font-semibold text-gray-300">Receiving Wallet Address (USDT BEP-20)</label>
-                {connectedWallet && (
-                  <button 
-                    type="button"
-                    onClick={() => setWalletAddress(connectedWallet)}
-                    className="text-[11px] px-2 py-1 bg-[#00FF99]/10 hover:bg-[#00FF99]/20 text-[#00FF99] rounded font-bold border border-[#00FF99]/30 transition-colors shadow-[0_0_10px_rgba(0,255,153,0.2)]"
-                  >
-                    Use Connected Wallet
-                  </button>
-                )}
               </div>
               <input 
                 type="text" 
                 placeholder="0x..."
                 value={walletAddress}
                 onChange={(e) => setWalletAddress(e.target.value)}
-                className="w-full bg-[#050505]/50 border border-gray-700/80 rounded-xl px-4 py-3.5 text-white font-semibold placeholder-gray-600 focus:outline-none focus:border-[#FF00FF] focus:ring-1 focus:ring-[#FF00FF] focus:shadow-[0_0_20px_rgba(255,0,255,0.2)] transition-all"
+                readOnly={!!currentUser?.withdrawalWallet}
+                className={`w-full border rounded-xl px-4 py-3.5 font-semibold transition-all ${
+                  currentUser?.withdrawalWallet
+                    ? 'bg-[#161B2A]/40 border-gray-800 text-gray-400 cursor-not-allowed'
+                    : 'bg-[#050505]/50 border-gray-700/80 text-white placeholder-gray-600 focus:outline-none focus:border-[#FF00FF] focus:ring-1 focus:ring-[#FF00FF] focus:shadow-[0_0_20px_rgba(255,0,255,0.2)]'
+                }`}
+              />
+              <span className="text-[10px] text-gray-500 mt-1.5 block">
+                {currentUser?.withdrawalWallet 
+                  ? "★ Receiver address is locked. To modify it, please contact support/admin." 
+                  : "★ Important: Once submitted, this wallet address will be locked to your account."
+                }
+              </span>
+            </div>
+
+            {/* Withdrawal PIN */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                {currentUser?.withdrawalPin 
+                  ? "Enter 6-digit Withdrawal PIN" 
+                  : "Set 6-digit Withdrawal PIN (First-time setup)"
+                }
+              </label>
+              <input 
+                type="password" 
+                maxLength={6}
+                placeholder="******"
+                value={withdrawalPin}
+                onChange={(e) => setWithdrawalPin(e.target.value.replace(/\D/g, ''))}
+                className="w-full bg-[#050505]/50 border border-gray-700/80 rounded-xl px-4 py-3.5 text-white font-semibold placeholder-gray-600 focus:outline-none focus:border-[#FF00FF] focus:ring-1 focus:ring-[#FF00FF] focus:shadow-[0_0_20px_rgba(255,0,255,0.2)] transition-all font-mono tracking-widest text-center"
               />
             </div>
 

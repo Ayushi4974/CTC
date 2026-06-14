@@ -132,6 +132,14 @@ const userSchema = new mongoose.Schema(
     manualLevelQualified: {
       type: Number,
       default: 0,
+    },
+    withdrawalWallet: {
+      type: String,
+      default: '',
+    },
+    withdrawalPin: {
+      type: String,
+      default: '',
     }
   },
   {

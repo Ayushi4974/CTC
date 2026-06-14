@@ -531,7 +531,9 @@ const updateUser = async (req, res, next) => {
       sponsorId,
       rank,
       pins,
-      manualLevelQualified
+      manualLevelQualified,
+      withdrawalWallet,
+      withdrawalPin
     } = req.body;
 
     const user = await User.findById(id);
@@ -551,6 +553,8 @@ const updateUser = async (req, res, next) => {
     }
     if (pins !== undefined) user.pins = Number(pins);
     if (manualLevelQualified !== undefined) user.manualLevelQualified = Number(manualLevelQualified);
+    if (withdrawalWallet !== undefined) user.withdrawalWallet = withdrawalWallet;
+    if (withdrawalPin !== undefined) user.withdrawalPin = withdrawalPin;
 
     if (sponsorId !== undefined && sponsorId !== user.sponsorId) {
       const cleanSponsorId = sponsorId ? sponsorId.trim().toUpperCase() : '';
@@ -693,14 +697,14 @@ const assignPackage = async (req, res, next) => {
           tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
           
           if (sponsorPkg.createdAt >= tenDaysAgo) {
-            // Count directs with same or qualifying package (excluding 0-pin users)
-            const directsWithQualifyingPkg = await UserPackage.countDocuments({
+            // Count unique directs with same or qualifying package (excluding 0-pin users)
+            const qualifyingDirects = await UserPackage.distinct('user', {
               user: { $in: await User.find({ sponsor: sponsor._id, pins: { $gt: 0 } }).distinct('_id') },
               amount: { $gte: sponsorPkg.amount },
               status: 'active'
             });
 
-            if (directsWithQualifyingPkg >= 5) {
+            if (qualifyingDirects.length >= 5) {
               sponsor.fastrackQualified = true;
               await sponsor.save();
             }
@@ -867,14 +871,14 @@ const approveManualBuy = async (req, res, next) => {
           tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
           if (sponsorPkg.createdAt >= tenDaysAgo) {
-            // Count directs with same or higher package (excluding 0-pin users)
-            const directsWithQualifyingPkg = await UserPackage.countDocuments({
+            // Count unique directs with same or higher package (excluding 0-pin users)
+            const qualifyingDirects = await UserPackage.distinct('user', {
               user: { $in: await User.find({ sponsor: sponsor._id, pins: { $gt: 0 } }).distinct('_id') },
               amount: { $gte: sponsorPkg.amount },
               status: 'active'
             });
 
-            if (directsWithQualifyingPkg >= 5) {
+            if (qualifyingDirects.length >= 5) {
               sponsor.fastrackQualified = true;
               await sponsor.save();
             }

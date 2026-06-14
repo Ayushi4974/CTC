@@ -144,14 +144,14 @@ const buyPackage = async (req, res, next) => {
           tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
           if (sponsorPkg.createdAt >= tenDaysAgo) {
-            // Count directs with same or higher package (excluding 0-pin users)
-            const directsWithQualifyingPkg = await UserPackage.countDocuments({
+            // Count unique directs with same or higher active package (excluding 0-pin users)
+            const qualifyingDirects = await UserPackage.distinct('user', {
               user: { $in: await User.find({ sponsor: sponsor._id, pins: { $gt: 0 } }).distinct('_id') },
               amount: { $gte: sponsorPkg.amount },
               status: 'active'
             });
 
-            if (directsWithQualifyingPkg >= 5) {
+            if (qualifyingDirects.length >= 5) {
               sponsor.fastrackQualified = true;
               await sponsor.save();
             }
