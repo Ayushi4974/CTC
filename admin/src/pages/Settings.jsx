@@ -26,7 +26,10 @@ const Settings = () => {
     manualWithdrawalApproval: true,
     announcementImage: '',
     announcementImages: [],
-    announcementContent: ''
+    announcementContent: '',
+    depositAddressMetaMask: '',
+    depositAddressBep20: '',
+    depositAddressTrc20: ''
   });
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -240,6 +243,49 @@ const Settings = () => {
                 onChange={handleChange}
                 className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
               />
+            </div>
+          </div>
+
+          {/* Section: Deposit Address Settings */}
+          <div className="md:col-span-2 border-t border-gray-800/30 pt-6 mt-4 space-y-4">
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Database size={14} className="text-[#A020F0]" />
+              Deposit Wallet Addresses Configuration
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">MetaMask Admin Wallet (EVM)</label>
+                <input
+                  type="text"
+                  name="depositAddressMetaMask"
+                  value={settings.depositAddressMetaMask || ''}
+                  onChange={handleChange}
+                  placeholder="0x..."
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Manual USDT (BEP20) Deposit Wallet</label>
+                <input
+                  type="text"
+                  name="depositAddressBep20"
+                  value={settings.depositAddressBep20 || ''}
+                  onChange={handleChange}
+                  placeholder="0x..."
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Manual USDT (TRC20) Deposit Wallet</label>
+                <input
+                  type="text"
+                  name="depositAddressTrc20"
+                  value={settings.depositAddressTrc20 || ''}
+                  onChange={handleChange}
+                  placeholder="T..."
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono"
+                />
+              </div>
             </div>
           </div>
 

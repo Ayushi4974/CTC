@@ -116,7 +116,24 @@ const Products = () => {
   const [paymentMethod, setPaymentMethod] = useState('metamask'); // 'metamask' or 'manual'
   const [networkType, setNetworkType] = useState('Bep20'); // 'Bep20' or 'TRC 20'
   const [senderAddress, setSenderAddress] = useState('');
+  const [depositAddresses, setDepositAddresses] = useState({
+    depositAddressMetaMask: '0x185018c5f26B2cE105e0B80b231178CE5913b621',
+    depositAddressBep20: '0x8e4143b46eb1e1a6cbd71b5d57da95b985219f0b',
+    depositAddressTrc20: 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5'
+  });
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    const fetchDepositAddresses = async () => {
+      try {
+        const res = await api.get('/user/deposit-addresses');
+        setDepositAddresses(res.data);
+      } catch (err) {
+        console.error('Failed to fetch deposit addresses:', err);
+      }
+    };
+    fetchDepositAddresses();
+  }, []);
 
   useEffect(() => {
     const fetchPackages = async () => {
@@ -182,7 +199,7 @@ const Products = () => {
 
       // 3. Send USDT
       const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-      const ADMIN_WALLET = "0x185018c5f26B2cE105e0B80b231178CE5913b621"; 
+      const ADMIN_WALLET = depositAddresses.depositAddressMetaMask || "0x185018c5f26B2cE105e0B80b231178CE5913b621"; 
 
       const abi = [
         "function transfer(address to, uint256 amount) public returns (bool)",
@@ -615,8 +632,8 @@ const Products = () => {
                           type="button"
                           onClick={() => {
                             const addr = networkType === 'Bep20' 
-                              ? '0x8e4143b46eb1e1a6cbd71b5d57da95b985219f0b' 
-                              : 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5';
+                              ? depositAddresses.depositAddressBep20 
+                              : depositAddresses.depositAddressTrc20;
                             navigator.clipboard.writeText(addr);
                             toast.success('Address copied to clipboard!');
                           }}
@@ -627,8 +644,8 @@ const Products = () => {
                       </div>
                       <div className="text-sm font-mono text-white select-all break-all bg-[#0B0F1A] border border-gray-800 p-2.5 rounded-lg text-center mb-4">
                         {networkType === 'Bep20' 
-                          ? '0x8e4143b46eb1e1a6cbd71b5d57da95b985219f0b' 
-                          : 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5'}
+                          ? depositAddresses.depositAddressBep20 
+                          : depositAddresses.depositAddressTrc20}
                       </div>
                       
                       {/* QR Code Container */}
@@ -638,8 +655,8 @@ const Products = () => {
                           <img 
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${
                               networkType === 'Bep20' 
-                                ? '0x8e4143b46eb1e1a6cbd71b5d57da95b985219f0b' 
-                                : 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5'
+                                ? depositAddresses.depositAddressBep20 
+                                : depositAddresses.depositAddressTrc20
                             }`} 
                             alt="Payment QR Code" 
                             className="w-[130px] h-[130px]"

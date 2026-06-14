@@ -6,7 +6,8 @@ const {
   getLevelIncomeHistory, 
   updateUserProfile, 
   changePassword,
-  getAnnouncement
+  getAnnouncement,
+  getDepositAddresses
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const router = express.Router();
@@ -19,4 +20,5 @@ router.route('/team').get(protect, getTeam);
 router.route('/mining-history').get(protect, getMiningHistory);
 router.route('/level-income').get(protect, getLevelIncomeHistory);
 router.route('/announcement').get(protect, getAnnouncement);
+router.route('/deposit-addresses').get(protect, getDepositAddresses);
 module.exports = router;

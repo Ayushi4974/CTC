@@ -125,4 +125,18 @@ const getAnnouncement = async (req, res, next) => {
   }
 };
 
-module.exports = { getUserProfile, getTeam, getMiningHistory, getLevelIncomeHistory, updateUserProfile, changePassword, getAnnouncement };
+const getDepositAddresses = async (req, res, next) => {
+  try {
+    const SystemSettings = require('../models/SystemSettings');
+    const settings = await SystemSettings.findOne();
+    res.json({
+      depositAddressMetaMask: settings && settings.depositAddressMetaMask ? settings.depositAddressMetaMask : '0x185018c5f26B2cE105e0B80b231178CE5913b621',
+      depositAddressBep20: settings && settings.depositAddressBep20 ? settings.depositAddressBep20 : '0x8e4143b46eb1e1a6cbd71b5d57da95b985219f0b',
+      depositAddressTrc20: settings && settings.depositAddressTrc20 ? settings.depositAddressTrc20 : 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getUserProfile, getTeam, getMiningHistory, getLevelIncomeHistory, updateUserProfile, changePassword, getAnnouncement, getDepositAddresses };

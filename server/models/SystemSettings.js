@@ -23,6 +23,11 @@ const systemSettingsSchema = new mongoose.Schema({
   announcementImage: { type: String, default: '' },
   announcementImages: { type: [String], default: [] },
   announcementContent: { type: String, default: '' },
+
+  // Deposit Addresses
+  depositAddressMetaMask: { type: String, default: '0x185018c5f26B2cE105e0B80b231178CE5913b621' },
+  depositAddressBep20: { type: String, default: '0x8e4143b46eb1e1a6cbd71b5d57da95b985219f0b' },
+  depositAddressTrc20: { type: String, default: 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('SystemSettings', systemSettingsSchema);

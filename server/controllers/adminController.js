@@ -272,7 +272,8 @@ const updateTreasurySettings = async (req, res, next) => {
       'maintenanceMode', 'payoutPause', 'withdrawalFreeze', 'treasuryProtectionMode',
       'globalRoiMultiplier', 'minWithdrawalAmount', 'maxDailyWithdrawalAmount',
       'withdrawalCooldownHours', 'manualWithdrawalApproval', 'treasuryReserves', 
-      'emergencyThreshold', 'announcementImage', 'announcementImages', 'announcementContent'
+      'emergencyThreshold', 'announcementImage', 'announcementImages', 'announcementContent',
+      'depositAddressMetaMask', 'depositAddressBep20', 'depositAddressTrc20'
     ];
     
     allowedFields.forEach(field => {
