@@ -21,7 +21,15 @@ const LEVEL_REQUIREMENTS = [
   { staking: 2200, directs: 27 }, { staking: 2400, directs: 28 }, { staking: 2700, directs: 29 }, { staking: 3000, directs: 30 }, { staking: 3000, directs: 30 }
 ];
 
-const getLevelStatus = (levelIndex, userStaking, activeDirects) => {
+const getLevelStatus = (levelIndex, userStaking, activeDirects, manualLevelQualified = 0) => {
+  if (manualLevelQualified && (levelIndex + 1) <= manualLevelQualified) {
+    return {
+      status: "active",
+      badge: "Active",
+      color: "green"
+    };
+  }
+
   const requirement = LEVEL_REQUIREMENTS[levelIndex] || { staking: 0, directs: 0 };
 
   const hasStaking = userStaking >= requirement.staking;
@@ -149,13 +157,13 @@ const LevelIncome = () => {
     { title: 'Total Level Income', value: currentLevelIncome, prefix: '$', suffix: '', icon: TrendingUp, color: 'text-[#00FF99]', aura: 'bg-[#00FF99]/30' },
     { title: 'Total Network Members', value: currentNetworkMembers, prefix: '', suffix: '', icon: Users, color: 'text-[#00C6FF]', aura: 'bg-[#00C6FF]/20' },
     { title: 'Active Levels', value: allLevels.filter(lvl => {
-        return getLevelStatus(lvl.level - 1, currentUser?.totalInvestment || 0, activeDirectsCount).status === "active";
+        return getLevelStatus(lvl.level - 1, currentUser?.totalInvestment || 0, activeDirectsCount, currentUser?.manualLevelQualified || 0).status === "active";
       }).length, prefix: '', suffix: '', icon: Layers, color: 'text-[#A020F0]', aura: 'bg-[#A020F0]/20', isProgress: true },
   ];
 
   const dynamicLevelData = allLevels.map((lvl) => {
     const reqs = LEVEL_REQUIREMENTS[lvl.level - 1] || { staking: 0, directs: 0 };
-    const levelStatus = getLevelStatus(lvl.level - 1, currentUser?.totalInvestment || 0, activeDirectsCount);
+    const levelStatus = getLevelStatus(lvl.level - 1, currentUser?.totalInvestment || 0, activeDirectsCount, currentUser?.manualLevelQualified || 0);
     const isUnlocked = levelStatus.status === "active";
 
     const commEarned = levelIncomeData

@@ -31,9 +31,7 @@ const rankBonusMap = {
   'L7': 25000, 'L8': 100000, 'L9': 200000, 'L10': 500000, 'L11': 1000000, 'L12': 2000000
 };
 
-cron.schedule("0 0 15,28 * *", async () => {
-//Testing 
-// cron.schedule("* * * * *", async () => {
+const runSalaryCron = async () => {
   console.log('Running salary bonus cron...');
   try {
     const eligibleUsers = await User.find({ isActive: true, totalInvestment: { $gte: 300 } });
@@ -144,7 +142,14 @@ cron.schedule("0 0 15,28 * *", async () => {
       }
     }
     console.log('Salary cron finished successfully.');
+    return { success: true };
   } catch (error) {
     console.error('Error in salary cron:', error);
+    return { success: false, error: error.message };
   }
-});
+};
+
+cron.schedule("0 0 15,28 * *", runSalaryCron);
+
+module.exports = { runSalaryCron };
+

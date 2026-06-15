@@ -104,8 +104,9 @@ const Downline = () => {
 
   const dynamicLevelsData = allLevels.map((lvl) => {
     const reqs = LEVEL_REQUIREMENTS[lvl.level - 1] || { staking: 0, directs: 0 };
-    const isUnlocked = (currentUser?.totalInvestment || 0) >= reqs.staking && 
-                       activeDirectsCount >= reqs.directs;
+    const isUnlocked = (currentUser?.manualLevelQualified && lvl.level <= currentUser.manualLevelQualified) ||
+                       ((currentUser?.totalInvestment || 0) >= reqs.staking && 
+                       activeDirectsCount >= reqs.directs);
 
     const commEarned = levelIncomeData
       .filter(inc => inc.level === lvl.level)
