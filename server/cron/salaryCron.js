@@ -149,7 +149,8 @@ const runSalaryCron = async () => {
   }
 };
 
-cron.schedule("0 0 15,28 * *", runSalaryCron);
+cron.schedule("0 0 15,28 * *", async () => {
+  await runSalaryCron();
+});
 
 module.exports = { runSalaryCron };
-
