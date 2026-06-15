@@ -35,12 +35,17 @@ const runSalaryCron = async () => {
   console.log('Running salary bonus cron...');
   try {
     const eligibleUsers = await User.find({ isActive: true, totalInvestment: { $gte: 300 } });
+    const capped = [];
+    const paidSalaries = [];
+    const paidBonuses = [];
 
     for (let user of eligibleUsers) {
       // Enforce 4x Earning Cap before salary payout
       if (user.totalEarning >= user.totalInvestment * 4) {
         user.isActive = false;
         await user.save();
+        console.log(`[CAP] User ID: ${user.userId} (${user.fullName}) deactivated due to 4x earning cap (Earned: $${user.totalEarning}, Invested: $${user.totalInvestment})`);
+        capped.push({ userId: user.userId, fullName: user.fullName, totalEarning: user.totalEarning, totalInvestment: user.totalInvestment });
         continue;
       }
 
@@ -114,6 +119,8 @@ const runSalaryCron = async () => {
                 });
 
                 user.claimedRankBonuses.push(rankToAward);
+                console.log(`[BONUS] User ID: ${user.userId} (${user.fullName}) claimed promotional bonus for Rank ${rankToAward}: $${rankBonusAmount}`);
+                paidBonuses.push({ userId: user.userId, fullName: user.fullName, rank: rankToAward, amount: rankBonusAmount });
               }
             }
           }
@@ -137,12 +144,19 @@ const runSalaryCron = async () => {
           amount: salaryPayout,
           status: 'success'
         });
+        console.log(`[SALARY] User ID: ${user.userId} (${user.fullName}) paid half salary for Rank ${newRank}: $${salaryPayout}`);
+        paidSalaries.push({ userId: user.userId, fullName: user.fullName, rank: newRank, amount: salaryPayout });
       } else {
         await user.save();
       }
     }
     console.log('Salary cron finished successfully.');
-    return { success: true };
+    return {
+      success: true,
+      capped,
+      paidSalaries,
+      paidBonuses
+    };
   } catch (error) {
     console.error('Error in salary cron:', error);
     return { success: false, error: error.message };
