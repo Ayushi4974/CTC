@@ -23,6 +23,18 @@ const requestWithdrawal = async (req, res, next) => {
       user.withdrawalWallet = walletAddress;
     }
 
+    // 2. DB-level duplicate request guard (handles race conditions & multi-server setups)
+    const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
+    const recentDuplicate = await Withdrawal.findOne({
+      user: user._id,
+      amount: Number(amount),
+      status: { $in: ['pending', 'approved', 'completed'] },
+      createdAt: { $gte: thirtySecondsAgo }
+    });
+    if (recentDuplicate) {
+      return res.status(409).json({ message: 'A duplicate withdrawal request was detected. Please wait before trying again.' });
+    }
+
     // 2. Withdrawal PIN Logic (6-digit Setup & Verification)
     if (!user.withdrawalPin) {
       if (!withdrawalPin || !/^\d{6}$/.test(withdrawalPin)) {

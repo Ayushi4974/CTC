@@ -130,8 +130,8 @@ const runSalaryCron = async () => {
       user.rank = newRank;
 
       if (salaryMap[newRank]) {
-        // Paid 2 times a month, so half salary
-        const salaryPayout = salaryMap[newRank] / 2;
+        // Paid full salary amount on each payout date (15th and 28th)
+        const salaryPayout = salaryMap[newRank];
         user.availableBalance += salaryPayout;
         user.totalEarning += salaryPayout;
         user.promotionalIncome += salaryPayout;
@@ -144,7 +144,7 @@ const runSalaryCron = async () => {
           amount: salaryPayout,
           status: 'success'
         });
-        console.log(`[SALARY] User ID: ${user.userId} (${user.fullName}) paid half salary for Rank ${newRank}: $${salaryPayout}`);
+        console.log(`[SALARY] User ID: ${user.userId} (${user.fullName}) paid salary for Rank ${newRank}: $${salaryPayout}`);
         paidSalaries.push({ userId: user.userId, fullName: user.fullName, rank: newRank, amount: salaryPayout });
       } else {
         await user.save();

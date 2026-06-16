@@ -43,6 +43,7 @@ const Withdrawal = () => {
   const [walletAddress, setWalletAddress] = useState('');
   const [history, setHistory] = useState([]);
   const [withdrawalPin, setWithdrawalPin] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Computed summary stats from real history
   const totalWithdrawn = history
@@ -120,12 +121,14 @@ const Withdrawal = () => {
   };
 
   const handleWithdraw = async () => {
+    if (isSubmitting) return; // Prevent double-click
     if (!amount || amount < 10) return toast.error('Minimum withdrawal is 10');
     if (!walletAddress) return toast.error('Please enter your receiving wallet address');
     if (!withdrawalPin || !/^\d{6}$/.test(withdrawalPin)) {
       return toast.error('Please enter a 6-digit withdrawal PIN');
     }
     
+    setIsSubmitting(true);
     try {
       const payload = { 
         amount: Number(amount), 
@@ -147,6 +150,8 @@ const Withdrawal = () => {
       fetchPackages();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Withdrawal failed');
+    } finally {
+      setIsSubmitting(false); // Always re-enable button after response
     }
   };
 
@@ -484,11 +489,29 @@ const Withdrawal = () => {
             )}
 
             {/* Submit Button with Shimmer */}
-            <button onClick={handleWithdraw} className="relative overflow-hidden w-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] hover:shadow-[0_0_30px_rgba(255,0,255,0.6)] text-white rounded-xl py-4 font-bold transition-all hover:-translate-y-0.5 mb-4 group">
+            <button
+              onClick={handleWithdraw}
+              disabled={isSubmitting}
+              className={`relative overflow-hidden w-full bg-gradient-to-r from-[#A020F0] to-[#FF00FF] text-white rounded-xl py-4 font-bold transition-all mb-4 group ${
+                isSubmitting
+                  ? 'opacity-60 cursor-not-allowed'
+                  : 'hover:shadow-[0_0_30px_rgba(255,0,255,0.6)] hover:-translate-y-0.5'
+              }`}
+            >
               <span className="relative z-10 flex items-center justify-center gap-2">
-                Submit Withdrawal Request <ArrowRight size={18} />
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  <>Submit Withdrawal Request <ArrowRight size={18} /></>
+                )}
               </span>
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-[shimmer_1.5s_infinite] skew-x-[-20deg] w-1/2 h-full z-0"></div>
+              {!isSubmitting && <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-[shimmer_1.5s_infinite] skew-x-[-20deg] w-1/2 h-full z-0"></div>}
             </button>
             
             <div className="flex items-center justify-center gap-2 mt-2">

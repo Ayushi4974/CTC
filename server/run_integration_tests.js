@@ -311,7 +311,7 @@ async function testAll() {
       afterSponsor.promotionalIncome += rankBonusAmount;
       afterSponsor.claimedRankBonuses.push('L1');
 
-      const salaryPayout = salaryMap['L1'] / 2;
+      const salaryPayout = salaryMap['L1'];
       afterSponsor.availableBalance += salaryPayout;
       afterSponsor.totalEarning += salaryPayout;
       afterSponsor.promotionalIncome += salaryPayout;
@@ -324,10 +324,10 @@ async function testAll() {
     const bonusAvailAdded = finalSponsor.availableBalance - beforeAvail;
 
     console.log(`Final Sponsor Rank: ${finalSponsor.rank}`);
-    console.log(`Sponsor Promotional Income added: $${bonusPromoAdded} (Expected: $115)`);
-    console.log(`Sponsor Available Balance added: $${bonusAvailAdded} (Expected: $115)`);
+    console.log(`Sponsor Promotional Income added: $${bonusPromoAdded} (Expected: $130)`);
+    console.log(`Sponsor Available Balance added: $${bonusAvailAdded} (Expected: $130)`);
 
-    const bonusPassed = finalSponsor.rank === 'L1' && bonusPromoAdded === 115 && bonusAvailAdded === 115;
+    const bonusPassed = finalSponsor.rank === 'L1' && bonusPromoAdded === 130 && bonusAvailAdded === 130;
     console.log(`Result: ${bonusPassed ? '✅ PASSED' : '❌ FAILED'}`);
 
 
