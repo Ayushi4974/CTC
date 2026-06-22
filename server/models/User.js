@@ -140,6 +140,10 @@ const userSchema = new mongoose.Schema(
     withdrawalPin: {
       type: String,
       default: '',
+    },
+    achieverBadge: {
+      type: String,
+      default: '',
     }
   },
   {

@@ -205,6 +205,12 @@ const Dashboard = () => {
                   <span>0 Pin</span>
                 </div>
               )}
+              {currentUser?.achieverBadge && (
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 border border-amber-500/50 bg-gradient-to-r from-amber-500/15 to-yellow-400/10 rounded-full text-xs font-bold mb-6 ml-2 shadow-[0_0_12px_rgba(245,158,11,0.25)] animate-pulse">
+                  <span className="text-base leading-none">🏆</span>
+                  <span className="text-amber-300 tracking-wide">{currentUser.achieverBadge}</span>
+                </div>
+              )}
               
               <p className="text-gray-400 text-sm md:text-base max-w-md">
                 Your portfolio performance and network growth at a glance.

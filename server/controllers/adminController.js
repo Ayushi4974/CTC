@@ -534,7 +534,8 @@ const updateUser = async (req, res, next) => {
       pins,
       manualLevelQualified,
       withdrawalWallet,
-      withdrawalPin
+      withdrawalPin,
+      achieverBadge
     } = req.body;
 
     const user = await User.findById(id);
@@ -556,6 +557,7 @@ const updateUser = async (req, res, next) => {
     if (manualLevelQualified !== undefined) user.manualLevelQualified = Number(manualLevelQualified);
     if (withdrawalWallet !== undefined) user.withdrawalWallet = withdrawalWallet;
     if (withdrawalPin !== undefined) user.withdrawalPin = withdrawalPin;
+    if (achieverBadge !== undefined) user.achieverBadge = achieverBadge;
 
     if (sponsorId !== undefined && sponsorId !== user.sponsorId) {
       const cleanSponsorId = sponsorId ? sponsorId.trim().toUpperCase() : '';

@@ -35,7 +35,8 @@ const Users = () => {
     pins: 1,
     manualLevelQualified: 0,
     withdrawalWallet: '',
-    withdrawalPin: ''
+    withdrawalPin: '',
+    achieverBadge: ''
   });
 
   const fetchUsers = async () => {
@@ -95,7 +96,8 @@ const Users = () => {
       pins: user.pins !== undefined ? user.pins : 1,
       manualLevelQualified: user.manualLevelQualified || 0,
       withdrawalWallet: user.withdrawalWallet || '',
-      withdrawalPin: user.withdrawalPin || ''
+      withdrawalPin: user.withdrawalPin || '',
+      achieverBadge: user.achieverBadge || ''
     });
   };
 
@@ -632,6 +634,21 @@ const Users = () => {
                   </div>
 
                   <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Achiever Badge</h4>
+                    <div>
+                      <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Badge Name (e.g. Bangkok Achiever)</label>
+                      <input
+                        type="text"
+                        value={editForm.achieverBadge}
+                        onChange={(e) => setEditForm({ ...editForm, achieverBadge: e.target.value })}
+                        className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono"
+                        placeholder="e.g. Bangkok Achiever  (leave blank to remove)"
+                      />
+                      <p className="text-[10px] text-gray-600 mt-1">Setting a badge name will display a highlighted badge on the user's dashboard. Clear the field to remove it.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Withdrawal Settings</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -761,6 +778,19 @@ const Users = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Achiever Badge */}
+                  {selectedUser.achieverBadge && (
+                    <div className="flex items-center gap-3 bg-gradient-to-r from-amber-500/10 to-yellow-400/10 border border-amber-500/40 p-4 rounded-xl shadow-[0_0_16px_rgba(245,158,11,0.15)]">
+                      <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-xl flex-shrink-0">
+                        🏆
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-amber-400 font-bold uppercase tracking-widest mb-0.5">Achiever Badge</span>
+                        <span className="text-base font-extrabold text-amber-300 tracking-wide">{selectedUser.achieverBadge}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Withdrawal Settings */}
                   <div className="space-y-3">
