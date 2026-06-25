@@ -159,7 +159,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.pre('save', function (next) {
+userSchema.pre('save', function () {
   if (this.isModified('totalEarning') || this.isModified('totalInvestment')) {
     if (this.totalInvestment > 0 && this.totalEarning >= this.totalInvestment * 2) {
       if (!this.reached2xAt) {
@@ -171,7 +171,6 @@ userSchema.pre('save', function (next) {
       }
     }
   }
-  next();
 });
 
 const User = mongoose.model('User', userSchema);
