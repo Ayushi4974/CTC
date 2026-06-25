@@ -144,12 +144,35 @@ const userSchema = new mongoose.Schema(
     achieverBadge: {
       type: String,
       default: '',
+    },
+    reached2xAt: {
+      type: Date,
+      default: null,
+    },
+    principalWithdrawalDisabled: {
+      type: Boolean,
+      default: false,
     }
   },
   {
     timestamps: true,
   }
 );
+
+userSchema.pre('save', function (next) {
+  if (this.isModified('totalEarning') || this.isModified('totalInvestment')) {
+    if (this.totalInvestment > 0 && this.totalEarning >= this.totalInvestment * 2) {
+      if (!this.reached2xAt) {
+        this.reached2xAt = new Date();
+      }
+    } else {
+      if (this.reached2xAt) {
+        this.reached2xAt = null;
+      }
+    }
+  }
+  next();
+});
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;

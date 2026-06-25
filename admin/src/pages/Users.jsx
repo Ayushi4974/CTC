@@ -136,6 +136,20 @@ const Users = () => {
     }
   };
 
+  const handlePrincipalWithdrawalToggle = async (userId, currentStatus) => {
+    try {
+      const action = currentStatus ? 'enabled' : 'disabled';
+      await api.put(`/admin/user/${userId}/principal-withdrawal`);
+      toast.success(`Principal withdrawal ${action} successfully`);
+      fetchUsers();
+      if (selectedUser && selectedUser._id === userId) {
+        setSelectedUser(prev => ({ ...prev, principalWithdrawalDisabled: !prev.principalWithdrawalDisabled }));
+      }
+    } catch (error) {
+      toast.error('Failed to update principal withdrawal status');
+    }
+  };
+
   const handleDeleteUser = async (user) => {
     if (!user) return;
     const confirmDelete = window.confirm(
@@ -844,6 +858,25 @@ const Users = () => {
                         {selectedUser.isActive ? 'Active' : 'Inactive'}
                       </button>
                     </div>
+                  </div>
+
+                  {/* Security Settings */}
+                  <div className="flex justify-between items-center bg-[#161B2A]/30 border border-gray-800 p-4 rounded-xl">
+                    <div>
+                      <span className="block text-xs font-bold text-white">Principal Withdrawal</span>
+                      <span className="text-[10px] text-gray-500">Block or allow withdrawal of initial investment.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handlePrincipalWithdrawalToggle(selectedUser._id, selectedUser.principalWithdrawalDisabled)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold tracking-wider uppercase transition-colors border ${
+                        selectedUser.principalWithdrawalDisabled
+                          ? 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20'
+                          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                      }`}
+                    >
+                      {selectedUser.principalWithdrawalDisabled ? 'Disabled' : 'Enabled'}
+                    </button>
                   </div>
                 </>
               )}

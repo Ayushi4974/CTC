@@ -369,6 +369,26 @@ const toggleBlockUser = async (req, res, next) => {
   }
 };
 
+const togglePrincipalWithdrawal = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.principalWithdrawalDisabled = !user.principalWithdrawalDisabled;
+    await user.save();
+
+    await AuditLog.create({
+      action: user.principalWithdrawalDisabled ? 'DISABLE_PRINCIPAL_WITHDRAWAL' : 'ENABLE_PRINCIPAL_WITHDRAWAL',
+      adminId: req.user._id,
+      details: { targetUser: user.userId }
+    });
+
+    res.json({ message: `Principal withdrawal ${user.principalWithdrawalDisabled ? 'disabled' : 'enabled'} successfully`, user });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getAllWithdrawals = async (req, res, next) => {
   try {
     const withdrawals = await Withdrawal.find().populate('user', 'email fullName userId');
@@ -952,6 +972,7 @@ module.exports = {
   getTreasuryStats,
   updateTreasurySettings,
   toggleBlockUser,
+  togglePrincipalWithdrawal,
   getAllWithdrawals,
   getAllKYCs,
   getAllPackages,

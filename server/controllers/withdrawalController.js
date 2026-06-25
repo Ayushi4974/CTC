@@ -49,6 +49,21 @@ const requestWithdrawal = async (req, res, next) => {
         return res.status(400).json({ message: 'Incorrect withdrawal PIN.' });
       }
     }
+
+    // Option 2: 2x Direct Referral Condition (Must refer 1 NEW ACTIVE member AFTER reaching 2x)
+    if (user.totalEarning >= user.totalInvestment * 2 && user.reached2xAt) {
+      // Find at least 1 direct referral registered and active AFTER the 2x cap was reached with at least $100 investment
+      const newActiveDirect = await User.findOne({
+        sponsor: user._id,
+        isActive: true,
+        totalInvestment: { $gte: 100 },
+        createdAt: { $gte: user.reached2xAt }
+      });
+
+      if (!newActiveDirect) {
+        return res.status(400).json({ message: 'Compulsory to have at least 1 new active direct referral (with a $100+ package) after receiving 2x of your investment to withdraw.' });
+      }
+    }
     
     // 1. Fetch System Settings for Global Controls
     const settings = await SystemSettings.findOne() || await SystemSettings.create({});
@@ -89,6 +104,10 @@ const requestWithdrawal = async (req, res, next) => {
     let userPkg = null;
 
     if (type === 'principal') {
+      if (user.principalWithdrawalDisabled) {
+        return res.status(403).json({ message: 'Principal withdrawal is currently disabled for your account by the administrator.' });
+      }
+
       if (!userPackageId) {
         return res.status(400).json({ message: 'Package ID required for principal withdrawal' });
       }

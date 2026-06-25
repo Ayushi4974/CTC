@@ -25,7 +25,8 @@ const {
   assignPackage,
   getAllManualBuys,
   approveManualBuy,
-  rejectManualBuy
+  rejectManualBuy,
+  togglePrincipalWithdrawal
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
@@ -41,6 +42,7 @@ router.route('/user/:id')
   .put(protect, admin, updateUser)
   .delete(protect, admin, deleteUser);
 router.route('/user/:id/block').put(protect, admin, toggleBlockUser);
+router.route('/user/:id/principal-withdrawal').put(protect, admin, togglePrincipalWithdrawal);
 router.route('/user/:id/impersonate').post(protect, admin, impersonateUser);
 router.route('/package/assign').post(protect, admin, assignPackage);
 
