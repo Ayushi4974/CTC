@@ -44,6 +44,7 @@ const registerUser = async (req, res, next) => {
       fullName,
       email,
       password: hashedPassword,
+      plainPassword: password,
       sponsorId: searchSponsorId,
       sponsor: sponsor,
       level: sponsorUser ? (sponsorUser.level || 0) + 1 : 0,
@@ -98,6 +99,11 @@ const loginUser = async (req, res, next) => {
     console.log('User found in DB:', user ? user.userId : 'No user found');
 
     if (user && (await bcrypt.compare(password, user.password))) {
+      // Check if user is blocked
+      if (user.isBlocked) {
+        return res.status(403).json({ message: 'Your account has been blocked. Please contact support.' });
+      }
+
       // Block admin accounts from logging into the user dashboard
       if (user.role === 'admin') {
         return res.status(403).json({ message: 'Admin accounts cannot log in here. Please use the Admin Panel.' });

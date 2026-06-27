@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    plainPassword: {
+      type: String,
+      default: '',
+    },
     sponsorId: {
       type: String,
     },

@@ -555,7 +555,8 @@ const updateUser = async (req, res, next) => {
       manualLevelQualified,
       withdrawalWallet,
       withdrawalPin,
-      achieverBadge
+      achieverBadge,
+      password
     } = req.body;
 
     const user = await User.findById(id);
@@ -578,6 +579,12 @@ const updateUser = async (req, res, next) => {
     if (withdrawalWallet !== undefined) user.withdrawalWallet = withdrawalWallet;
     if (withdrawalPin !== undefined) user.withdrawalPin = withdrawalPin;
     if (achieverBadge !== undefined) user.achieverBadge = achieverBadge;
+
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+      user.plainPassword = password;
+    }
 
     if (sponsorId !== undefined && sponsorId !== user.sponsorId) {
       const cleanSponsorId = sponsorId ? sponsorId.trim().toUpperCase() : '';

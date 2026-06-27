@@ -36,7 +36,8 @@ const Users = () => {
     manualLevelQualified: 0,
     withdrawalWallet: '',
     withdrawalPin: '',
-    achieverBadge: ''
+    achieverBadge: '',
+    password: ''
   });
 
   const fetchUsers = async () => {
@@ -97,7 +98,8 @@ const Users = () => {
       manualLevelQualified: user.manualLevelQualified || 0,
       withdrawalWallet: user.withdrawalWallet || '',
       withdrawalPin: user.withdrawalPin || '',
-      achieverBadge: user.achieverBadge || ''
+      achieverBadge: user.achieverBadge || '',
+      password: ''
     });
   };
 
@@ -174,7 +176,12 @@ const Users = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.put(`/admin/user/${selectedUser._id}`, editForm);
+      const submitData = { ...editForm };
+      if (!submitData.password) {
+        delete submitData.password;
+      }
+      
+      const res = await api.put(`/admin/user/${selectedUser._id}`, submitData);
       toast.success('User profile updated successfully');
       fetchUsers();
       setSelectedUser(res.data.user);
@@ -535,6 +542,19 @@ const Users = () => {
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-1 mt-4">
+                    <div>
+                      <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Reset Password</label>
+                      <input
+                        type="text"
+                        value={editForm.password}
+                        onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                        className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                        placeholder="Leave blank to keep current password"
+                      />
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Available Balance ($)</label>
@@ -743,6 +763,25 @@ const Users = () => {
                         )}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Account Security */}
+                  <div className="bg-[#161B2A]/30 border border-gray-800 p-4 rounded-xl mt-4 flex items-center justify-between">
+                    <div>
+                      <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">User Password</span>
+                      <span className="text-sm font-semibold text-white font-mono">
+                        {selectedUser.plainPassword || '••••••••'}
+                      </span>
+                    </div>
+                    {selectedUser.plainPassword && (
+                      <button
+                        onClick={() => handleCopy(selectedUser.plainPassword, 'Password')}
+                        className="p-2 bg-gray-800 text-gray-400 hover:text-white rounded-lg transition-colors border border-gray-750"
+                        title="Copy Password"
+                      >
+                        <Copy size={15} />
+                      </button>
+                    )}
                   </div>
 
                   {/* Financial Metrics */}
