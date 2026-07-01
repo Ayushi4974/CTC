@@ -2,7 +2,7 @@ name: Salary & Bonus Cron (Direct)
 
 on:
   schedule:
-    - cron: '0 0 15,28 * *'
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
@@ -36,7 +36,7 @@ jobs:
             console.log('[CRON] Starting Salary Cron at:', new Date().toISOString());
             console.log('============================================');
             
-            const { runSalaryCron } = require('./cron/salaryCron');
+            const { runSalaryCron, check7thSalaryQualification, pay7thSalary } = require('./cron/salaryCron');
             require('dotenv').config();
             
             console.log('[1/4] Loading mongoose...');
@@ -46,31 +46,27 @@ jobs:
             await mongoose.connect(process.env.MONGODB_URL);
             console.log('[2/4] MongoDB connected');
             
-            console.log('[3/4] Running salary cron...');
-            const result = await runSalaryCron();
+            const dayOfMonth = new Date().getUTCDate();
+            console.log('[3/4] Current Day of Month:', dayOfMonth);
+            
+            let result = { success: true };
+            
+            if (dayOfMonth === 6) {
+              console.log('Running 6th of month qualification check...');
+              await check7thSalaryQualification();
+              console.log('[CRON] ✅ 6th of month check complete');
+            } else if (dayOfMonth === 7) {
+              console.log('Running 7th of month payout...');
+              await pay7thSalary();
+              console.log('[CRON] ✅ 7th of month payout complete');
+            } else {
+              console.log('Running daily rank evaluation...');
+              result = await runSalaryCron();
+              console.log('[CRON] ✅ Daily rank evaluation complete');
+            }
             
             console.log('[4/4] Result:', JSON.stringify(result, null, 2));
-            
-            if (result.success) {
-              console.log('[CRON] ✅ Salary Cron completed successfully');
-              if (result.paidSalaries && result.paidSalaries.length > 0) {
-                console.log('[CRON] Paid Salaries to User IDs:', result.paidSalaries.map(u => u.userId).join(', '));
-              } else {
-                console.log('[CRON] No salaries paid.');
-              }
-              if (result.paidBonuses && result.paidBonuses.length > 0) {
-                console.log('[CRON] Paid Rank Bonuses to User IDs:', result.paidBonuses.map(u => u.userId).join(', '));
-              } else {
-                console.log('[CRON] No bonuses paid.');
-              }
-              if (result.capped && result.capped.length > 0) {
-                console.log('[CRON] Capped (Deactivated) User IDs:', result.capped.map(u => u.userId).join(', '));
-              }
-              process.exit(0);
-            } else {
-              console.log('[CRON] ⚠️ Result:', result.error);
-              process.exit(1);
-            }
+            process.exit(0);
           })().catch(err => {
             console.error('[CRON] ❌ Fatal error:', err.message);
             console.error(err.stack);
