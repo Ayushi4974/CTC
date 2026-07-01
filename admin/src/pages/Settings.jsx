@@ -418,6 +418,258 @@ const Settings = () => {
               </div>
             </div>
           </div>
+
+          {/* Section: Transparency & Live Trading Settings */}
+          <div className="md:col-span-2 border-t border-gray-800/30 pt-6 mt-4 space-y-6">
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Sliders size={14} className="text-[#00FF99]" />
+              Transparency & Live Trading Feed Configuration
+            </h4>
+
+            {/* Sub-section: Transparency Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Profits This Week</label>
+                <input
+                  type="text"
+                  name="transparencyProfitsThisWeek"
+                  value={settings.transparencyProfitsThisWeek || ''}
+                  onChange={handleChange}
+                  placeholder="+0.82%"
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Profits Last Week</label>
+                <input
+                  type="text"
+                  name="transparencyProfitsLastWeek"
+                  value={settings.transparencyProfitsLastWeek || ''}
+                  onChange={handleChange}
+                  placeholder="+5.28%"
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Profits Last 30 Days</label>
+                <input
+                  type="text"
+                  name="transparencyProfitsLast30Days"
+                  value={settings.transparencyProfitsLast30Days || ''}
+                  onChange={handleChange}
+                  placeholder="+16.10%"
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Performance Overview (%)</label>
+                <input
+                  type="text"
+                  name="transparencyPerformanceOverview"
+                  value={settings.transparencyPerformanceOverview || ''}
+                  onChange={handleChange}
+                  placeholder="17.33"
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                />
+              </div>
+            </div>
+
+            {/* Sub-section: Chart Data Points */}
+            <div className="border-t border-gray-800/30 pt-4 space-y-4">
+              <h5 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Performance Chart Data Points</h5>
+              
+              {/* Form to add a new point */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-[#161B2A]/20 p-4 rounded-xl border border-gray-800/60 items-end">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Period</label>
+                  <select
+                    id="newChartPeriod"
+                    className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                  >
+                    <option value="week">Current Week</option>
+                    <option value="month">Month</option>
+                    <option value="3m">3M</option>
+                    <option value="6m">6M</option>
+                    <option value="year">Year</option>
+                    <option value="all">All</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Label (X-Axis, e.g. "4")</label>
+                  <input
+                    type="text"
+                    id="newChartLabel"
+                    placeholder="e.g. 4"
+                    className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Value (Return %)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id="newChartValue"
+                    placeholder="e.g. 1.5"
+                    className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const period = document.getElementById('newChartPeriod').value;
+                    const label = document.getElementById('newChartLabel').value.trim();
+                    const valStr = document.getElementById('newChartValue').value;
+                    if (!label || !valStr) return toast.error('Please enter label and value');
+                    const value = Number(valStr);
+                    setSettings(prev => ({
+                      ...prev,
+                      transparencyChartData: [...(prev.transparencyChartData || []), { period, label, value }]
+                    }));
+                    document.getElementById('newChartLabel').value = '';
+                    document.getElementById('newChartValue').value = '';
+                    toast.success('Chart point added!');
+                  }}
+                  className="bg-[#00FF99] hover:bg-[#00e68a] text-black font-extrabold px-4 py-3 rounded-xl text-xs uppercase tracking-wider"
+                >
+                  Add Point
+                </button>
+              </div>
+
+              {/* List of points group by period */}
+              <div className="bg-[#161B2A]/40 border border-gray-800/40 p-4 rounded-xl max-h-[300px] overflow-y-auto hide-scrollbar">
+                <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">Active Chart Data Points ({(settings.transparencyChartData || []).length})</span>
+                <div className="space-y-2">
+                  {(settings.transparencyChartData || []).map((pt, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-[#0B0F1A] border border-gray-800/50 px-4 py-2 rounded-xl text-xs">
+                      <div className="flex items-center gap-4">
+                        <span className="font-bold text-purple-400 uppercase tracking-widest text-[9px] bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">{pt.period}</span>
+                        <span className="text-gray-300 font-mono">X-Label: <strong>{pt.label}</strong></span>
+                        <span className="text-gray-300 font-mono">Value: <strong className="text-[#00FF99]">{pt.value}%</strong></span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSettings(prev => ({
+                            ...prev,
+                            transparencyChartData: (prev.transparencyChartData || []).filter((_, i) => i !== idx)
+                          }));
+                        }}
+                        className="text-gray-500 hover:text-red-400 p-1 rounded hover:bg-red-500/10"
+                      >
+                        <Trash size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {(!settings.transparencyChartData || settings.transparencyChartData.length === 0) && (
+                    <div className="text-center py-4 text-xs text-gray-500">No chart data points configured.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Sub-section: Live Trading Feed */}
+            <div className="border-t border-gray-800/30 pt-4 space-y-4">
+              <h5 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Live Trading Feed Items</h5>
+              
+              {/* Form to add a new feed item */}
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 bg-[#161B2A]/20 p-4 rounded-xl border border-gray-800/60 items-end">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Asset Name</label>
+                  <input
+                    type="text"
+                    id="newTradeAsset"
+                    placeholder="e.g. BTC"
+                    className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Time Stamp</label>
+                  <input
+                    type="text"
+                    id="newTradeTime"
+                    placeholder="e.g. 21:10:20"
+                    className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Open Price ($)</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    id="newTradeOpen"
+                    placeholder="e.g. 59812.01"
+                    className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Close Price ($)</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    id="newTradeClose"
+                    placeholder="e.g. 59817.33"
+                    className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const asset = document.getElementById('newTradeAsset').value.trim().toUpperCase();
+                    const time = document.getElementById('newTradeTime').value.trim();
+                    const openStr = document.getElementById('newTradeOpen').value;
+                    const closeStr = document.getElementById('newTradeClose').value;
+                    if (!asset || !time || !openStr || !closeStr) return toast.error('Please enter all trade fields');
+                    const openPrice = Number(openStr);
+                    const closePrice = Number(closeStr);
+                    setSettings(prev => ({
+                      ...prev,
+                      liveTradingFeed: [...(prev.liveTradingFeed || []), { asset, time, openPrice, closePrice }]
+                    }));
+                    document.getElementById('newTradeAsset').value = '';
+                    document.getElementById('newTradeTime').value = '';
+                    document.getElementById('newTradeOpen').value = '';
+                    document.getElementById('newTradeClose').value = '';
+                    toast.success('Trade item added!');
+                  }}
+                  className="bg-[#00FF99] hover:bg-[#00e68a] text-black font-extrabold px-4 py-3 rounded-xl text-xs uppercase tracking-wider"
+                >
+                  Add Trade
+                </button>
+              </div>
+
+              {/* List of trade items */}
+              <div className="bg-[#161B2A]/40 border border-gray-800/40 p-4 rounded-xl max-h-[300px] overflow-y-auto hide-scrollbar">
+                <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">Active Feed Items ({(settings.liveTradingFeed || []).length})</span>
+                <div className="space-y-2">
+                  {(settings.liveTradingFeed || []).map((trade, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-[#0B0F1A] border border-gray-800/50 px-4 py-2 rounded-xl text-xs">
+                      <div className="flex items-center gap-4">
+                        <span className="font-extrabold text-white">{trade.asset}</span>
+                        <span className="text-gray-500 font-mono text-[10px]">{trade.time}</span>
+                        <span className="text-gray-400 font-mono">Open: <strong>${trade.openPrice}</strong></span>
+                        <span className="text-gray-400 font-mono">Close: <strong className={trade.closePrice >= trade.openPrice ? 'text-emerald-400' : 'text-rose-500'}>${trade.closePrice}</strong></span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSettings(prev => ({
+                            ...prev,
+                            liveTradingFeed: (prev.liveTradingFeed || []).filter((_, i) => i !== idx)
+                          }));
+                        }}
+                        className="text-gray-500 hover:text-red-400 p-1 rounded hover:bg-red-500/10"
+                      >
+                        <Trash size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {(!settings.liveTradingFeed || settings.liveTradingFeed.length === 0) && (
+                    <div className="text-center py-4 text-xs text-gray-500">No active trading feed items configured.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </form>
       </div>
     </div>

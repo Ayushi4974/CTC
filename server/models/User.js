@@ -64,6 +64,18 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    unclaimedRankBonuses: {
+      type: [String],
+      default: [],
+    },
+    lastSalaryTeamBusiness: {
+      type: Number,
+      default: 0,
+    },
+    qualifiedFor7thSalary: {
+      type: Boolean,
+      default: false,
+    },
     walletAddress: {
       type: String,
     },

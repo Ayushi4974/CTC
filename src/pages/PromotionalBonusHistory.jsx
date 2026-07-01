@@ -3,9 +3,15 @@ import api from '../api';
 import { motion } from 'framer-motion';
 import { Award, DollarSign, Calendar, Clock, Trophy, Users, ShieldAlert } from 'lucide-react';
 
+const rankBonusMap = {
+  'L1': 100, 'L2': 300, 'L3': 800, 'L4': 2000, 'L5': 5000, 'L6': 10000,
+  'L7': 15000, 'L8': 25000, 'L9': 50000, 'L10': 100000, 'L11': 200000, 'L12': 500000
+};
+
 const PromotionalBonusHistory = () => {
   const [bonuses, setBonuses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -58,19 +64,31 @@ const PromotionalBonusHistory = () => {
   };
 
   const promoRules = [
-    { level: 'L1', team: '5 DIRECT', salary: '$30', margin: '0.50%', bonus: '$100' },
-    { level: 'L2', team: '2 DIRECT L1 / 25 TEAM', salary: '$150', margin: '1.00%', bonus: '$300' },
-    { level: 'L3', team: '3 DIRECT L1 / 125 TEAM', salary: '$500', margin: '2.00%', bonus: '$800' },
-    { level: 'L4', team: '4 DIRECT L1 / 500 TEAM', salary: '$1200', margin: '2.50%', bonus: '$2000' },
-    { level: 'L5', team: '5 DIRECT L1 / 1000 TEAM', salary: '$2400', margin: '3.00%', bonus: '$5000' },
-    { level: 'L6', team: '6 DIRECT L1 / 2000 TEAM', salary: '$5000', margin: '3.50%', bonus: '$12000' },
-    { level: 'L7', team: '7 DIRECT L1 / 5000 TEAM', salary: '$10000', margin: '4.00%', bonus: '$25000' },
-    { level: 'L8', team: '3 DIRECT L7 / 20,000 TEAM', salary: '$60000', margin: '4.50%', bonus: '$100000' },
-    { level: 'L9', team: '4 DIRECT L7 / 50,000 TEAM', salary: '$100000', margin: '5.00%', bonus: '$200000' },
-    { level: 'L10', team: '3 DIRECT L8 / 1,000,000 TEAM', salary: '$300000', margin: '5.50%', bonus: '$500000' },
-    { level: 'L11', team: '4 DIRECT L8 / 2,000,000 TEAM', salary: '$600000', margin: '6.00%', bonus: '$1000000' },
-    { level: 'L12', team: '5 DIRECT L9 / 3,000,000 TEAM', salary: '$1000000', margin: '6.50%', bonus: '$2000000' },
+    { level: 'L1', team: '1,500 Direct Business', salary: '$60', margin: '0.50%', bonus: '$100' },
+    { level: 'L2', team: '5,000 Team Business', salary: '$300', margin: '1.00%', bonus: '$300' },
+    { level: 'L3', team: '15,000 Team Business', salary: '$1,000', margin: '2.00%', bonus: '$800' },
+    { level: 'L4', team: '52,500 Team Business', salary: '$2,400', margin: '2.50%', bonus: '$2,000' },
+    { level: 'L5', team: '105,000 Team Business', salary: '$4,800', margin: '3.00%', bonus: '$5,000' },
+    { level: 'L6', team: '180,000 Team Business', salary: '$10,000', margin: '3.50%', bonus: '$10,000' },
+    { level: 'L7', team: '600,000 Team Business', salary: '$20,000', margin: '4.00%', bonus: '$15,000' },
+    { level: 'L8', team: '1,500,000 Team Business', salary: '$35,000', margin: '4.50%', bonus: '$25,000' },
+    { level: 'L9', team: '3,600,000 Team Business', salary: '$50,000', margin: '5.00%', bonus: '$50,000' },
+    { level: 'L10', team: '15,000,000 Team Business', salary: '$100,000', margin: '5.50%', bonus: '$100,000' },
+    { level: 'L11', team: '30,000,000 Team Business', salary: '$200,000', margin: '6.00%', bonus: '$200,000' },
+    { level: 'L12', team: '60,000,000 Team Business', salary: '$500,000', margin: '6.50%', bonus: '$500,000' },
   ];
+
+  const handleClaimBonus = async (rank) => {
+    try {
+      setLoading(true);
+      const res = await api.post('/user/claim-bonus', { rank });
+      alert(`Successfully claimed Rank ${rank} Bonus of $${res.data.amount}!`);
+      window.location.reload();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to claim bonus.');
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -81,6 +99,7 @@ const PromotionalBonusHistory = () => {
         ]);
         
         const user = profileRes.data;
+        setCurrentUser(user);
         const userRank = user.rank || 'None';
 
         // Filter only promotional bonuses (rank bonuses and salary)
@@ -88,10 +107,6 @@ const PromotionalBonusHistory = () => {
         
         // Generate list of all achieved rank bonuses
         const ranks = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10', 'L11', 'L12'];
-        const rankBonusMap = {
-          'L1': 100, 'L2': 300, 'L3': 800, 'L4': 2000, 'L5': 5000, 'L6': 12000,
-          'L7': 25000, 'L8': 100000, 'L9': 200000, 'L10': 500000, 'L11': 1000000, 'L12': 2000000
-        };
 
         const currentRankIndex = ranks.indexOf(userRank);
         const virtualRankBonuses = [];
@@ -121,16 +136,19 @@ const PromotionalBonusHistory = () => {
             } else if (existingPendingTx) {
               existingPendingTx.status = 'Pending';
             } else {
-              // No successful or pending transaction exists in the database for this rank's bonus.
-              // Show it as Pending per the requirement.
-              virtualRankBonuses.push({
-                _id: `virtual_bonus_${rank}`,
-                type: 'bonus',
-                amount: bonusAmount,
-                status: 'Pending',
-                createdAt: user.createdAt || new Date().toISOString(),
-                level: rank
-              });
+              // Check if user has this rank as unclaimed
+              const isUnclaimed = user.unclaimedRankBonuses && user.unclaimedRankBonuses.includes(rank);
+              if (!isUnclaimed) {
+                // No successful, pending, or unclaimed transaction exists. Show virtual pending.
+                virtualRankBonuses.push({
+                  _id: `virtual_bonus_${rank}`,
+                  type: 'bonus',
+                  amount: bonusAmount,
+                  status: 'Pending',
+                  createdAt: user.createdAt || new Date().toISOString(),
+                  level: rank
+                });
+              }
             }
           }
         }
@@ -194,6 +212,39 @@ const PromotionalBonusHistory = () => {
         </motion.p>
       </div>
 
+      {/* Claimable Bonuses Card */}
+      {currentUser && currentUser.unclaimedRankBonuses && currentUser.unclaimedRankBonuses.length > 0 && (
+        <div className="mb-10 bg-[#0a0a0a] rounded-3xl border border-yellow-500/40 p-4 sm:p-6 md:p-8 relative overflow-hidden shadow-[0_0_40px_rgba(234,179,8,0.15)]">
+          <div className="absolute top-0 left-0 w-64 h-64 bg-yellow-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
+          <div className="relative z-10 animate-fade-in">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-4 text-center md:text-left flex items-center gap-2">
+              <Trophy className="text-yellow-500 animate-bounce" size={24} />
+              Claimable Rank Bonuses
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-400 mb-6">
+              You have qualified for new leadership ranks! Click "Claim Bonus" to transfer the reward to your withdrawable balance.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {currentUser.unclaimedRankBonuses.map((rank) => (
+                <div key={rank} className="bg-gray-900/60 border border-gray-800 hover:border-yellow-500/50 p-5 rounded-2xl flex flex-col justify-between items-center gap-4 transition-all hover:scale-[1.01]">
+                  <div className="text-center">
+                    <span className="text-xs text-yellow-500 font-extrabold uppercase tracking-wider bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">{rank} Rank Upgrade</span>
+                    <h3 className="text-white text-xl sm:text-2xl font-black mt-2">${rankBonusMap[rank]}</h3>
+                  </div>
+                  <button
+                    onClick={() => handleClaimBonus(rank)}
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-black text-xs uppercase tracking-widest py-3 px-4 rounded-xl shadow-[0_0_15px_rgba(234,179,8,0.4)] transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Claiming...' : 'Claim Bonus'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Promotional Bonus Structure Table */}
       <div className="mb-10 bg-[#0a0a0a] rounded-3xl border border-gray-800 p-4 sm:p-6 md:p-8 relative overflow-hidden shadow-[0_0_40px_rgba(160,32,240,0.1)]">
         <div className="absolute top-0 left-0 w-64 h-64 bg-[#FF00FF] rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
@@ -235,13 +286,13 @@ const PromotionalBonusHistory = () => {
             <div className="flex items-center gap-3 bg-[#161B2A]/20 p-4 rounded-xl border border-gray-800/40">
               <Calendar className="text-[#FF00FF] shrink-0" size={20} />
               <p className="text-[11px] text-gray-400 leading-normal">
-                Salary is paid 2 times per month, on the 15th & month end.
+                Salary is paid monthly on the 7th, if team business has increased by 10% (checked on the 6th).
               </p>
             </div>
             <div className="flex items-center gap-3 bg-[#161B2A]/20 p-4 rounded-xl border border-gray-800/40">
               <Users className="text-[#00C6FF] shrink-0" size={20} />
               <p className="text-[11px] text-gray-400 leading-normal">
-                Team count 30% strong leg - 70% from the other legs.
+                Team business 30% strong leg - 70% from the other legs.
               </p>
             </div>
             <div className="flex items-center gap-3 bg-[#161B2A]/20 p-4 rounded-xl border border-gray-800/40">

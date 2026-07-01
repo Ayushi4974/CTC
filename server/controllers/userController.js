@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const MiningIncome = require('../models/MiningIncome');
 const LevelIncome = require('../models/LevelIncome');
+const Transaction = require('../models/Transaction');
+const { rankBonusMap } = require('../cron/salaryCron');
 const bcrypt = require('bcryptjs');
 
 const getUserProfile = async (req, res, next) => {
@@ -139,4 +141,89 @@ const getDepositAddresses = async (req, res, next) => {
   }
 };
 
-module.exports = { getUserProfile, getTeam, getMiningHistory, getLevelIncomeHistory, updateUserProfile, changePassword, getAnnouncement, getDepositAddresses };
+const claimRankBonus = async (req, res, next) => {
+  try {
+    const { rank } = req.body;
+    if (!rank) {
+      return res.status(400).json({ message: 'Rank is required to claim bonus.' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    if (!user.isActive) {
+      return res.status(400).json({ message: 'User must be active to claim bonuses.' });
+    }
+
+    if (!user.unclaimedRankBonuses || !user.unclaimedRankBonuses.includes(rank)) {
+      return res.status(400).json({ message: `Rank ${rank} bonus is not available to claim or has already been claimed.` });
+    }
+
+    // Double check if already in claimed
+    if (!user.claimedRankBonuses) {
+      user.claimedRankBonuses = [];
+    }
+
+    if (user.claimedRankBonuses.includes(rank)) {
+      return res.status(400).json({ message: `Rank ${rank} bonus has already been claimed.` });
+    }
+
+    const bonusAmount = rankBonusMap[rank];
+    if (!bonusAmount) {
+      return res.status(400).json({ message: `No bonus config found for Rank ${rank}.` });
+    }
+
+    // Enforce 4x cap before payout
+    if (user.totalEarning >= user.totalInvestment * 4) {
+      user.isActive = false;
+      await user.save();
+      return res.status(400).json({ message: 'Cannot claim bonus: 4x earning cap reached. User account deactivated.' });
+    }
+
+    // Move from unclaimed to claimed
+    user.unclaimedRankBonuses = user.unclaimedRankBonuses.filter(r => r !== rank);
+    user.claimedRankBonuses.push(rank);
+
+    // Credit balance
+    user.availableBalance += bonusAmount;
+    user.totalEarning += bonusAmount;
+    user.promotionalIncome += bonusAmount;
+
+    await user.save();
+
+    // Create bonus transaction
+    await Transaction.create({
+      userId: user.userId,
+      user: user._id,
+      type: 'bonus',
+      amount: bonusAmount,
+      status: 'success'
+    });
+
+    console.log(`[BONUS CLAIMED] User ID: ${user.userId} manually claimed bonus for Rank ${rank}: $${bonusAmount}`);
+    res.json({ success: true, rank, amount: bonusAmount });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getDashboardSettings = async (req, res, next) => {
+  try {
+    const SystemSettings = require('../models/SystemSettings');
+    const settings = await SystemSettings.findOne() || await SystemSettings.create({});
+    res.json({
+      transparencyProfitsThisWeek: settings.transparencyProfitsThisWeek || "+0.00%",
+      transparencyProfitsLastWeek: settings.transparencyProfitsLastWeek || "+0.00%",
+      transparencyProfitsLast30Days: settings.transparencyProfitsLast30Days || "+0.00%",
+      transparencyPerformanceOverview: settings.transparencyPerformanceOverview || "0.00%",
+      transparencyChartData: settings.transparencyChartData || [],
+      liveTradingFeed: settings.liveTradingFeed || []
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getUserProfile, getTeam, getMiningHistory, getLevelIncomeHistory, updateUserProfile, changePassword, getAnnouncement, getDepositAddresses, claimRankBonus, getDashboardSettings };

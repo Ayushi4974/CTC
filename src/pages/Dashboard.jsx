@@ -20,6 +20,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchProfile } from '../redux/slices/authSlice';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import api from '../api';
 
 const getImageUrl = (path) => {
@@ -45,12 +46,38 @@ const Dashboard = () => {
   const [announcementContent, setAnnouncementContent] = useState('');
   const [showAnnouncement, setShowAnnouncement] = useState(false);
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+  const [dashboardSettings, setDashboardSettings] = useState({
+    transparencyProfitsThisWeek: '+0.82%',
+    transparencyProfitsLastWeek: '+5.28%',
+    transparencyProfitsLast30Days: '+16.10%',
+    transparencyPerformanceOverview: '17.33%',
+    transparencyChartData: [],
+    liveTradingFeed: []
+  });
+  const [selectedPeriod, setSelectedPeriod] = useState('month');
 
   useEffect(() => {
     dispatch(fetchProfile());
   }, [dispatch]);
 
+  useEffect(() => {
+    const fetchDashboardSettings = async () => {
+      try {
+        const res = await api.get('/user/dashboard-settings');
+        if (res.data) {
+          setDashboardSettings(res.data);
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard settings:', err);
+      }
+    };
+    fetchDashboardSettings();
+  }, []);
+
   const currentUser = profile || user;
+  const filteredChartData = (dashboardSettings.transparencyChartData || []).filter(
+    item => item.period === selectedPeriod
+  );
   const balance = currentUser?.availableBalance || 0;
   const totalEarning = currentUser?.totalEarning || 0;
   const levelIncome = currentUser?.levelIncome || 0;
@@ -362,6 +389,165 @@ const Dashboard = () => {
               </div>
             </motion.div>
           ))}
+        </div>
+      </div>
+
+      {/* Transparency & Live Trading Feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-10">
+        {/* Transparency Section */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart2 className="text-[#00FF99]" size={24} />
+            <h2 className="text-xl font-bold text-white">Transparency</h2>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { title: 'Profits This Week', value: dashboardSettings.transparencyProfitsThisWeek },
+              { title: 'Profits Last Week', value: dashboardSettings.transparencyProfitsLastWeek },
+              { title: 'Profits Last 30 Days', value: dashboardSettings.transparencyProfitsLast30Days },
+            ].map((stat, idx) => (
+              <div key={idx} className="bg-[#0f0f13] border border-gray-800/80 rounded-2xl p-5 hover:border-gray-700 transition-colors">
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">{stat.title}</p>
+                <h3 className="text-2xl font-black text-[#00FF99]">{stat.value}</h3>
+              </div>
+            ))}
+          </div>
+
+          {/* Performance Overview Chart Card */}
+          <div className="bg-[#0f0f13] border border-gray-800 rounded-3xl p-6 relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <div>
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Performance Overview</p>
+                <h3 className="text-3xl font-black text-white">{dashboardSettings.transparencyPerformanceOverview}%</h3>
+              </div>
+              
+              {/* Period Tabs */}
+              <div className="flex bg-gray-950/80 border border-gray-800 p-1 rounded-xl text-xs overflow-x-auto max-w-full">
+                {[
+                  { id: 'week', label: 'Current Week' },
+                  { id: 'month', label: 'Month' },
+                  { id: '3m', label: '3M' },
+                  { id: '6m', label: '6M' },
+                  { id: 'year', label: 'Year' },
+                  { id: 'all', label: 'All' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSelectedPeriod(tab.id)}
+                    className={`px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${
+                      selectedPeriod === tab.id
+                        ? 'bg-gradient-to-r from-[#00C6FF] to-[#0072FF] text-white shadow-[0_0_10px_rgba(0,198,255,0.3)]'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Chart Area */}
+            <div className="h-64 w-full">
+              {filteredChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={filteredChartData} margin={{ top: 10, right: 5, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#00C6FF" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#00C6FF" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis 
+                      dataKey="label" 
+                      stroke="#4B5563" 
+                      fontSize={10}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      stroke="#4B5563" 
+                      fontSize={10}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v) => `${v}%`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#0B0F1A', borderColor: '#1F2937', borderRadius: '12px' }}
+                      labelStyle={{ color: '#9CA3AF', fontWeight: 'bold' }}
+                      itemStyle={{ color: '#00C6FF' }}
+                      formatter={(value) => [`${value}%`, 'Return']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#00C6FF" 
+                      strokeWidth={3} 
+                      fillOpacity={1} 
+                      fill="url(#chartGradient)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-500 text-sm font-semibold">
+                  No data points configured for this period
+                </div>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-500 text-center mt-4">Cumulative returns for the selected period</p>
+          </div>
+        </div>
+
+        {/* Live Trading Feed Column */}
+        <div className="lg:col-span-1 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="text-[#FF00FF]" size={24} />
+              <h2 className="text-xl font-bold text-white">Live Trading Feed</h2>
+            </div>
+            <div className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5 animate-pulse uppercase tracking-wider">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+              Live
+            </div>
+          </div>
+
+          <div className="flex-1 bg-[#0f0f13] border border-gray-800 rounded-3xl p-5 relative overflow-hidden flex flex-col justify-between min-h-[350px]">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF00FF]/5 rounded-full blur-2xl"></div>
+            
+            <div className="space-y-4 overflow-y-auto max-h-[380px] pr-1 hide-scrollbar">
+              {(dashboardSettings.liveTradingFeed || []).map((trade, idx) => {
+                const isProfit = trade.closePrice >= trade.openPrice;
+                return (
+                  <div key={idx} className="flex justify-between items-center p-3 rounded-xl bg-gray-900/40 border border-gray-800/50 hover:border-gray-700/60 transition-colors">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-black text-white">{trade.asset}</span>
+                        <span className="text-[10px] font-mono text-gray-500">{trade.time}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-right">
+                      <div>
+                        <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-wider">Open</span>
+                        <span className="text-xs text-gray-300 font-mono font-bold">${trade.openPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-wider">Close</span>
+                        <span className={`text-xs font-mono font-black ${isProfit ? 'text-emerald-400' : 'text-rose-500'}`}>
+                          ${trade.closePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {(!dashboardSettings.liveTradingFeed || dashboardSettings.liveTradingFeed.length === 0) && (
+                <div className="text-center py-10 text-gray-500 text-sm font-semibold">
+                  No active trades feed
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

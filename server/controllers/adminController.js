@@ -273,7 +273,9 @@ const updateTreasurySettings = async (req, res, next) => {
       'globalRoiMultiplier', 'minWithdrawalAmount', 'maxDailyWithdrawalAmount',
       'withdrawalCooldownHours', 'manualWithdrawalApproval', 'treasuryReserves', 
       'emergencyThreshold', 'announcementImage', 'announcementImages', 'announcementContent',
-      'depositAddressMetaMask', 'depositAddressBep20', 'depositAddressTrc20'
+      'depositAddressMetaMask', 'depositAddressBep20', 'depositAddressTrc20',
+      'transparencyProfitsThisWeek', 'transparencyProfitsLastWeek', 'transparencyProfitsLast30Days',
+      'transparencyPerformanceOverview', 'transparencyChartData', 'liveTradingFeed'
     ];
     
     allowedFields.forEach(field => {

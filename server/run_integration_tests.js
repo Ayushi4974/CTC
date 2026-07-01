@@ -184,7 +184,7 @@ async function testAll() {
       directs.push(dirUser);
 
       // Buy package for this direct
-      const resDir = await callBuyPackage(dirUser, standardPkg1._id, 100, `mock_tx_dir${i}_${suffix}`, mockWallet);
+      const resDir = await callBuyPackage(dirUser, standardPkg1._id, 300, `mock_tx_dir${i}_${suffix}`, mockWallet);
       console.log(`- Direct ${i} purchased package: Status ${resDir.status}`);
     }
 
@@ -269,65 +269,73 @@ async function testAll() {
     // Total added to availableBalance: $100 + $15 = $115.
     // Total added to promotionalIncome: $100 + $15 = $115.
 
-    // Let's implement the core logic from salaryCron.js for the sponsor:
-    const getTeamCountLocal = async (userId) => {
-      let count = 0;
+    // We simulate the new rank evaluation logic from salaryCron.js for the sponsor:
+    const getTeamBusinessLocal = async (userId) => {
+      let teamSum = 0;
       const directs = await User.find({ sponsor: userId, isActive: true, pins: { $gt: 0 } });
       for (let dir of directs) {
-        count += 1 + await getTeamCountLocal(dir._id);
+        teamSum += (dir.totalInvestment || 0) + await getTeamBusinessLocal(dir._id);
       }
-      return count;
-    };
-
-    const getLegCountsLocal = async (userId) => {
-      const directs = await User.find({ sponsor: userId, isActive: true, pins: { $gt: 0 } });
-      const legCounts = [];
-      for (let dir of directs) {
-        const legCount = 1 + await getTeamCountLocal(dir._id);
-        legCounts.push({ id: dir._id, rank: dir.rank, count: legCount });
-      }
-      return legCounts;
+      return teamSum;
     };
 
     console.log('Evaluating Rank for Sponsor...');
-    const legCounts = await getLegCountsLocal(sponsor._id);
-    console.log(`Sponsor direct legs: ${legCounts.length}`);
+    const directsUnderSponsor = await User.find({ sponsor: sponsor._id, isActive: true, pins: { $gt: 0 } });
+    const directBusiness = directsUnderSponsor.reduce((sum, u) => sum + (u.totalInvestment || 0), 0);
+    console.log(`Sponsor direct business: $${directBusiness}`);
 
     let newRank = 'None';
-    if (legCounts.length >= 5) newRank = 'L1';
+    if (directBusiness >= 1500) newRank = 'L1';
     console.log(`Evaluated new rank: ${newRank} (Expected: L1)`);
 
     const beforePromo = afterSponsor.promotionalIncome;
     const beforeAvail = afterSponsor.availableBalance;
 
-    // Apply L1 bonuses to Sponsor
-    const rankBonusMap = { 'L1': 100 };
-    const salaryMap = { 'L1': 30 };
-
+    // Simulate salaryCron rank qualification behavior:
+    // Add L1 to unclaimedRankBonuses, do NOT credit availableBalance or pay salary.
     if (newRank === 'L1') {
-      const rankBonusAmount = rankBonusMap['L1'];
-      afterSponsor.availableBalance += rankBonusAmount;
-      afterSponsor.totalEarning += rankBonusAmount;
-      afterSponsor.promotionalIncome += rankBonusAmount;
-      afterSponsor.claimedRankBonuses.push('L1');
-
-      const salaryPayout = salaryMap['L1'];
-      afterSponsor.availableBalance += salaryPayout;
-      afterSponsor.totalEarning += salaryPayout;
-      afterSponsor.promotionalIncome += salaryPayout;
       afterSponsor.rank = 'L1';
+      afterSponsor.unclaimedRankBonuses.push('L1');
+      afterSponsor.lastSalaryTeamBusiness = await getTeamBusinessLocal(sponsor._id);
       await afterSponsor.save();
     }
+
+    let sponsorAfterRankup = await User.findById(sponsor._id);
+    console.log(`Sponsor Rank: ${sponsorAfterRankup.rank} (Expected: L1)`);
+    console.log(`Sponsor unclaimedRankBonuses: ${JSON.stringify(sponsorAfterRankup.unclaimedRankBonuses)} (Expected: ["L1"])`);
+    console.log(`Sponsor Available Balance: $${sponsorAfterRankup.availableBalance} (Expected: No change, i.e. $${beforeAvail})`);
+
+    // Now, simulate the user manually claiming the L1 rank bonus:
+    console.log('Simulating manual claim of L1 bonus...');
+    const rankBonusAmount = 100; // L1 bonus
+    sponsorAfterRankup.unclaimedRankBonuses = sponsorAfterRankup.unclaimedRankBonuses.filter(r => r !== 'L1');
+    sponsorAfterRankup.claimedRankBonuses.push('L1');
+    sponsorAfterRankup.availableBalance += rankBonusAmount;
+    sponsorAfterRankup.totalEarning += rankBonusAmount;
+    sponsorAfterRankup.promotionalIncome += rankBonusAmount;
+    await sponsorAfterRankup.save();
+
+    await Transaction.create({
+      userId: sponsorAfterRankup.userId,
+      user: sponsorAfterRankup._id,
+      type: 'bonus',
+      amount: rankBonusAmount,
+      status: 'success'
+    });
 
     const finalSponsor = await User.findById(sponsor._id);
     const bonusPromoAdded = finalSponsor.promotionalIncome - beforePromo;
     const bonusAvailAdded = finalSponsor.availableBalance - beforeAvail;
 
     console.log(`Final Sponsor Rank: ${finalSponsor.rank}`);
-    console.log(`Sponsor Promotional Income added: $${bonusPromoAdded} (Expected: $130)`);
-    console.log(`Sponsor Available Balance added: $${bonusAvailAdded} (Expected: $130)`);
+    console.log(`Sponsor claimedRankBonuses: ${JSON.stringify(finalSponsor.claimedRankBonuses)}`);
+    console.log(`Sponsor Promotional Income added: $${bonusPromoAdded} (Expected: $100)`);
+    console.log(`Sponsor Available Balance added: $${bonusAvailAdded} (Expected: $100)`);
 
-    const bonusPassed = finalSponsor.rank === 'L1' && bonusPromoAdded === 130 && bonusAvailAdded === 130;
+    const bonusPassed = finalSponsor.rank === 'L1' && 
+                        finalSponsor.claimedRankBonuses.includes('L1') && 
+                        bonusPromoAdded === 100 && 
+                        bonusAvailAdded === 100;
     console.log(`Result: ${bonusPassed ? '✅ PASSED' : '❌ FAILED'}`);
 
 
